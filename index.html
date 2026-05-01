@@ -49,15 +49,97 @@
     min-height: 100vh;
   }
 
-  /* === DISPLAY TYPOGRAPHY === */
   .display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.02em; }
   .mono { font-family: 'JetBrains Mono', monospace; }
 
-  /* === SCROLLBAR === */
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: var(--black-2); }
   ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
+
+  /* ====================================================
+     BIGMARKT WORDMARK — CSS (mixed case, triangle A)
+     ==================================================== */
+  .bm-wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    line-height: 1;
+  }
+  .bm-wordmark .bm-big {
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .bm-wordmark .bm-m {
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .bm-wordmark .bm-rkt {
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .bm-a-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 28px;
+    position: relative;
+    margin: 0 1px;
+  }
+  .bm-a-tri {
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-bottom: 22px solid var(--gold);
+    position: relative;
+    filter: drop-shadow(0 0 6px rgba(212,175,55,0.5));
+  }
+  .bm-a-tri::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 10px solid var(--black-2);
+    position: absolute;
+    bottom: -22px;
+    left: -5px;
+  }
+
+  /* Small version for topbar */
+  .bm-wordmark-sm .bm-big,
+  .bm-wordmark-sm .bm-m,
+  .bm-wordmark-sm .bm-rkt {
+    font-size: 20px;
+  }
+  .bm-wordmark-sm .bm-a-wrap {
+    width: 13px;
+    height: 20px;
+  }
+  .bm-wordmark-sm .bm-a-tri {
+    border-left-width: 6px;
+    border-right-width: 6px;
+    border-bottom-width: 16px;
+  }
+  .bm-wordmark-sm .bm-a-tri::after {
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-bottom-width: 7px;
+    bottom: -16px;
+    left: -3px;
+    border-bottom-color: var(--black);
+  }
 
   /* ====================================================
      LOGIN SCREEN
@@ -106,30 +188,11 @@
     margin-bottom: 32px;
   }
   .brand-mark {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
     margin-bottom: 16px;
   }
-  .brand-logo {
-    width: 44px; height: 44px;
-    background: var(--gold);
-    color: var(--black);
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 10px;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    line-height: 1;
-    transform: rotate(-4deg);
-    box-shadow: 0 4px 20px rgba(212,175,55,0.3);
-  }
-  .brand-name {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 32px;
-    letter-spacing: 0.06em;
-    color: var(--text);
-  }
-  .brand-name span { color: var(--gold); }
 
   .login-tag {
     display: inline-block;
@@ -152,16 +215,13 @@
   .login-headline em {
     font-style: normal;
     color: var(--gold);
-    position: relative;
   }
   .login-sub {
     color: var(--muted);
     font-size: 14px;
   }
 
-  .field {
-    margin-bottom: 14px;
-  }
+  .field { margin-bottom: 14px; }
   .field label {
     display: block;
     font-size: 11px;
@@ -207,7 +267,6 @@
   }
   .btn-primary:hover { background: var(--gold-bright); }
   .btn-primary:active { transform: translateY(1px); }
-
   .btn-ghost {
     background: transparent;
     color: var(--text);
@@ -225,8 +284,7 @@
     letter-spacing: 0.2em;
   }
   .divider::before, .divider::after {
-    content: ''; flex: 1; height: 1px;
-    background: var(--line);
+    content: ''; flex: 1; height: 1px; background: var(--line);
   }
 
   .login-footer {
@@ -252,29 +310,11 @@
     background: rgba(10,10,10,0.85);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--line);
-    padding: 14px 20px;
+    padding: 12px 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
-  .topbar-brand {
-    display: flex; align-items: center; gap: 10px;
-  }
-  .topbar-logo {
-    width: 32px; height: 32px;
-    background: var(--gold); color: var(--black);
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 8px;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px;
-    transform: rotate(-4deg);
-  }
-  .topbar-text {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 20px;
-    letter-spacing: 0.05em;
-  }
-  .topbar-text span { color: var(--gold); }
 
   .logout-btn {
     background: transparent;
@@ -317,10 +357,7 @@
     line-height: 1;
     letter-spacing: 0.02em;
   }
-  .page-title em {
-    font-style: normal;
-    color: var(--gold);
-  }
+  .page-title em { font-style: normal; color: var(--gold); }
   .page-sub {
     color: var(--muted);
     font-size: 13px;
@@ -328,10 +365,7 @@
     text-transform: uppercase;
     margin-top: 6px;
   }
-  .page-sub::before {
-    content: '— ';
-    color: var(--gold);
-  }
+  .page-sub::before { content: '— '; color: var(--gold); }
 
   /* ====================================================
      DASHBOARD
@@ -381,14 +415,8 @@
   .stat-value.gold { color: var(--gold); }
   .stat-value.win { color: var(--win); }
   .stat-value.loss { color: var(--loss); }
-  .stat-foot {
-    margin-top: 6px;
-    font-size: 11px;
-    color: var(--muted-2);
-    letter-spacing: 0.05em;
-  }
+  .stat-foot { margin-top: 6px; font-size: 11px; color: var(--muted-2); letter-spacing: 0.05em; }
 
-  /* Recent trades */
   .section {
     background: var(--black-2);
     border: 1px solid var(--line);
@@ -421,11 +449,7 @@
     margin: 0 -18px;
     padding: 0 18px;
   }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 600px;
-  }
+  table { width: 100%; border-collapse: collapse; min-width: 600px; }
   thead th {
     text-align: left;
     font-size: 10px;
@@ -530,9 +554,7 @@
   .toggle-group button.active.buy { background: var(--win); color: var(--black); }
   .toggle-group button.active.sell { background: var(--loss); color: white; }
 
-  .result-group {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
+  .result-group { grid-template-columns: 1fr 1fr 1fr; }
   .result-group button.active.win { background: var(--win); color: var(--black); }
   .result-group button.active.loss { background: var(--loss); color: white; }
   .result-group button.active.be { background: var(--be); color: var(--black); }
@@ -546,10 +568,7 @@
     font-weight: 700;
     grid-column: 1/-1;
   }
-  .form-section-label::before {
-    content: '◆ ';
-    margin-right: 4px;
-  }
+  .form-section-label::before { content: '◆ '; margin-right: 4px; }
 
   .form-actions {
     display: flex; gap: 10px;
@@ -601,6 +620,247 @@
   .filter-field select option { background: var(--black-2); color: var(--text); }
 
   /* ====================================================
+     JOURNAL VIEW TOGGLE
+     ==================================================== */
+  .view-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .view-btn {
+    padding: 8px 18px;
+    background: var(--black-2);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    border-radius: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .view-btn.active {
+    background: rgba(212,175,55,0.12);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+  .view-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  /* ====================================================
+     CALENDAR HEATMAP
+     ==================================================== */
+  .cal-wrap {
+    background: var(--black-2);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .cal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 0.06em;
+    color: var(--text);
+  }
+  .cal-title span { color: var(--gold); }
+  .cal-nav {
+    display: flex;
+    gap: 8px;
+  }
+  .cal-nav button {
+    width: 36px; height: 36px;
+    background: var(--black-3);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cal-nav button:hover { border-color: var(--gold); color: var(--gold); }
+
+  .cal-legend {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .cal-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  .cal-legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+  }
+
+  .cal-days-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+  .cal-day-name {
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--muted-2);
+    text-transform: uppercase;
+    padding: 4px 0;
+  }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .cal-cell {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.1s, box-shadow 0.1s;
+    min-height: 52px;
+    padding: 4px 2px;
+    gap: 2px;
+  }
+  .cal-cell:hover { transform: scale(1.06); z-index: 2; }
+  .cal-cell.empty { background: transparent; cursor: default; pointer-events: none; }
+  .cal-cell.no-trade {
+    background: var(--black-3);
+    border: 1px solid var(--line);
+  }
+  .cal-cell.no-trade:hover { border-color: var(--line-2); }
+  .cal-cell.win-sm { background: rgba(34,197,94,0.25); border: 1px solid rgba(34,197,94,0.3); }
+  .cal-cell.win-md { background: rgba(34,197,94,0.5); border: 1px solid rgba(34,197,94,0.5); }
+  .cal-cell.win-lg { background: rgba(34,197,94,0.8); border: 1px solid rgba(34,197,94,0.8); }
+  .cal-cell.loss-sm { background: rgba(239,68,68,0.25); border: 1px solid rgba(239,68,68,0.3); }
+  .cal-cell.loss-md { background: rgba(239,68,68,0.5); border: 1px solid rgba(239,68,68,0.5); }
+  .cal-cell.loss-lg { background: rgba(239,68,68,0.8); border: 1px solid rgba(239,68,68,0.8); }
+  .cal-cell.breakeven { background: rgba(234,179,8,0.3); border: 1px solid rgba(234,179,8,0.4); }
+
+  .cal-cell-day {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: rgba(255,255,255,0.6);
+    line-height: 1;
+  }
+  .cal-cell-pnl {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    line-height: 1;
+    color: rgba(255,255,255,0.9);
+    white-space: nowrap;
+  }
+  .cal-cell.win-lg .cal-cell-day,
+  .cal-cell.win-lg .cal-cell-pnl,
+  .cal-cell.win-md .cal-cell-day,
+  .cal-cell.win-md .cal-cell-pnl { color: rgba(0,0,0,0.85); }
+
+  .cal-cell.today {
+    box-shadow: 0 0 0 2px var(--gold);
+  }
+
+  /* Calendar Popup */
+  .cal-popup {
+    position: fixed;
+    background: var(--black-3);
+    border: 1px solid var(--gold);
+    border-radius: 12px;
+    padding: 16px;
+    z-index: 300;
+    min-width: 220px;
+    max-width: 280px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .cal-popup.show { opacity: 1; pointer-events: auto; }
+  .cal-popup-date {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
+  }
+  .cal-popup-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 13px;
+    border-bottom: 1px solid var(--line);
+  }
+  .cal-popup-stat:last-child { border-bottom: none; }
+  .cal-popup-label { color: var(--muted); font-size: 11px; letter-spacing: 0.1em; }
+  .cal-popup-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
+  .cal-popup-close {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    pointer-events: auto;
+  }
+  .cal-popup-close:hover { color: var(--text); }
+
+  .cal-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .cal-sum-card {
+    background: var(--black-3);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+  .cal-sum-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .cal-sum-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  /* ====================================================
      ANALYTICS
      ==================================================== */
   .charts-grid {
@@ -634,19 +894,10 @@
     border-bottom: 1px solid var(--line);
   }
   .session-row:last-child { border-bottom: none; }
-  .session-name {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px;
-    letter-spacing: 0.08em;
-  }
-  .session-stat {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
-    color: var(--muted);
-  }
+  .session-name { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.08em; }
+  .session-stat { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--muted); }
   .session-bar {
-    flex: 1;
-    height: 6px;
+    flex: 1; height: 6px;
     background: var(--black);
     border-radius: 3px;
     margin: 0 14px;
@@ -699,11 +950,7 @@
     background: var(--gold);
     border-radius: 0 0 2px 2px;
   }
-
-  /* The "Add" button — center, prominent */
-  .nav-item.nav-add {
-    color: var(--black);
-  }
+  .nav-item.nav-add { color: var(--black); }
   .nav-add-button {
     width: 52px; height: 52px;
     background: var(--gold);
@@ -737,10 +984,7 @@
     transition: all 0.3s;
     box-shadow: var(--shadow);
   }
-  .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.error { border-color: var(--loss); }
 
   /* ====================================================
@@ -761,10 +1005,12 @@
 </head>
 <body>
 
-<!-- ============================================================
-     TOAST
-     ============================================================ -->
 <div class="toast" id="toast"></div>
+<div class="cal-popup" id="calPopup">
+  <button class="cal-popup-close" onclick="closeCalPopup()">✕</button>
+  <div class="cal-popup-date" id="calPopupDate"></div>
+  <div id="calPopupBody"></div>
+</div>
 
 <!-- ============================================================
      LOGIN
@@ -773,8 +1019,10 @@
   <div class="login-card">
     <div class="brand-stack">
       <div class="brand-mark">
-        <div class="brand-logo">B</div>
-        <div class="brand-name">BIG<span>MARKT</span></div>
+        <!-- BigMarkt Logo — CSS approach, no SVG font issues -->
+      <div class="bm-wordmark">
+        <span class="bm-big">Big</span><span class="bm-m">M</span><span class="bm-a-wrap"><span class="bm-a-tri"></span></span><span class="bm-rkt">rkt</span>
+      </div>
       </div>
       <div class="login-tag">FTS Trade Journal</div>
       <div class="login-headline">LOG <em>EVERY</em><br>TRADE.</div>
@@ -795,13 +1043,26 @@
 
     <div class="divider">OR</div>
 
-    <button class="btn btn-ghost" onclick="loginAsDemo()">
+    <div id="demoGate" style="display:none; margin-top:12px;">
+      <div class="field">
+        <label for="demoName">Your Name</label>
+        <input type="text" id="demoName" placeholder="e.g. Emeka Trader" required>
+      </div>
+      <div class="field">
+        <label for="demoEmail">Your Email</label>
+        <input type="email" id="demoEmail" placeholder="you@email.com" required>
+      </div>
+      <button class="btn btn-primary" onclick="submitDemoGate()" style="margin-bottom:8px;">GET FREE ACCESS</button>
+      <button class="btn btn-ghost" onclick="hideDemoGate()">CANCEL</button>
+    </div>
+
+    <button class="btn btn-ghost" id="demoBtn" onclick="showDemoGate()">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-      CONTINUE AS DEMO TRADER
+      TRY FREE — NO PASSWORD NEEDED
     </button>
 
     <div class="login-footer">
-      Free forever <span>·</span> No paywall <span>·</span> Built by Jefe S.
+      Built for traders <span>·</span> By traders <span>·</span> BigMarkt
     </div>
   </div>
 </div>
@@ -813,9 +1074,11 @@
 
   <!-- TOP BAR -->
   <header class="topbar">
-    <div class="topbar-brand">
-      <div class="topbar-logo">B</div>
-      <div class="topbar-text">BIG<span>MARKT</span></div>
+    <div>
+      <!-- Topbar Logo -->
+      <div class="bm-wordmark bm-wordmark-sm">
+        <span class="bm-big">Big</span><span class="bm-m">M</span><span class="bm-a-wrap"><span class="bm-a-tri"></span></span><span class="bm-rkt">rkt</span>
+      </div>
     </div>
     <button class="logout-btn" onclick="logout()">LOG OUT</button>
   </header>
@@ -875,6 +1138,18 @@
       </div>
     </div>
 
+    <div class="section" style="background: linear-gradient(135deg, rgba(212,175,55,0.08), rgba(212,175,55,0.03)); border-color: rgba(212,175,55,0.25);">
+      <div class="row between" style="flex-wrap:wrap; gap:12px;">
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:0.05em; color:var(--gold);">JOIN THE FTS COMMUNITY</div>
+          <div style="font-size:12px; color:var(--muted); margin-top:3px;">Live signals · Master classes · Copy trading — Free Trading School by Jefe S.</div>
+        </div>
+        <a href="https://t.me/ftsbyjefe" target="_blank" style="text-decoration:none;">
+          <button class="btn btn-primary" style="width:auto; padding:10px 20px; font-size:14px;">JOIN TELEGRAM →</button>
+        </a>
+      </div>
+    </div>
+
     <div class="section">
       <div class="row between" style="margin-bottom: 14px;">
         <div class="section-title" style="margin-bottom: 0;">RECENT TRADES</div>
@@ -893,43 +1168,118 @@
       </div>
     </div>
 
-    <div class="filters">
-      <div class="filter-field">
-        <label>Pair</label>
-        <select id="filterPair"><option value="">All Pairs</option></select>
+    <!-- View Toggle -->
+    <div class="view-toggle">
+      <button class="view-btn active" id="btnTableView" onclick="switchJournalView('table')">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        TABLE
+      </button>
+      <button class="view-btn" id="btnCalView" onclick="switchJournalView('calendar')">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        CALENDAR
+      </button>
+    </div>
+
+    <!-- Table View -->
+    <div id="journalTableView">
+      <div class="filters">
+        <div class="filter-field">
+          <label>Pair</label>
+          <select id="filterPair"><option value="">All Pairs</option></select>
+        </div>
+        <div class="filter-field">
+          <label>Result</label>
+          <select id="filterResult">
+            <option value="">All Results</option>
+            <option value="WIN">Win</option>
+            <option value="LOSS">Loss</option>
+            <option value="BREAKEVEN">Breakeven</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>Session</label>
+          <select id="filterSession">
+            <option value="">All Sessions</option>
+            <option>London</option>
+            <option>New York</option>
+            <option>Asian</option>
+            <option>Overlap</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>Sort</label>
+          <select id="filterSort">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="pnl_high">Highest PnL</option>
+            <option value="pnl_low">Lowest PnL</option>
+          </select>
+        </div>
       </div>
-      <div class="filter-field">
-        <label>Result</label>
-        <select id="filterResult">
-          <option value="">All Results</option>
-          <option value="WIN">Win</option>
-          <option value="LOSS">Loss</option>
-          <option value="BREAKEVEN">Breakeven</option>
-        </select>
-      </div>
-      <div class="filter-field">
-        <label>Session</label>
-        <select id="filterSession">
-          <option value="">All Sessions</option>
-          <option>London</option>
-          <option>New York</option>
-          <option>Asian</option>
-          <option>Overlap</option>
-        </select>
-      </div>
-      <div class="filter-field">
-        <label>Sort</label>
-        <select id="filterSort">
-          <option value="newest">Newest first</option>
-          <option value="oldest">Oldest first</option>
-          <option value="pnl_high">Highest PnL</option>
-          <option value="pnl_low">Lowest PnL</option>
-        </select>
+      <div class="section">
+        <div id="journalContainer"></div>
       </div>
     </div>
 
-    <div class="section">
-      <div id="journalContainer"></div>
+    <!-- Calendar View -->
+    <div id="journalCalView" style="display:none !important;">
+      <div class="cal-wrap">
+        <div class="cal-header">
+          <div class="cal-title" id="calMonthLabel">MAY <span>2026</span></div>
+          <div class="cal-nav">
+            <button onclick="calNav(-1)">&#8592;</button>
+            <button onclick="calNav(1)">&#8594;</button>
+          </div>
+        </div>
+
+        <div class="cal-legend">
+          <div class="cal-legend-item">
+            <div class="cal-legend-dot" style="background:rgba(34,197,94,0.25)"></div> Small Win
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-dot" style="background:rgba(34,197,94,0.8)"></div> Big Win
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-dot" style="background:rgba(239,68,68,0.25)"></div> Small Loss
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-dot" style="background:rgba(239,68,68,0.8)"></div> Big Loss
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-dot" style="background:rgba(234,179,8,0.3)"></div> Breakeven
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-dot" style="background:var(--black-3); border:1px solid var(--line)"></div> No Trade
+          </div>
+        </div>
+
+        <div class="cal-days-header">
+          <div class="cal-day-name">Mon</div>
+          <div class="cal-day-name">Tue</div>
+          <div class="cal-day-name">Wed</div>
+          <div class="cal-day-name">Thu</div>
+          <div class="cal-day-name">Fri</div>
+          <div class="cal-day-name">Sat</div>
+          <div class="cal-day-name">Sun</div>
+        </div>
+
+        <div class="cal-grid" id="calGrid"></div>
+
+        <div class="cal-summary">
+          <div class="cal-sum-card">
+            <div class="cal-sum-label">Month PnL</div>
+            <div class="cal-sum-value" id="calSumPnL" style="color:var(--gold)">$0</div>
+          </div>
+          <div class="cal-sum-card">
+            <div class="cal-sum-label">Win Days</div>
+            <div class="cal-sum-value" id="calSumWinDays" style="color:var(--win)">0</div>
+          </div>
+          <div class="cal-sum-card">
+            <div class="cal-sum-label">Loss Days</div>
+            <div class="cal-sum-value" id="calSumLossDays" style="color:var(--loss)">0</div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -944,7 +1294,6 @@
 
     <form id="tradeForm" class="form-card">
       <div class="form-grid">
-
         <div class="form-section-label">Setup</div>
 
         <div class="field">
@@ -1105,9 +1454,7 @@
 
 </div>
 
-<!-- ============================================================
-     BOTTOM NAV
-     ============================================================ -->
+<!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottomNav" style="display:none;">
   <button class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
     <svg viewBox="0 0 24 24"><path d="M3 12 L12 4 L21 12"/><path d="M5 10 V20 H19 V10"/></svg>
@@ -1132,7 +1479,7 @@
 
 <script>
 /* =================================================================
-   BIGMARKT FTS TRADE JOURNAL — PROTOTYPE
+   BIGMARKT FTS TRADE JOURNAL
    ================================================================= */
 
 const STORAGE_KEY_USERS = 'bigmarkt_users';
@@ -1144,7 +1491,10 @@ let state = {
   trades: [],
   currentPage: 'dashboard',
   formDirection: 'BUY',
-  formResult: 'WIN'
+  formResult: 'WIN',
+  calYear: new Date().getFullYear(),
+  calMonth: new Date().getMonth(), // 0-indexed
+  journalView: 'table'
 };
 
 let charts = { pnl: null, pair: null, emotion: null };
@@ -1160,23 +1510,45 @@ function toast(msg, type = 'success') {
 }
 
 /* ---------- auth ---------- */
-function getUsers() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEY_USERS) || '{}');
+function getUsers() { return JSON.parse(localStorage.getItem(STORAGE_KEY_USERS) || '{}'); }
+function saveUsers(u) { localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(u)); }
+
+function showDemoGate() {
+  document.getElementById('demoGate').style.display = 'block';
+  document.getElementById('demoBtn').style.display = 'none';
 }
-function saveUsers(u) {
-  localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(u));
+function hideDemoGate() {
+  document.getElementById('demoGate').style.display = 'none';
+  document.getElementById('demoBtn').style.display = 'flex';
 }
-function loginAsDemo() {
-  const email = 'demo@bigmarkt.com';
+function submitDemoGate() {
+  const name = document.getElementById('demoName').value.trim();
+  const email = document.getElementById('demoEmail').value.trim().toLowerCase();
+  if (!name) { toast('Enter your name.', 'error'); return; }
+  if (!email || !email.includes('@')) { toast('Enter a valid email.', 'error'); return; }
+
+  // Save lead to localStorage (will move to Supabase in Week 2)
+  const leads = JSON.parse(localStorage.getItem('bigmarkt_leads') || '[]');
+  const existing = leads.find(l => l.email === email);
+  if (!existing) {
+    leads.push({ name, email, joinedAt: Date.now(), source: 'demo' });
+    localStorage.setItem('bigmarkt_leads', JSON.stringify(leads));
+  }
+
+  // Log them in as demo
   const users = getUsers();
-  if (!users[email]) { users[email] = { password: 'demo', createdAt: Date.now() }; saveUsers(users); }
+  if (!users[email]) {
+    users[email] = { password: 'demo_' + Date.now(), name, createdAt: Date.now(), isDemoUser: true };
+    saveUsers(users);
+  }
   localStorage.setItem(STORAGE_KEY_SESSION, email);
+  localStorage.setItem('bigmarkt_username', name);
   state.user = email;
-  // seed demo data if empty
-  const existing = loadTrades();
-  if (existing.length === 0) seedDemoTrades();
+  state.userName = name;
+  const existing2 = loadTrades();
+  if (existing2.length === 0) seedDemoTrades();
   enterApp();
-  toast('Welcome, demo trader.');
+  toast('Welcome, ' + name + '. Let\'s build your edge.');
 }
 
 function seedDemoTrades() {
@@ -1186,11 +1558,16 @@ function seedDemoTrades() {
     { pair: 'XAU/USD', direction: 'BUY', entry_price: 2340.5, exit_price: 2358.2, stop_loss: 2335, take_profit: 2360, lot_size: 0.5, result: 'WIN', pnl: 885, rr_ratio: 3.2, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Clean break of London high. Held through retest.', created_at: now - day*8 },
     { pair: 'GBP/JPY', direction: 'SELL', entry_price: 198.45, exit_price: 197.20, stop_loss: 198.90, take_profit: 197.00, lot_size: 0.3, result: 'WIN', pnl: 375, rr_ratio: 2.8, session: 'New York', emotions: 'Patient', strategy: 'Liquidity Grab', notes: 'Took out Asian high then rejected hard.', created_at: now - day*7 },
     { pair: 'EUR/USD', direction: 'BUY', entry_price: 1.0820, exit_price: 1.0805, stop_loss: 1.0800, take_profit: 1.0860, lot_size: 0.5, result: 'LOSS', pnl: -75, rr_ratio: -0.4, session: 'London', emotions: 'FOMO', strategy: 'Scalp', notes: 'Chased entry. Should have waited for retest.', created_at: now - day*6 },
-    { pair: 'XAU/USD', direction: 'SELL', entry_price: 2380, exit_price: 2370, stop_loss: 2385, take_profit: 2365, lot_size: 0.4, result: 'WIN', pnl: 400, rr_ratio: 2.0, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Distribution at all-time highs. Beautiful structure.', created_at: now - day*5 },
-    { pair: 'NAS100', direction: 'BUY', entry_price: 18420, exit_price: 18390, stop_loss: 18380, take_profit: 18500, lot_size: 0.2, result: 'LOSS', pnl: -60, rr_ratio: -0.75, session: 'New York', emotions: 'Revenge', strategy: 'Breakout', notes: 'Tried to make back the EU loss. Bad idea.', created_at: now - day*4 },
+    { pair: 'XAU/USD', direction: 'SELL', entry_price: 2380, exit_price: 2370, stop_loss: 2385, take_profit: 2365, lot_size: 0.4, result: 'WIN', pnl: 400, rr_ratio: 2.0, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Distribution at all-time highs.', created_at: now - day*5 },
+    { pair: 'NAS100', direction: 'BUY', entry_price: 18420, exit_price: 18390, stop_loss: 18380, take_profit: 18500, lot_size: 0.2, result: 'LOSS', pnl: -60, rr_ratio: -0.75, session: 'New York', emotions: 'Revenge', strategy: 'Breakout', notes: 'Revenge trade after EU loss. Bad idea.', created_at: now - day*4 },
     { pair: 'BTC/USD', direction: 'BUY', entry_price: 67800, exit_price: 69100, stop_loss: 67200, take_profit: 69500, lot_size: 0.05, result: 'WIN', pnl: 65, rr_ratio: 2.1, session: 'Asian', emotions: 'Patient', strategy: 'Swing', notes: 'Asian range break with volume confirmation.', created_at: now - day*3 },
-    { pair: 'GBP/JPY', direction: 'BUY', entry_price: 197.10, exit_price: 198.40, stop_loss: 196.80, take_profit: 198.50, lot_size: 0.3, result: 'WIN', pnl: 390, rr_ratio: 4.3, session: 'Overlap', emotions: 'Confident', strategy: 'SMC', notes: 'Order block held. Clean R:R of 4+.', created_at: now - day*2 },
-    { pair: 'XAU/USD', direction: 'BUY', entry_price: 2390, exit_price: 2390, stop_loss: 2385, take_profit: 2400, lot_size: 0.3, result: 'BREAKEVEN', pnl: 0, rr_ratio: 0, session: 'New York', emotions: 'Hesitant', strategy: 'Scalp', notes: 'Moved SL to BE too early. Trade went to TP after.', created_at: now - day*1 },
+    { pair: 'GBP/JPY', direction: 'BUY', entry_price: 197.10, exit_price: 198.40, stop_loss: 196.80, take_profit: 198.50, lot_size: 0.3, result: 'WIN', pnl: 390, rr_ratio: 4.3, session: 'Overlap', emotions: 'Confident', strategy: 'SMC', notes: 'Order block held. Clean 4R.', created_at: now - day*2 },
+    { pair: 'XAU/USD', direction: 'BUY', entry_price: 2390, exit_price: 2390, stop_loss: 2385, take_profit: 2400, lot_size: 0.3, result: 'BREAKEVEN', pnl: 0, rr_ratio: 0, session: 'New York', emotions: 'Hesitant', strategy: 'Scalp', notes: 'Moved SL to BE too early.', created_at: now - day*1 },
+    // May 2026 trades for calendar demo
+    { pair: 'XAU/USD', direction: 'BUY', entry_price: 3280, exit_price: 3312, stop_loss: 3270, take_profit: 3320, lot_size: 0.5, result: 'WIN', pnl: 1600, rr_ratio: 3.2, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Strong London open breakout.', created_at: new Date('2026-05-01').getTime() },
+    { pair: 'GBP/USD', direction: 'SELL', entry_price: 1.2750, exit_price: 1.2690, stop_loss: 1.2780, take_profit: 1.2680, lot_size: 0.4, result: 'WIN', pnl: 240, rr_ratio: 2.3, session: 'New York', emotions: 'Patient', strategy: 'Liquidity Grab', notes: 'NY session reversal.', created_at: new Date('2026-05-01').getTime() + 3600000 },
+    { pair: 'NAS100', direction: 'BUY', entry_price: 19200, exit_price: 19150, stop_loss: 19100, take_profit: 19400, lot_size: 0.2, result: 'LOSS', pnl: -100, rr_ratio: -0.5, session: 'New York', emotions: 'FOMO', strategy: 'Breakout', notes: 'Faded too early.', created_at: new Date('2026-05-02').getTime() },
+    { pair: 'XAU/USD', direction: 'BUY', entry_price: 3295, exit_price: 3320, stop_loss: 3285, take_profit: 3325, lot_size: 0.6, result: 'WIN', pnl: 1500, rr_ratio: 2.5, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Beautiful OB retest.', created_at: new Date('2026-05-02').getTime() + 7200000 },
   ];
   saveTrades(seeded.map((t, i) => ({ ...t, id: 't' + (now + i) })));
 }
@@ -1198,11 +1575,8 @@ function seedDemoTrades() {
 function login(email, password) {
   const users = getUsers();
   if (users[email]) {
-    if (users[email].password !== password) {
-      toast('Wrong password.', 'error'); return false;
-    }
+    if (users[email].password !== password) { toast('Wrong password.', 'error'); return false; }
   } else {
-    // sign-up on the fly for prototype
     users[email] = { password, createdAt: Date.now() };
     saveUsers(users);
   }
@@ -1223,10 +1597,7 @@ function logout() {
 
 function checkSession() {
   const email = localStorage.getItem(STORAGE_KEY_SESSION);
-  if (email) {
-    state.user = email;
-    enterApp();
-  }
+  if (email) { state.user = email; enterApp(); }
 }
 
 function enterApp() {
@@ -1237,15 +1608,9 @@ function enterApp() {
   navigate('dashboard');
 }
 
-/* ---------- trades store (per user) ---------- */
 function tradesStorageKey() { return STORAGE_KEY_TRADES + '_' + (state.user || 'anon'); }
-function loadTrades() {
-  return JSON.parse(localStorage.getItem(tradesStorageKey()) || '[]');
-}
-function saveTrades(arr) {
-  localStorage.setItem(tradesStorageKey(), JSON.stringify(arr));
-  state.trades = arr;
-}
+function loadTrades() { return JSON.parse(localStorage.getItem(tradesStorageKey()) || '[]'); }
+function saveTrades(arr) { localStorage.setItem(tradesStorageKey(), JSON.stringify(arr)); state.trades = arr; }
 
 /* ---------- navigation ---------- */
 function navigate(page) {
@@ -1257,7 +1622,17 @@ function navigate(page) {
     n.classList.toggle('active', n.dataset.page === page);
   });
   if (page === 'dashboard') renderDashboard();
-  if (page === 'journal') renderJournal();
+  if (page === 'journal') {
+    if (state.journalView === 'calendar') {
+      document.getElementById('journalTableView').style.display = 'none';
+      document.getElementById('journalCalView').style.display = 'block';
+      renderCalendar();
+    } else {
+      document.getElementById('journalTableView').style.display = 'block';
+      document.getElementById('journalCalView').style.display = 'none';
+      renderJournal();
+    }
+  }
   if (page === 'analytics') renderAnalytics();
   if (page === 'add') resetTradeForm();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1295,7 +1670,6 @@ function renderDashboard() {
 
   document.getElementById('statTotal').textContent = total;
   document.getElementById('statTotalFoot').textContent = total === 0 ? 'No trades yet' : (wins + ' wins / ' + losses + ' losses');
-
   document.getElementById('statWinRate').textContent = winRate === null ? '—' : winRate + '%';
   document.getElementById('statWinRateFoot').textContent = winRate === null ? 'Log a trade to start' : (winRate >= 50 ? 'Above 50% — solid' : 'Below 50% — tighten up');
 
@@ -1305,22 +1679,17 @@ function renderDashboard() {
   if (totalPnL > 0) pnlEl.classList.add('win');
   else if (totalPnL < 0) pnlEl.classList.add('loss');
 
-  // best pair = highest cumulative PnL
   const byPair = {};
   t.forEach(x => { byPair[x.pair] = (byPair[x.pair] || 0) + (Number(x.pnl) || 0); });
   let bestPair = '—', bestPnL = -Infinity;
-  for (const [p, v] of Object.entries(byPair)) {
-    if (v > bestPnL) { bestPnL = v; bestPair = p; }
-  }
+  for (const [p, v] of Object.entries(byPair)) { if (v > bestPnL) { bestPnL = v; bestPair = p; } }
   document.getElementById('statBestPair').textContent = total === 0 ? '—' : bestPair;
   document.getElementById('statBestPairFoot').textContent = total === 0 ? 'Highest PnL pair' : fmtMoney(bestPnL) + ' on ' + bestPair;
 
-  // avg RR (only winning/losing trades count, not BE)
   const rrTrades = t.filter(x => x.rr_ratio !== '' && x.rr_ratio !== null && !isNaN(Number(x.rr_ratio)));
   const avgRR = rrTrades.length === 0 ? null : (rrTrades.reduce((s, x) => s + Number(x.rr_ratio), 0) / rrTrades.length);
   document.getElementById('statAvgRR').textContent = avgRR === null ? '—' : (avgRR >= 0 ? '1:' + avgRR.toFixed(1) : avgRR.toFixed(1));
 
-  // current streak
   const sorted = [...t].sort((a, b) => b.created_at - a.created_at);
   let streak = 0, streakType = null;
   for (const x of sorted) {
@@ -1332,32 +1701,22 @@ function renderDashboard() {
   const streakEl = document.getElementById('statStreak');
   streakEl.classList.remove('win','loss','gold');
   if (streakType === 'WIN') { streakEl.textContent = 'W' + streak; streakEl.classList.add('win'); document.getElementById('statStreakFoot').textContent = streak + ' wins in a row'; }
-  else if (streakType === 'LOSS') { streakEl.textContent = 'L' + streak; streakEl.classList.add('loss'); document.getElementById('statStreakFoot').textContent = streak + ' losses in a row — reset'; }
+  else if (streakType === 'LOSS') { streakEl.textContent = 'L' + streak; streakEl.classList.add('loss'); document.getElementById('statStreakFoot').textContent = streak + ' — reset now'; }
   else { streakEl.textContent = '—'; document.getElementById('statStreakFoot').textContent = 'Current run'; }
 
   document.getElementById('statWins').textContent = wins;
   document.getElementById('statLosses').textContent = losses;
 
-  // recent trades (last 5)
   const recent = sorted.slice(0, 5);
   const c = document.getElementById('recentTradesContainer');
   if (recent.length === 0) {
-    c.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">∅</div>
-        <div class="empty-state-title">NO TRADES YET</div>
-        <div class="text-muted small">Tap the gold + button to log your first trade.</div>
-      </div>`;
+    c.innerHTML = `<div class="empty-state"><div class="empty-state-icon">∅</div><div class="empty-state-title">NO TRADES YET</div><div class="text-muted small">Tap the gold + button to log your first trade.</div></div>`;
     return;
   }
   c.innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr>
-            <th>Date</th><th>Pair</th><th>Dir</th><th>Result</th><th>PnL</th><th>RR</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Date</th><th>Pair</th><th>Dir</th><th>Result</th><th>PnL</th><th>RR</th></tr></thead>
         <tbody>
           ${recent.map(t => `
             <tr>
@@ -1367,16 +1726,38 @@ function renderDashboard() {
               <td>${pillResult(t.result)}</td>
               <td class="num ${t.pnl > 0 ? 'text-win' : t.pnl < 0 ? 'text-loss' : ''}">${fmtMoney(t.pnl)}</td>
               <td class="num text-muted">${t.rr_ratio || '—'}</td>
-            </tr>
-          `).join('')}
+            </tr>`).join('')}
         </tbody>
       </table>
     </div>`;
 }
 
 /* ---------- JOURNAL ---------- */
+function switchJournalView(view) {
+  state.journalView = view;
+  const tableDiv = document.getElementById('journalTableView');
+  const calDiv = document.getElementById('journalCalView');
+  const btnTable = document.getElementById('btnTableView');
+  const btnCal = document.getElementById('btnCalView');
+
+  if (view === 'calendar') {
+    tableDiv.style.display = 'none';
+    calDiv.style.display = 'block';
+    btnTable.classList.remove('active');
+    btnCal.classList.add('active');
+    state.calYear = new Date().getFullYear();
+    state.calMonth = new Date().getMonth();
+    renderCalendar();
+  } else {
+    calDiv.style.display = 'none';
+    tableDiv.style.display = 'block';
+    btnCal.classList.remove('active');
+    btnTable.classList.add('active');
+    renderJournal();
+  }
+}
+
 function renderJournal() {
-  // populate pair filter
   const pairs = Array.from(new Set(state.trades.map(t => t.pair))).sort();
   const sel = document.getElementById('filterPair');
   const currentVal = sel.value;
@@ -1399,23 +1780,13 @@ function renderJournal() {
 
   const c = document.getElementById('journalContainer');
   if (list.length === 0) {
-    c.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">∅</div>
-        <div class="empty-state-title">NO TRADES MATCH</div>
-        <div class="text-muted small">Try clearing the filters.</div>
-      </div>`;
+    c.innerHTML = `<div class="empty-state"><div class="empty-state-icon">∅</div><div class="empty-state-title">NO TRADES MATCH</div><div class="text-muted small">Try clearing the filters.</div></div>`;
     return;
   }
   c.innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr>
-            <th>Date</th><th>Pair</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Lot</th>
-            <th>Result</th><th>PnL</th><th>RR</th><th>Session</th><th>Emotion</th><th>Strategy</th><th></th>
-          </tr>
-        </thead>
+        <thead><tr><th>Date</th><th>Pair</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Lot</th><th>Result</th><th>PnL</th><th>RR</th><th>Session</th><th>Emotion</th><th>Strategy</th><th></th></tr></thead>
         <tbody>
           ${list.map(t => `
             <tr>
@@ -1432,8 +1803,7 @@ function renderJournal() {
               <td class="text-muted small">${t.emotions}</td>
               <td class="text-muted small">${t.strategy}</td>
               <td><button class="logout-btn" style="font-size:11px;padding:4px 8px;" onclick="deleteTrade('${t.id}')">DEL</button></td>
-            </tr>
-          `).join('')}
+            </tr>`).join('')}
         </tbody>
       </table>
     </div>`;
@@ -1448,6 +1818,164 @@ function deleteTrade(id) {
 
 ['filterPair', 'filterResult', 'filterSession', 'filterSort'].forEach(id => {
   document.addEventListener('change', e => { if (e.target.id === id) renderJournal(); });
+});
+
+/* ---------- CALENDAR HEATMAP ---------- */
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function calNav(dir) {
+  state.calMonth += dir;
+  if (state.calMonth > 11) { state.calMonth = 0; state.calYear++; }
+  if (state.calMonth < 0) { state.calMonth = 11; state.calYear--; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const { calYear, calMonth } = state;
+  const monthName = MONTHS[calMonth].toUpperCase();
+  document.getElementById('calMonthLabel').innerHTML = monthName + ' <span>' + calYear + '</span>';
+
+  // Build day → trades map
+  const dayMap = {};
+  state.trades.forEach(t => {
+    const d = new Date(t.created_at);
+    if (d.getFullYear() === calYear && d.getMonth() === calMonth) {
+      const key = d.getDate();
+      if (!dayMap[key]) dayMap[key] = [];
+      dayMap[key].push(t);
+    }
+  });
+
+  // Find max abs PnL for intensity scaling
+  const dayPnLs = Object.values(dayMap).map(arr => Math.abs(arr.reduce((s, t) => s + (Number(t.pnl)||0), 0)));
+  const maxPnL = Math.max(1, ...dayPnLs);
+
+  // First day of month (0=Sun, convert to Mon-first)
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1; // Mon=0
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === calYear && today.getMonth() === calMonth;
+
+  let html = '';
+  // Empty cells before first day
+  for (let i = 0; i < startOffset; i++) {
+    html += `<div class="cal-cell empty"></div>`;
+  }
+
+  let winDays = 0, lossDays = 0, monthPnL = 0;
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const trades = dayMap[day] || [];
+    const dayPnL = trades.reduce((s, t) => s + (Number(t.pnl)||0), 0);
+    monthPnL += dayPnL;
+
+    let cellClass = 'no-trade';
+    if (trades.length > 0) {
+      if (dayPnL > 0) {
+        winDays++;
+        const intensity = Math.min(1, Math.abs(dayPnL) / maxPnL);
+        if (intensity < 0.33) cellClass = 'win-sm';
+        else if (intensity < 0.66) cellClass = 'win-md';
+        else cellClass = 'win-lg';
+      } else if (dayPnL < 0) {
+        lossDays++;
+        const intensity = Math.min(1, Math.abs(dayPnL) / maxPnL);
+        if (intensity < 0.33) cellClass = 'loss-sm';
+        else if (intensity < 0.66) cellClass = 'loss-md';
+        else cellClass = 'loss-lg';
+      } else {
+        cellClass = 'breakeven';
+      }
+    }
+
+    const isToday = isCurrentMonth && today.getDate() === day;
+    const dateKey = calYear + '-' + calMonth + '-' + day;
+
+    html += `
+      <div class="cal-cell ${cellClass}${isToday ? ' today' : ''}"
+           onclick="showCalPopup(event, ${day}, '${dateKey}')"
+           title="${trades.length} trade${trades.length !== 1 ? 's' : ''} | ${fmtMoney(dayPnL)}">
+        <span class="cal-cell-day">${day}</span>
+        ${trades.length > 0 ? `<span class="cal-cell-pnl">${fmtMoney(dayPnL)}</span>` : ''}
+      </div>`;
+  }
+
+  document.getElementById('calGrid').innerHTML = html;
+
+  // Month summary
+  const pnlEl = document.getElementById('calSumPnL');
+  pnlEl.textContent = fmtMoney(monthPnL);
+  pnlEl.style.color = monthPnL > 0 ? 'var(--win)' : monthPnL < 0 ? 'var(--loss)' : 'var(--gold)';
+  document.getElementById('calSumWinDays').textContent = winDays;
+  document.getElementById('calSumLossDays').textContent = lossDays;
+}
+
+function showCalPopup(event, day, dateKey) {
+  const { calYear, calMonth } = state;
+  const trades = state.trades.filter(t => {
+    const d = new Date(t.created_at);
+    return d.getFullYear() === calYear && d.getMonth() === calMonth && d.getDate() === day;
+  });
+
+  if (trades.length === 0) return;
+
+  const popup = document.getElementById('calPopup');
+  const dayPnL = trades.reduce((s, t) => s + (Number(t.pnl)||0), 0);
+  const wins = trades.filter(t => t.result === 'WIN').length;
+  const losses = trades.filter(t => t.result === 'LOSS').length;
+  const bestRR = Math.max(...trades.map(t => Number(t.rr_ratio) || 0));
+  const avgRR = trades.filter(t => t.rr_ratio).reduce((s,t)=>s+(Number(t.rr_ratio)||0),0) / (trades.filter(t=>t.rr_ratio).length||1);
+
+  document.getElementById('calPopupDate').textContent =
+    MONTHS[calMonth] + ' ' + day + ', ' + calYear;
+
+  document.getElementById('calPopupBody').innerHTML = `
+    <div class="cal-popup-stat">
+      <span class="cal-popup-label">Trades</span>
+      <span class="cal-popup-value">${trades.length}</span>
+    </div>
+    <div class="cal-popup-stat">
+      <span class="cal-popup-label">W / L</span>
+      <span class="cal-popup-value"><span style="color:var(--win)">${wins}W</span> / <span style="color:var(--loss)">${losses}L</span></span>
+    </div>
+    <div class="cal-popup-stat">
+      <span class="cal-popup-label">Day PnL</span>
+      <span class="cal-popup-value" style="color:${dayPnL>0?'var(--win)':dayPnL<0?'var(--loss)':'var(--muted)'}">${fmtMoney(dayPnL)}</span>
+    </div>
+    <div class="cal-popup-stat">
+      <span class="cal-popup-label">Best RR</span>
+      <span class="cal-popup-value" style="color:var(--gold)">${bestRR > 0 ? '1:' + bestRR.toFixed(1) : '—'}</span>
+    </div>
+    <div class="cal-popup-stat">
+      <span class="cal-popup-label">Pairs</span>
+      <span class="cal-popup-value" style="font-size:11px">${[...new Set(trades.map(t=>t.pair))].join(', ')}</span>
+    </div>`;
+
+  // Position popup near click
+  const rect = event.target.closest('.cal-cell').getBoundingClientRect();
+  const popupW = 260;
+  let left = rect.right + 8;
+  if (left + popupW > window.innerWidth - 10) left = rect.left - popupW - 8;
+  if (left < 8) left = 8;
+  let top = rect.top;
+  if (top + 220 > window.innerHeight) top = window.innerHeight - 230;
+
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+  popup.classList.add('show');
+}
+
+function closeCalPopup() {
+  document.getElementById('calPopup').classList.remove('show');
+}
+
+document.addEventListener('click', e => {
+  const popup = document.getElementById('calPopup');
+  if (popup.classList.contains('show') && !popup.contains(e.target) && !e.target.closest('.cal-cell')) {
+    popup.classList.remove('show');
+  }
 });
 
 /* ---------- ADD TRADE ---------- */
@@ -1479,12 +2007,8 @@ document.querySelectorAll('#resultGroup button').forEach(b => {
 
 document.getElementById('pairSelect').addEventListener('change', e => {
   const wrap = document.getElementById('pairWrap');
-  if (e.target.value === '__custom') {
-    wrap.classList.add('custom');
-    document.getElementById('pairCustom').focus();
-  } else {
-    wrap.classList.remove('custom');
-  }
+  if (e.target.value === '__custom') { wrap.classList.add('custom'); document.getElementById('pairCustom').focus(); }
+  else wrap.classList.remove('custom');
 });
 
 document.getElementById('tradeForm').addEventListener('submit', e => {
@@ -1494,7 +2018,6 @@ document.getElementById('tradeForm').addEventListener('submit', e => {
     pair = document.getElementById('pairCustom').value.trim().toUpperCase();
     if (!pair) { toast('Enter a pair.', 'error'); return; }
   }
-
   const trade = {
     id: 't' + Date.now(),
     user_id: state.user,
@@ -1515,7 +2038,6 @@ document.getElementById('tradeForm').addEventListener('submit', e => {
     notes: document.getElementById('notes').value,
     image_url: null
   };
-
   const arr = state.trades.slice();
   arr.push(trade);
   saveTrades(arr);
@@ -1525,12 +2047,8 @@ document.getElementById('tradeForm').addEventListener('submit', e => {
 
 /* ---------- ANALYTICS ---------- */
 function renderAnalytics() {
-  // wait a tick so canvases have layout
   setTimeout(() => {
-    drawPnLChart();
-    drawPairChart();
-    drawSessionList();
-    drawEmotionChart();
+    drawPnLChart(); drawPairChart(); drawSessionList(); drawEmotionChart();
   }, 30);
 }
 
@@ -1550,14 +2068,8 @@ function chartCommon() {
       }
     },
     scales: {
-      x: {
-        grid: { color: '#1c1c1c' },
-        ticks: { color: '#888', font: { family: 'JetBrains Mono', size: 10 } }
-      },
-      y: {
-        grid: { color: '#1c1c1c' },
-        ticks: { color: '#888', font: { family: 'JetBrains Mono', size: 10 } }
-      }
+      x: { grid: { color: '#1c1c1c' }, ticks: { color: '#888', font: { family: 'JetBrains Mono', size: 10 } } },
+      y: { grid: { color: '#1c1c1c' }, ticks: { color: '#888', font: { family: 'JetBrains Mono', size: 10 } } }
     },
     responsive: true,
     maintainAspectRatio: false
@@ -1567,56 +2079,27 @@ function chartCommon() {
 function drawPnLChart() {
   const ctx = document.getElementById('chartPnL').getContext('2d');
   if (charts.pnl) charts.pnl.destroy();
-
   const sorted = [...state.trades].sort((a,b) => a.created_at - b.created_at);
   let cum = 0;
   const labels = sorted.map(t => fmtDate(t.created_at));
   const data = sorted.map(t => { cum += Number(t.pnl) || 0; return cum; });
-
-  if (sorted.length === 0) {
-    labels.push(''); data.push(0);
-  }
-
+  if (sorted.length === 0) { labels.push(''); data.push(0); }
   const grad = ctx.createLinearGradient(0, 0, 0, 260);
   grad.addColorStop(0, 'rgba(212,175,55,0.4)');
   grad.addColorStop(1, 'rgba(212,175,55,0)');
-
   charts.pnl = new Chart(ctx, {
     type: 'line',
     data: {
       labels,
-      datasets: [{
-        data,
-        borderColor: '#D4AF37',
-        backgroundColor: grad,
-        fill: true,
-        tension: 0.3,
-        borderWidth: 2.5,
-        pointBackgroundColor: '#D4AF37',
-        pointBorderColor: '#0A0A0A',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6
-      }]
+      datasets: [{ data, borderColor: '#D4AF37', backgroundColor: grad, fill: true, tension: 0.3, borderWidth: 2.5, pointBackgroundColor: '#D4AF37', pointBorderColor: '#0A0A0A', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6 }]
     },
-    options: {
-      ...chartCommon(),
-      plugins: {
-        ...chartCommon().plugins,
-        tooltip: {
-          ...chartCommon().plugins.tooltip,
-          callbacks: { label: (c) => 'Cum PnL: ' + fmtMoney(c.parsed.y) }
-        }
-      }
-    }
+    options: { ...chartCommon(), plugins: { ...chartCommon().plugins, tooltip: { ...chartCommon().plugins.tooltip, callbacks: { label: (c) => 'Cum PnL: ' + fmtMoney(c.parsed.y) } } } }
   });
 }
 
 function drawPairChart() {
   const ctx = document.getElementById('chartPair').getContext('2d');
   if (charts.pair) charts.pair.destroy();
-
-  // win rate by pair (only count wins+losses)
   const map = {};
   state.trades.forEach(t => {
     if (!map[t.pair]) map[t.pair] = { wins: 0, losses: 0 };
@@ -1625,32 +2108,13 @@ function drawPairChart() {
   });
   const pairs = Object.keys(map).filter(p => map[p].wins + map[p].losses > 0);
   const rates = pairs.map(p => Math.round((map[p].wins / (map[p].wins + map[p].losses)) * 100));
-
   charts.pair = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: pairs.length ? pairs : ['—'],
-      datasets: [{
-        data: pairs.length ? rates : [0],
-        backgroundColor: pairs.map((_, i) => rates[i] >= 50 ? '#D4AF37' : '#5a5a5a'),
-        borderRadius: 6,
-        borderSkipped: false
-      }]
+      datasets: [{ data: pairs.length ? rates : [0], backgroundColor: pairs.map((_, i) => rates[i] >= 50 ? '#D4AF37' : '#5a5a5a'), borderRadius: 6, borderSkipped: false }]
     },
-    options: {
-      ...chartCommon(),
-      scales: {
-        x: chartCommon().scales.x,
-        y: { ...chartCommon().scales.y, max: 100, ticks: { ...chartCommon().scales.y.ticks, callback: v => v + '%' } }
-      },
-      plugins: {
-        ...chartCommon().plugins,
-        tooltip: {
-          ...chartCommon().plugins.tooltip,
-          callbacks: { label: (c) => 'Win rate: ' + c.parsed.y + '%' }
-        }
-      }
-    }
+    options: { ...chartCommon(), scales: { x: chartCommon().scales.x, y: { ...chartCommon().scales.y, max: 100, ticks: { ...chartCommon().scales.y.ticks, callback: v => v + '%' } } }, plugins: { ...chartCommon().plugins, tooltip: { ...chartCommon().plugins.tooltip, callbacks: { label: (c) => 'Win rate: ' + c.parsed.y + '%' } } } }
   });
 }
 
@@ -1665,10 +2129,8 @@ function drawSessionList() {
     return { name: s, count: arr.length, pnl, rate };
   });
   const maxAbs = Math.max(1, ...data.map(d => Math.abs(d.pnl)));
-
-  const html = data.map(d => {
+  document.getElementById('sessionList').innerHTML = data.map(d => {
     const pct = Math.min(100, Math.abs(d.pnl) / maxAbs * 100);
-    const sign = d.pnl >= 0 ? '' : '-';
     return `
       <div class="session-row">
         <div class="session-name">${d.name}</div>
@@ -1680,48 +2142,25 @@ function drawSessionList() {
         </div>
       </div>`;
   }).join('');
-  document.getElementById('sessionList').innerHTML = html;
 }
 
 function drawEmotionChart() {
   const ctx = document.getElementById('chartEmotion').getContext('2d');
   if (charts.emotion) charts.emotion.destroy();
-
   const emotions = ['Confident', 'Patient', 'Hesitant', 'FOMO', 'Revenge'];
   const counts = emotions.map(e => state.trades.filter(t => t.emotions === e).length);
   const pnls = emotions.map(e => state.trades.filter(t => t.emotions === e).reduce((s,t)=>s+(Number(t.pnl)||0),0));
-
   charts.emotion = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: emotions,
-      datasets: [{
-        label: 'PnL',
-        data: pnls,
-        backgroundColor: pnls.map(v => v > 0 ? '#D4AF37' : v < 0 ? '#ef4444' : '#3a3a3a'),
-        borderRadius: 6,
-        borderSkipped: false
-      }]
+      datasets: [{ label: 'PnL', data: pnls, backgroundColor: pnls.map(v => v > 0 ? '#D4AF37' : v < 0 ? '#ef4444' : '#3a3a3a'), borderRadius: 6, borderSkipped: false }]
     },
-    options: {
-      ...chartCommon(),
-      plugins: {
-        ...chartCommon().plugins,
-        tooltip: {
-          ...chartCommon().plugins.tooltip,
-          callbacks: {
-            label: (c) => {
-              const i = c.dataIndex;
-              return ['PnL: ' + fmtMoney(pnls[i]), 'Trades: ' + counts[i]];
-            }
-          }
-        }
-      }
-    }
+    options: { ...chartCommon(), plugins: { ...chartCommon().plugins, tooltip: { ...chartCommon().plugins.tooltip, callbacks: { label: (c) => { const i = c.dataIndex; return ['PnL: ' + fmtMoney(pnls[i]), 'Trades: ' + counts[i]]; } } } } }
   });
 }
 
-/* ---------- LOGIN HANDLERS ---------- */
+/* ---------- LOGIN ---------- */
 document.getElementById('loginForm').addEventListener('submit', e => {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -1732,7 +2171,6 @@ document.getElementById('loginForm').addEventListener('submit', e => {
 
 /* ---------- INIT ---------- */
 checkSession();
-
 </script>
 </body>
 </html>
