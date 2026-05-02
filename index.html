@@ -1524,14 +1524,44 @@
           <label>Pair</label>
           <div class="pair-input-row" id="pairWrap">
             <select id="pairSelect">
-              <option value="XAU/USD">XAU/USD (Gold)</option>
-              <option value="GBP/JPY">GBP/JPY</option>
-              <option value="EUR/USD">EUR/USD</option>
-              <option value="GBP/USD">GBP/USD</option>
-              <option value="US30">US30</option>
-              <option value="NAS100">NAS100</option>
-              <option value="BTC/USD">BTC/USD</option>
-              <option value="ETH/USD">ETH/USD</option>
+              <optgroup label="Metals">
+                <option value="XAU/USD">XAU/USD (Gold)</option>
+                <option value="XAG/USD">XAG/USD (Silver)</option>
+              </optgroup>
+              <optgroup label="Forex">
+                <option value="EUR/USD">EUR/USD</option>
+                <option value="GBP/USD">GBP/USD</option>
+                <option value="GBP/JPY">GBP/JPY</option>
+                <option value="USD/JPY">USD/JPY</option>
+                <option value="AUD/USD">AUD/USD</option>
+                <option value="USD/CAD">USD/CAD</option>
+                <option value="EUR/JPY">EUR/JPY</option>
+              </optgroup>
+              <optgroup label="Indices">
+                <option value="US30">US30 (Dow Jones)</option>
+                <option value="NAS100">NAS100 (Nasdaq)</option>
+                <option value="US500">US500 (S&P 500)</option>
+                <option value="JP225">JP225 (Nikkei)</option>
+                <option value="UK100">UK100 (FTSE)</option>
+                <option value="GER40">GER40 (DAX)</option>
+              </optgroup>
+              <optgroup label="Commodities">
+                <option value="USOIL">USOIL (Crude Oil)</option>
+                <option value="UKOIL">UKOIL (Brent)</option>
+              </optgroup>
+              <optgroup label="Crypto">
+                <option value="BTC/USD">BTC/USD</option>
+                <option value="ETH/USD">ETH/USD</option>
+                <option value="XRP/USD">XRP/USD</option>
+              </optgroup>
+              <optgroup label="Synthetic">
+                <option value="Boom 500">Boom 500</option>
+                <option value="Boom 1000">Boom 1000</option>
+                <option value="Crash 500">Crash 500</option>
+                <option value="Crash 1000">Crash 1000</option>
+                <option value="V75">Volatility 75</option>
+                <option value="V25">Volatility 25</option>
+              </optgroup>
               <option value="__custom">+ Custom pair…</option>
             </select>
             <input type="text" id="pairCustom" placeholder="e.g. AUD/CAD" maxlength="20">
@@ -1759,10 +1789,27 @@ async function submitDemoGate() {
   let { error } = await _sb.auth.signInWithPassword({ email, password: demoPassword });
   if (error) {
     // Account doesn't exist yet — create it
-    const { error: signUpError } = await _sb.auth.signUp({ email, password: demoPassword, options: { data: { name } } });
+    const { data: signUpData, error: signUpError } = await _sb.auth.signUp({ email, password: demoPassword, options: { data: { name } } });
     if (signUpError) { toast('Error: ' + signUpError.message, 'error'); return; }
-    // Sign in after signup
-    await _sb.auth.signInWithPassword({ email, password: demoPassword });
+
+    // Save lead + profile
+    await _sb.from('leads').upsert({ name, email, source: 'demo' }, { onConflict: 'email' });
+    if (signUpData.user) {
+      await _sb.from('profiles').upsert({ id: signUpData.user.id, email, name, source: 'demo' });
+    }
+
+    // Show verification message
+    document.getElementById('demoGate').innerHTML = `
+      <div style="text-align:center; padding:10px 0;">
+        <div style="font-size:40px; margin-bottom:12px;">📧</div>
+        <div style="font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--gold); margin-bottom:8px;">VERIFY YOUR EMAIL</div>
+        <div style="color:var(--muted); font-size:13px; line-height:1.6;">
+          We sent a link to <strong style="color:var(--text);">${email}</strong><br>
+          Click it to activate, then log in.
+        </div>
+        <button class="btn btn-ghost" style="margin-top:16px;" onclick="location.reload()">BACK TO LOGIN</button>
+      </div>`;
+    return;
   }
 
   const { data: { user } } = await _sb.auth.getUser();
@@ -2495,15 +2542,49 @@ function autoCalcPnLRR() {
 
   if (!entry || !exit || !lot) return;
 
-  // Estimate PnL — simplified pip calculation
-  let diff = dir === 'BUY' ? exit - entry : entry - exit;
+  const diff = dir === 'BUY' ? exit - entry : entry - exit;
   let pnl = 0;
 
-  // Gold/indices use different pip values
-  if (pair === 'XAU/USD') pnl = diff * lot * 100;
-  else if (pair === 'US30' || pair === 'NAS100') pnl = diff * lot * 1;
-  else if (pair === 'BTC/USD' || pair === 'ETH/USD') pnl = diff * lot;
-  else pnl = diff * lot * 100000 * 0.0001; // Forex standard
+  // PnL calculation per instrument type
+  if (pair === 'XAU/USD') {
+    // Gold: 1 lot = 100 oz, pip = $0.01, so: diff * 100 * lot
+    pnl = diff * 100 * lot;
+  } else if (pair === 'XAG/USD') {
+    // Silver: 1 lot = 5000 oz
+    pnl = diff * 5000 * lot;
+  } else if (pair === 'US30') {
+    // Dow Jones: 1 lot = $1 per point
+    pnl = diff * lot * 1;
+  } else if (pair === 'NAS100') {
+    // Nasdaq: 1 lot = $1 per point
+    pnl = diff * lot * 1;
+  } else if (pair === 'US500') {
+    // S&P 500: 1 lot = $1 per point
+    pnl = diff * lot * 1;
+  } else if (pair === 'JP225') {
+    // Nikkei: 1 lot = ¥100 per point, approx /150 for USD
+    pnl = (diff * lot * 100) / 150;
+  } else if (pair === 'UK100' || pair === 'GER40') {
+    // UK/GER indices: 1 lot = £/€1 per point
+    pnl = diff * lot * 1;
+  } else if (pair === 'USOIL' || pair === 'UKOIL') {
+    // Oil: 1 lot = 1000 barrels
+    pnl = diff * lot * 1000;
+  } else if (pair === 'BTC/USD') {
+    // Crypto: direct price diff * lot
+    pnl = diff * lot;
+  } else if (pair === 'ETH/USD' || pair === 'XRP/USD') {
+    pnl = diff * lot;
+  } else if (pair.includes('Boom') || pair.includes('Crash') || pair.includes('Volatility') || pair === 'V75' || pair === 'V25') {
+    // Synthetic indices: 1 lot = $1 per point
+    pnl = diff * lot * 1;
+  } else {
+    // Forex standard: 1 lot = 100,000 units, pip = 0.0001
+    // For JPY pairs pip = 0.01
+    const isJPY = pair.includes('JPY');
+    const pipValue = isJPY ? 0.01 : 0.0001;
+    pnl = (diff / pipValue) * lot * (isJPY ? 1000 : 10);
+  }
 
   document.getElementById('pnl').value = pnl.toFixed(2);
   document.getElementById('pnlAutoCalc').classList.add('show');
@@ -2513,8 +2594,7 @@ function autoCalcPnLRR() {
     const risk = Math.abs(entry - sl);
     const reward = Math.abs(exit - entry);
     if (risk > 0) {
-      const rr = (reward / risk).toFixed(2);
-      document.getElementById('rr').value = rr;
+      document.getElementById('rr').value = (reward / risk).toFixed(2);
       document.getElementById('rrAutoCalc').classList.add('show');
     }
   }
@@ -2617,29 +2697,41 @@ function hideEditModal() {
 }
 
 async function saveEditTrade() {
-  if (!editingTradeId) return;
+  if (!editingTradeId) { toast('No trade selected.', 'error'); return; }
   const updates = {
     pair: document.getElementById('editPair').value.trim().toUpperCase(),
     direction: document.getElementById('editDirection').value,
-    entry_price: parseFloat(document.getElementById('editEntry').value),
-    exit_price: parseFloat(document.getElementById('editExit').value),
+    entry_price: parseFloat(document.getElementById('editEntry').value) || null,
+    exit_price: parseFloat(document.getElementById('editExit').value) || null,
     stop_loss: parseFloat(document.getElementById('editSL').value) || null,
     take_profit: parseFloat(document.getElementById('editTP').value) || null,
-    lot_size: parseFloat(document.getElementById('editLot').value),
+    lot_size: parseFloat(document.getElementById('editLot').value) || null,
     result: document.getElementById('editResult').value,
-    pnl: parseFloat(document.getElementById('editPnL').value),
+    pnl: parseFloat(document.getElementById('editPnL').value) || 0,
     rr_ratio: parseFloat(document.getElementById('editRR').value) || null,
     session: document.getElementById('editSession').value,
     emotions: document.getElementById('editEmotion').value,
     strategy: document.getElementById('editStrategy').value,
     notes: document.getElementById('editNotes').value,
   };
-  const { error } = await _sb.from('trades').update(updates).eq('id', editingTradeId).eq('user_id', state.user.id);
-  if (error) { toast('Error updating trade.', 'error'); return; }
+
+  const { data, error } = await _sb
+    .from('trades')
+    .update(updates)
+    .eq('id', editingTradeId)
+    .select();
+
+  if (error) {
+    toast('Error: ' + error.message, 'error');
+    console.error('Edit error:', error);
+    return;
+  }
+
   await loadTrades();
   hideEditModal();
-  toast('Trade updated. ✅');
+  toast('Trade updated ✅');
   renderJournal();
+  renderDashboard();
 }
 
 /* ====================================================
@@ -2823,13 +2915,20 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
     const { data, error } = await _sb.auth.signUp({ email, password: pwd, options: { data: { name } } });
     if (error) { toast(error.message, 'error'); return; }
     if (data.user) {
-      await _sb.auth.signInWithPassword({ email, password: pwd });
-      const { data: { user } } = await _sb.auth.getUser();
-      state.user = user;
-      await _sb.from('profiles').upsert({ id: user.id, email, name, source: 'signup' });
-      await loadTrades();
-      enterApp();
-      toast('Welcome to BigMarkt, ' + name + '. Log your first trade! 🔥');
+      // Save profile
+      await _sb.from('profiles').upsert({ id: data.user.id, email, name, source: 'signup' });
+      // Show verification message instead of entering app
+      document.getElementById('loginForm').innerHTML = `
+        <div style="text-align:center; padding: 20px 0;">
+          <div style="font-size:48px; margin-bottom:16px;">📧</div>
+          <div style="font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--gold); margin-bottom:10px;">CHECK YOUR EMAIL</div>
+          <div style="color:var(--muted); font-size:14px; line-height:1.6;">
+            We sent a verification link to<br>
+            <strong style="color:var(--text);">${email}</strong><br><br>
+            Click the link in the email to activate your account, then come back to log in.
+          </div>
+          <button class="btn btn-ghost" style="margin-top:20px;" onclick="location.reload()">BACK TO LOGIN</button>
+        </div>`;
     }
   } else {
     await login(email, pwd);
