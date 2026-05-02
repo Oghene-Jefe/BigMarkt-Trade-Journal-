@@ -1819,33 +1819,9 @@ async function submitDemoGate() {
   // Save profile
   await _sb.from('profiles').upsert({ id: user.id, email, name, source: 'demo' });
 
-  // Seed demo trades if none exist
-  const { data: existing } = await _sb.from('trades').select('id').eq('user_id', user.id).limit(1);
-  if (!existing || existing.length === 0) await seedDemoTrades(user.id);
-
   await loadTrades();
   enterApp();
-  toast('Welcome, ' + name + '. Let\'s build your edge.');
-}
-
-async function seedDemoTrades(userId) {
-  const now = Date.now();
-  const day = 86400000;
-  const seeded = [
-    { user_id: userId, pair: 'XAU/USD', direction: 'BUY', entry_price: 2340.5, exit_price: 2358.2, stop_loss: 2335, take_profit: 2360, lot_size: 0.5, result: 'WIN', pnl: 885, rr_ratio: 3.2, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Clean break of London high.', created_at: new Date(now - day*8).toISOString() },
-    { user_id: userId, pair: 'GBP/JPY', direction: 'SELL', entry_price: 198.45, exit_price: 197.20, stop_loss: 198.90, take_profit: 197.00, lot_size: 0.3, result: 'WIN', pnl: 375, rr_ratio: 2.8, session: 'New York', emotions: 'Patient', strategy: 'Liquidity Grab', notes: 'Took out Asian high.', created_at: new Date(now - day*7).toISOString() },
-    { user_id: userId, pair: 'EUR/USD', direction: 'BUY', entry_price: 1.0820, exit_price: 1.0805, stop_loss: 1.0800, take_profit: 1.0860, lot_size: 0.5, result: 'LOSS', pnl: -75, rr_ratio: -0.4, session: 'London', emotions: 'FOMO', strategy: 'Scalp', notes: 'Chased entry.', created_at: new Date(now - day*6).toISOString() },
-    { user_id: userId, pair: 'XAU/USD', direction: 'SELL', entry_price: 2380, exit_price: 2370, stop_loss: 2385, take_profit: 2365, lot_size: 0.4, result: 'WIN', pnl: 400, rr_ratio: 2.0, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Distribution at highs.', created_at: new Date(now - day*5).toISOString() },
-    { user_id: userId, pair: 'NAS100', direction: 'BUY', entry_price: 18420, exit_price: 18390, stop_loss: 18380, take_profit: 18500, lot_size: 0.2, result: 'LOSS', pnl: -60, rr_ratio: -0.75, session: 'New York', emotions: 'Revenge', strategy: 'Breakout', notes: 'Revenge trade. Bad idea.', created_at: new Date(now - day*4).toISOString() },
-    { user_id: userId, pair: 'BTC/USD', direction: 'BUY', entry_price: 67800, exit_price: 69100, stop_loss: 67200, take_profit: 69500, lot_size: 0.05, result: 'WIN', pnl: 65, rr_ratio: 2.1, session: 'Asian', emotions: 'Patient', strategy: 'Swing', notes: 'Asian range break.', created_at: new Date(now - day*3).toISOString() },
-    { user_id: userId, pair: 'GBP/JPY', direction: 'BUY', entry_price: 197.10, exit_price: 198.40, stop_loss: 196.80, take_profit: 198.50, lot_size: 0.3, result: 'WIN', pnl: 390, rr_ratio: 4.3, session: 'Overlap', emotions: 'Confident', strategy: 'SMC', notes: 'Order block held. 4R.', created_at: new Date(now - day*2).toISOString() },
-    { user_id: userId, pair: 'XAU/USD', direction: 'BUY', entry_price: 2390, exit_price: 2390, stop_loss: 2385, take_profit: 2400, lot_size: 0.3, result: 'BREAKEVEN', pnl: 0, rr_ratio: 0, session: 'New York', emotions: 'Hesitant', strategy: 'Scalp', notes: 'Moved SL to BE too early.', created_at: new Date(now - day*1).toISOString() },
-    { user_id: userId, pair: 'XAU/USD', direction: 'BUY', entry_price: 3280, exit_price: 3312, stop_loss: 3270, take_profit: 3320, lot_size: 0.5, result: 'WIN', pnl: 1600, rr_ratio: 3.2, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Strong London breakout.', created_at: new Date('2026-05-01').toISOString() },
-    { user_id: userId, pair: 'GBP/USD', direction: 'SELL', entry_price: 1.2750, exit_price: 1.2690, stop_loss: 1.2780, take_profit: 1.2680, lot_size: 0.4, result: 'WIN', pnl: 240, rr_ratio: 2.3, session: 'New York', emotions: 'Patient', strategy: 'Liquidity Grab', notes: 'NY reversal.', created_at: new Date('2026-05-01T10:00:00').toISOString() },
-    { user_id: userId, pair: 'NAS100', direction: 'BUY', entry_price: 19200, exit_price: 19150, stop_loss: 19100, take_profit: 19400, lot_size: 0.2, result: 'LOSS', pnl: -100, rr_ratio: -0.5, session: 'New York', emotions: 'FOMO', strategy: 'Breakout', notes: 'Faded too early.', created_at: new Date('2026-05-02').toISOString() },
-    { user_id: userId, pair: 'XAU/USD', direction: 'BUY', entry_price: 3295, exit_price: 3320, stop_loss: 3285, take_profit: 3325, lot_size: 0.6, result: 'WIN', pnl: 1500, rr_ratio: 2.5, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Beautiful OB retest.', created_at: new Date('2026-05-02T10:00:00').toISOString() },
-  ];
-  await _sb.from('trades').insert(seeded);
+  toast('Welcome, ' + name + '. Log your first trade! 🔥');
 }
 
 /* ---------- AUTH ---------- */
