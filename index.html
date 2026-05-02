@@ -1180,6 +1180,125 @@
   .pair-input-row.custom input { display: block; }
 
   /* ====================================================
+     SCREENSHOT UPLOAD
+     ==================================================== */
+  .screenshot-upload {
+    border: 2px dashed var(--line);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    background: var(--black);
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .screenshot-upload:hover { border-color: var(--gold); }
+  .screenshot-placeholder { color: var(--muted); }
+
+  /* ====================================================
+     WEEKLY / MONTHLY REPORT
+     ==================================================== */
+  .report-card {
+    background: linear-gradient(135deg, var(--black-3), var(--black-2));
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .report-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .report-period {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .report-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    margin-bottom: 14px;
+  }
+  .report-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  @media (min-width: 480px) {
+    .report-stats { grid-template-columns: repeat(4, 1fr); }
+  }
+  .report-stat {
+    background: var(--black-2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+  }
+  .report-stat-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .report-stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    line-height: 1;
+  }
+  .report-insight {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    padding: 10px 12px;
+    background: var(--black-2);
+    border-radius: 8px;
+    border-left: 3px solid var(--gold);
+    margin-bottom: 8px;
+  }
+  .report-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .report-tab {
+    padding: 8px 20px;
+    background: var(--black-2);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    border-radius: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .report-tab.active {
+    background: rgba(212,175,55,0.12);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+  .trade-thumb {
+    width: 60px; height: 40px;
+    border-radius: 4px;
+    object-fit: cover;
+    border: 1px solid var(--line);
+    cursor: pointer;
+  }
+
+  /* ====================================================
      PROFILE PAGE
      ==================================================== */
   .profile-hero {
@@ -1716,6 +1835,20 @@
           <label>Notes</label>
           <textarea id="notes" placeholder="What did you see? What did you feel? What would you do different?"></textarea>
         </div>
+
+        <div class="field full">
+          <label>Chart Screenshot (optional)</label>
+          <div class="screenshot-upload" id="screenshotUploadArea" onclick="document.getElementById('screenshotInput').click()">
+            <div class="screenshot-placeholder" id="screenshotPlaceholder">
+              <div style="font-size:32px;">📸</div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.1em;margin-top:8px;">TAP TO UPLOAD CHART</div>
+              <div style="font-size:12px;color:var(--muted-2);margin-top:4px;">JPG, PNG under 5MB</div>
+            </div>
+            <img id="screenshotPreview" src="" style="display:none;width:100%;border-radius:8px;max-height:200px;object-fit:cover;">
+          </div>
+          <input type="file" id="screenshotInput" accept="image/*" style="display:none;" onchange="previewScreenshot(this)">
+          <button type="button" id="screenshotClear" style="display:none;" class="btn btn-secondary" onclick="clearScreenshot()" style="margin-top:8px;">REMOVE IMAGE</button>
+        </div>
       </div>
 
       <div class="form-actions">
@@ -1763,8 +1896,28 @@
     </div>
   </section>
 
-  <!-- ============== PROFILE ============== -->
-  <section class="page" id="page-profile">
+  <!-- ============== REPORTS ============== -->
+  <section class="page" id="page-reports">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">MY <em>REPORTS</em></h1>
+        <div class="page-sub">weekly + monthly performance</div>
+      </div>
+      <div class="export-bar" style="margin-bottom:0;">
+        <button class="export-btn" onclick="exportReportPDF()">📄 EXPORT PDF</button>
+      </div>
+    </div>
+
+    <!-- Period tabs -->
+    <div class="report-tabs">
+      <button class="report-tab active" id="tabWeekly" onclick="switchReport('weekly')">WEEKLY</button>
+      <button class="report-tab" id="tabMonthly" onclick="switchReport('monthly')">MONTHLY</button>
+    </div>
+
+    <div id="reportContent"></div>
+  </section>
+
+  <!-- ============== PROFILE ============== -->  <section class="page" id="page-profile">
     <div class="page-header">
       <div>
         <h1 class="page-title">MY <em>PROFILE</em></h1>
@@ -1907,9 +2060,9 @@
     </div>
     ADD
   </button>
-  <button class="nav-item" data-page="analytics" onclick="navigate('analytics')">
-    <svg viewBox="0 0 24 24"><path d="M4 20 V10"/><path d="M10 20 V4"/><path d="M16 20 V14"/><path d="M22 20 V8"/></svg>
-    STATS
+  <button class="nav-item" data-page="reports" onclick="navigate('reports')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M8 8h8M8 16h5"/></svg>
+    REPORT
   </button>
   <button class="nav-item" data-page="profile" onclick="navigate('profile')">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20 C4 16 8 13 12 13 C16 13 20 16 20 20"/></svg>
@@ -2111,6 +2264,7 @@ function navigate(page) {
   if (page === 'analytics') renderAnalytics();
   if (page === 'add') resetTradeForm();
   if (page === 'profile') renderProfile();
+  if (page === 'reports') renderReports();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -2270,7 +2424,7 @@ function renderJournal() {
   c.innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Pair</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Lot</th><th>Result</th><th>PnL</th><th>RR</th><th>Session</th><th>Emotion</th><th>Strategy</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Pair</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Lot</th><th>Result</th><th>PnL</th><th>RR</th><th>Session</th><th>Emotion</th><th>Strategy</th><th>Chart</th><th></th></tr></thead>
         <tbody>
           ${list.map(t => `
             <tr>
@@ -2286,6 +2440,9 @@ function renderJournal() {
               <td class="text-muted small">${t.session}</td>
               <td class="text-muted small">${t.emotions}</td>
               <td class="text-muted small">${t.strategy}</td>
+              <td style="white-space:nowrap;">
+                ${t.image_url ? `<img src="${t.image_url}" class="trade-thumb" onclick="viewScreenshot('${t.id}')" title="View chart">` : '<span style="color:var(--muted-2);font-size:11px;">—</span>'}
+              </td>
               <td style="white-space:nowrap;">
                 <button class="logout-btn" style="font-size:11px;padding:4px 8px;margin-right:4px;" onclick="openEditModal('${t.id}')">EDIT</button>
                 <button class="logout-btn" style="font-size:11px;padding:4px 8px;color:var(--loss);border-color:var(--loss);" onclick="deleteTrade('${t.id}')">DEL</button>
@@ -2467,6 +2624,9 @@ function resetTradeForm() {
   document.getElementById('pairSelect').value = 'XAU/USD';
   document.getElementById('pairWrap').classList.remove('custom');
   document.getElementById('pairCustom').value = '';
+  clearScreenshot();
+  document.getElementById('pnlAutoCalc').classList.remove('show');
+  document.getElementById('rrAutoCalc').classList.remove('show');
 }
 
 function syncToggleGroups() {
@@ -2514,7 +2674,7 @@ document.getElementById('tradeForm').addEventListener('submit', async e => {
     emotions: document.getElementById('emotions').value,
     strategy: document.getElementById('strategy').value,
     notes: document.getElementById('notes').value,
-    image_url: null
+    image_url: screenshotDataUrl || null
   };
   const ok = await saveTrade(trade);
   if (ok) {
@@ -3180,6 +3340,220 @@ function renderPsychAdvisor() {
       <div class="psych-title">🧠 PSYCHOLOGY ADVISOR</div>
       ${insights.map(i => `<div class="psych-insight ${i.type}">${i.text}</div>`).join('')}
     </div>`;
+}
+
+function viewScreenshot(tradeId) {
+  const trade = state.trades.find(t => t.id === tradeId);
+  if (!trade || !trade.image_url) return;
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;cursor:pointer;';
+  overlay.innerHTML = `<img src="${trade.image_url}" style="max-width:100%;max-height:90vh;border-radius:10px;border:1px solid #D4AF37;">`;
+  overlay.onclick = () => document.body.removeChild(overlay);
+  document.body.appendChild(overlay);
+}
+
+/* ====================================================
+   SCREENSHOT UPLOAD
+   ==================================================== */
+let screenshotDataUrl = null;
+
+function previewScreenshot(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('Image must be under 5MB.', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    screenshotDataUrl = e.target.result;
+    document.getElementById('screenshotPreview').src = screenshotDataUrl;
+    document.getElementById('screenshotPreview').style.display = 'block';
+    document.getElementById('screenshotPlaceholder').style.display = 'none';
+    document.getElementById('screenshotClear').style.display = 'block';
+    toast('Chart uploaded ✅');
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearScreenshot() {
+  screenshotDataUrl = null;
+  document.getElementById('screenshotPreview').src = '';
+  document.getElementById('screenshotPreview').style.display = 'none';
+  document.getElementById('screenshotPlaceholder').style.display = 'block';
+  document.getElementById('screenshotClear').style.display = 'none';
+  document.getElementById('screenshotInput').value = '';
+}
+
+/* ====================================================
+   WEEKLY / MONTHLY REPORTS
+   ==================================================== */
+let reportMode = 'weekly';
+
+function switchReport(mode) {
+  reportMode = mode;
+  document.getElementById('tabWeekly').classList.toggle('active', mode === 'weekly');
+  document.getElementById('tabMonthly').classList.toggle('active', mode === 'monthly');
+  renderReports();
+}
+
+function renderReports() {
+  const el = document.getElementById('reportContent');
+  if (!el) return;
+
+  if (state.trades.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-title">NO TRADES YET</div><div class="text-muted small">Log trades to generate your reports.</div></div>`;
+    return;
+  }
+
+  if (reportMode === 'weekly') renderWeeklyReport(el);
+  else renderMonthlyReport(el);
+}
+
+function getWeekKey(ts) {
+  const d = new Date(ts);
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() + 4 - day);
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return d.getFullYear() + '-W' + String(weekNo).padStart(2, '0');
+}
+
+function renderWeeklyReport(el) {
+  // Group trades by week
+  const weeks = {};
+  state.trades.forEach(t => {
+    const key = getWeekKey(t.created_at);
+    if (!weeks[key]) weeks[key] = [];
+    weeks[key].push(t);
+  });
+
+  const sortedWeeks = Object.keys(weeks).sort().reverse();
+
+  if (sortedWeeks.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-title">NO WEEKLY DATA</div></div>`;
+    return;
+  }
+
+  el.innerHTML = sortedWeeks.map(week => {
+    const trades = weeks[week];
+    return buildReportCard('WEEKLY REPORT', week, trades);
+  }).join('');
+}
+
+function renderMonthlyReport(el) {
+  // Group trades by month
+  const months = {};
+  state.trades.forEach(t => {
+    const d = new Date(t.created_at);
+    const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    if (!months[key]) months[key] = [];
+    months[key].push(t);
+  });
+
+  const sortedMonths = Object.keys(months).sort().reverse();
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  if (sortedMonths.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-title">NO MONTHLY DATA</div></div>`;
+    return;
+  }
+
+  el.innerHTML = sortedMonths.map(month => {
+    const [year, m] = month.split('-');
+    const label = monthNames[parseInt(m) - 1] + ' ' + year;
+    const trades = months[month];
+    return buildReportCard('MONTHLY REPORT', label, trades);
+  }).join('');
+}
+
+function buildReportCard(type, period, trades) {
+  const wins = trades.filter(t => t.result === 'WIN').length;
+  const losses = trades.filter(t => t.result === 'LOSS').length;
+  const be = trades.filter(t => t.result === 'BREAKEVEN').length;
+  const closed = wins + losses;
+  const winRate = closed ? Math.round(wins / closed * 100) : 0;
+  const totalPnL = trades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
+  const avgRR = trades.filter(t => t.rr_ratio).length ?
+    (trades.filter(t => t.rr_ratio).reduce((s, t) => s + Number(t.rr_ratio), 0) / trades.filter(t => t.rr_ratio).length).toFixed(1) : '—';
+
+  // Best pair
+  const byPair = {};
+  trades.forEach(t => { byPair[t.pair] = (byPair[t.pair] || 0) + Number(t.pnl); });
+  const bestPair = Object.keys(byPair).sort((a, b) => byPair[b] - byPair[a])[0] || '—';
+
+  // Insights
+  const insights = [];
+  if (winRate >= 60) insights.push({ type: 'good', text: `💪 Strong win rate of ${winRate}% this period. Your entries are on point.` });
+  else if (winRate < 40 && closed >= 3) insights.push({ type: 'warning', text: `⚠️ Win rate dropped to ${winRate}%. Review your entry criteria.` });
+
+  if (totalPnL > 0) insights.push({ type: 'good', text: `✅ Profitable period — ${fmtMoney(totalPnL)} net gain. Keep the discipline.` });
+  else if (totalPnL < 0) insights.push({ type: 'warning', text: `🔴 Net loss of ${fmtMoney(Math.abs(totalPnL))} this period. Reduce size until form returns.` });
+
+  const fomoCount = trades.filter(t => t.emotions === 'FOMO' && t.result === 'LOSS').length;
+  if (fomoCount >= 2) insights.push({ type: 'warning', text: `🚨 ${fomoCount} FOMO losses this period. Wait for confirmation — your gut is costing you.` });
+
+  const revengeCount = trades.filter(t => t.emotions === 'Revenge').length;
+  if (revengeCount >= 1) insights.push({ type: 'warning', text: `🛑 ${revengeCount} revenge trade(s) detected. Walk away after losses — protect your capital.` });
+
+  if (insights.length === 0) insights.push({ type: 'good', text: `📊 Consistent logging. Keep tracking every trade for deeper insights.` });
+
+  return `
+    <div class="report-card">
+      <div class="report-period">${type}</div>
+      <div class="report-title">${period}</div>
+      <div class="report-stats">
+        <div class="report-stat">
+          <div class="report-stat-label">Trades</div>
+          <div class="report-stat-value">${trades.length}</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-label">Win Rate</div>
+          <div class="report-stat-value" style="color:${winRate >= 50 ? 'var(--win)' : 'var(--loss)'}">${winRate}%</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-label">Net PnL</div>
+          <div class="report-stat-value" style="color:${totalPnL > 0 ? 'var(--win)' : totalPnL < 0 ? 'var(--loss)' : 'var(--muted)'}">${fmtMoney(totalPnL)}</div>
+        </div>
+        <div class="report-stat">
+          <div class="report-stat-label">Avg RR</div>
+          <div class="report-stat-value" style="color:var(--gold)">${avgRR !== '—' ? '1:' + avgRR : '—'}</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+        <span class="pill pill-win">${wins}W</span>
+        <span class="pill pill-loss">${losses}L</span>
+        ${be > 0 ? `<span class="pill pill-be">${be}BE</span>` : ''}
+        <span class="pill" style="background:rgba(212,175,55,0.15);color:var(--gold);">Best: ${bestPair}</span>
+      </div>
+      ${insights.map(i => `<div class="report-insight ${i.type === 'warning' ? 'warning' : 'good'}">${i.text}</div>`).join('')}
+    </div>`;
+}
+
+function exportReportPDF() {
+  const win = window.open('', '_blank');
+  const mode = reportMode === 'weekly' ? 'Weekly' : 'Monthly';
+  const content = document.getElementById('reportContent').innerHTML;
+  win.document.write(`
+    <html><head><title>BigMarkt ${mode} Report</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 30px; color: #111; max-width: 800px; margin: 0 auto; }
+      h1 { color: #D4AF37; } h2 { color: #666; font-size: 14px; margin-bottom: 20px; }
+      .report-card { border: 1px solid #ddd; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+      .report-period { font-size: 11px; color: #D4AF37; text-transform: uppercase; letter-spacing: 2px; }
+      .report-title { font-size: 22px; font-weight: 900; margin: 6px 0 14px; }
+      .report-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 14px; }
+      .report-stat { background: #f9f9f9; border-radius: 8px; padding: 10px; }
+      .report-stat-label { font-size: 10px; color: #888; text-transform: uppercase; }
+      .report-stat-value { font-size: 22px; font-weight: 900; color: #D4AF37; }
+      .report-insight { font-size: 13px; padding: 10px 12px; background: #f5f5f5; border-left: 3px solid #D4AF37; border-radius: 6px; margin-bottom: 8px; line-height: 1.5; }
+      .report-insight.warning { border-left-color: #ef4444; }
+    </style></head><body>
+    <h1>BigMarkt FTS Trade Journal</h1>
+    <h2>${mode} Performance Report · Generated ${new Date().toLocaleString()}</h2>
+    ${content}
+    <p style="margin-top:30px;font-size:11px;color:#999;">Built for traders · By traders · BigMarkt · FTS by Jefe S.</p>
+    </body></html>`);
+  win.document.close();
+  win.print();
+  toast('Report PDF opened! 📄');
 }
 
 /* ====================================================
