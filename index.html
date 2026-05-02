@@ -1763,7 +1763,12 @@ function renderDashboard() {
   const recent = sorted.slice(0, 5);
   const c = document.getElementById('recentTradesContainer');
   if (recent.length === 0) {
-    c.innerHTML = `<div class="empty-state"><div class="empty-state-icon">∅</div><div class="empty-state-title">NO TRADES YET</div><div class="text-muted small">Tap the gold + button to log your first trade.</div></div>`;
+    c.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">◆</div>
+        <div class="empty-state-title">YOUR JOURNAL IS CLEAN</div>
+        <div class="text-muted small">Every elite trader started here. Tap the gold + button to log your first trade.</div>
+      </div>`;
     return;
   }
   c.innerHTML = `
@@ -2240,7 +2245,7 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
       await _sb.from('profiles').upsert({ id: user.id, email, name, source: 'signup' });
       await loadTrades();
       enterApp();
-      toast('Welcome to BigMarkt, ' + name + '! 🔥');
+      toast('Welcome to BigMarkt, ' + name + '. Log your first trade! 🔥');
     }
   } else {
     await login(email, pwd);
