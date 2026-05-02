@@ -2478,8 +2478,84 @@ function drawEmotionChart() {
 }
 
 /* ====================================================
-   THEME TOGGLE
+   PASSWORD RESET HANDLER
+   Catches Supabase reset token from URL on page load
    ==================================================== */
+async function checkPasswordReset() {
+  const hash = window.location.hash;
+  const params = new URLSearchParams(hash.replace('#', '?'));
+  const type = params.get('type');
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+
+  if (type === 'recovery' && accessToken) {
+    // Set the session from the reset link tokens
+    await _sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+
+    // Hide login, show reset form
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('loginScreen').innerHTML = `
+      <div class="login-card">
+        <div class="brand-stack">
+          <div class="brand-mark">
+            <div class="bm-wordmark">
+              <span class="bm-big">Big</span><span class="bm-m">M</span>
+              <span class="bm-a-wrap"><span class="bm-a-tri"></span></span>
+              <span class="bm-rkt">rkt</span>
+            </div>
+          </div>
+          <div class="login-tag">FTS Trade Journal</div>
+          <div class="login-headline">SET NEW <em>PASSWORD</em></div>
+          <div class="login-sub">Choose a strong password for your account.</div>
+        </div>
+
+        <div class="field">
+          <label>New Password</label>
+          <div class="field-pw">
+            <input type="password" id="newPassword" placeholder="Min 6 characters" minlength="6">
+            <button type="button" class="pw-eye" onclick="togglePw('newPassword', this)">👁</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Confirm Password</label>
+          <div class="field-pw">
+            <input type="password" id="confirmPassword" placeholder="Repeat password" minlength="6">
+            <button type="button" class="pw-eye" onclick="togglePw('confirmPassword', this)">👁</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="submitNewPassword()" style="margin-top:8px;">SET PASSWORD</button>
+
+        <div class="login-footer">
+          Built for traders <span>·</span> By traders <span>·</span> BigMarkt
+        </div>
+      </div>`;
+
+    // Clear the hash from URL
+    history.replaceState(null, '', window.location.pathname);
+    return true; // stop normal session check
+  }
+  return false;
+}
+
+async function submitNewPassword() {
+  const newPwd = document.getElementById('newPassword').value;
+  const confirmPwd = document.getElementById('confirmPassword').value;
+
+  if (!newPwd || newPwd.length < 6) {
+    toast('Password must be at least 6 characters.', 'error'); return;
+  }
+  if (newPwd !== confirmPwd) {
+    toast('Passwords do not match.', 'error'); return;
+  }
+
+  const { error } = await _sb.auth.updateUser({ password: newPwd });
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+
+  // Sign out and send back to login
+  await _sb.auth.signOut();
+  toast('Password updated! Please log in with your new password.');
+  setTimeout(() => location.reload(), 2000);
+}
 function toggleTheme() {
   document.body.classList.toggle('light-mode');
   const isLight = document.body.classList.contains('light-mode');
@@ -2522,10 +2598,10 @@ async function sendResetEmail() {
   const email = document.getElementById('forgotEmail').value.trim().toLowerCase();
   if (!email) { toast('Enter your email.', 'error'); return; }
   const { error } = await _sb.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin
+    redirectTo: 'https://big-markt-trade-journal.vercel.app'
   });
   if (error) { toast(error.message, 'error'); return; }
-  toast('Reset link sent! Check your email.');
+  toast('Reset link sent! Check your inbox.');
   hideForgotPassword();
 }
 
@@ -2698,6 +2774,11 @@ function hideEditModal() {
 
 async function saveEditTrade() {
   if (!editingTradeId) { toast('No trade selected.', 'error'); return; }
+
+  // Verify trade belongs to current user
+  const localTrade = state.trades.find(t => t.id === editingTradeId);
+  if (!localTrade) { toast('Trade not found.', 'error'); return; }
+
   const updates = {
     pair: document.getElementById('editPair').value.trim().toUpperCase(),
     direction: document.getElementById('editDirection').value,
@@ -2715,20 +2796,27 @@ async function saveEditTrade() {
     notes: document.getElementById('editNotes').value,
   };
 
-  const { data, error } = await _sb
+  // Update in state immediately for instant UI feedback
+  const idx = state.trades.findIndex(t => t.id === editingTradeId);
+  if (idx !== -1) {
+    state.trades[idx] = { ...state.trades[idx], ...updates };
+  }
+
+  // Push to Supabase
+  const { error } = await _sb
     .from('trades')
     .update(updates)
-    .eq('id', editingTradeId)
-    .select();
+    .eq('id', editingTradeId);
 
   if (error) {
-    toast('Error: ' + error.message, 'error');
-    console.error('Edit error:', error);
+    toast('Save failed: ' + error.message, 'error');
+    console.error('Edit error:', error, 'Trade ID:', editingTradeId);
+    await loadTrades(); // revert to server state
     return;
   }
 
-  await loadTrades();
   hideEditModal();
+  await loadTrades();
   toast('Trade updated ✅');
   renderJournal();
   renderDashboard();
@@ -2937,7 +3025,9 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
 
 /* ---------- INIT ---------- */
 loadTheme();
-checkSession();
+checkPasswordReset().then(isReset => {
+  if (!isReset) checkSession();
+});
 </script>
 </body>
 </html>
