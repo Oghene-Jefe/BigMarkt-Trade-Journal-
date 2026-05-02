@@ -1031,15 +1031,25 @@
     </div>
 
     <form id="loginForm" autocomplete="off">
+      <!-- Mode toggle -->
+      <div class="toggle-group" style="margin-bottom:16px; grid-template-columns:1fr 1fr;">
+        <button type="button" id="modeLogin" class="active buy" onclick="setAuthMode('login')">LOGIN</button>
+        <button type="button" id="modeSignup" class="sell" onclick="setAuthMode('signup')">SIGN UP</button>
+      </div>
+
+      <div class="field" id="fieldName" style="display:none;">
+        <label for="loginName">Your Name</label>
+        <input type="text" id="loginName" placeholder="e.g. Emeka Trader">
+      </div>
       <div class="field">
         <label for="loginEmail">Email</label>
         <input type="email" id="loginEmail" placeholder="trader@bigmarkt.com" required>
       </div>
       <div class="field">
         <label for="loginPassword">Password</label>
-        <input type="password" id="loginPassword" placeholder="••••••••" required minlength="3">
+        <input type="password" id="loginPassword" placeholder="••••••••" required minlength="6">
       </div>
-      <button type="submit" class="btn btn-primary">ENTER THE MARKET</button>
+      <button type="submit" class="btn btn-primary" id="authSubmitBtn">ENTER THE MARKET</button>
     </form>
 
     <div class="divider">OR</div>
@@ -1485,7 +1495,7 @@
 
 // ── SUPABASE INIT ──────────────────────────────────────────────
 const SUPABASE_URL = 'https://awvrylniqppybwaiwzse.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_5OJ_zt_xFWKjwle4ic4uNg_81LRjJpBGVkc';
+const SUPABASE_KEY = 'sb_publishable_5OJ_zt_xFWKjwle4ic4uNg_81LRjONO';
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let state = {
@@ -2201,14 +2211,40 @@ function drawEmotionChart() {
   });
 }
 
-/* ---------- INIT ---------- */
-checkSession();
+/* ---------- AUTH MODE TOGGLE ---------- */
+let authMode = 'login';
+function setAuthMode(mode) {
+  authMode = mode;
+  document.getElementById('fieldName').style.display = mode === 'signup' ? 'block' : 'none';
+  document.getElementById('authSubmitBtn').textContent = mode === 'signup' ? 'CREATE ACCOUNT' : 'ENTER THE MARKET';
+  document.getElementById('modeLogin').classList.toggle('active', mode === 'login');
+  document.getElementById('modeSignup').classList.toggle('active', mode === 'signup');
+}
+
+/* ---------- LOGIN / SIGNUP HANDLER ---------- */
 document.getElementById('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pwd = document.getElementById('loginPassword').value;
+  const name = document.getElementById('loginName').value.trim();
   if (!email || !pwd) return;
-  await login(email, pwd);
+
+  if (authMode === 'signup') {
+    if (!name) { toast('Enter your name.', 'error'); return; }
+    const { data, error } = await _sb.auth.signUp({ email, password: pwd, options: { data: { name } } });
+    if (error) { toast(error.message, 'error'); return; }
+    if (data.user) {
+      await _sb.auth.signInWithPassword({ email, password: pwd });
+      const { data: { user } } = await _sb.auth.getUser();
+      state.user = user;
+      await _sb.from('profiles').upsert({ id: user.id, email, name, source: 'signup' });
+      await loadTrades();
+      enterApp();
+      toast('Welcome to BigMarkt, ' + name + '! 🔥');
+    }
+  } else {
+    await login(email, pwd);
+  }
 });
 
 /* ---------- INIT ---------- */
