@@ -3038,7 +3038,7 @@ async function sendResetEmail() {
   const email = document.getElementById('forgotEmail').value.trim().toLowerCase();
   if (!email) { toast('Enter your email.', 'error'); return; }
   const { error } = await _sb.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://big-markt-trade-journal.vercel.app'
+    redirectTo: 'https://journal.bigmarkt.co'
   });
   if (error) { toast(error.message, 'error'); return; }
   toast('Reset link sent! Check your inbox.');
@@ -3681,7 +3681,7 @@ function exportReportPDF() {
 function getReferralLink() {
   if (!state.user) return '';
   const ref = btoa(state.user.id).replace(/=/g, '').substring(0, 12);
-  return `https://big-markt-trade-journal.vercel.app?ref=${ref}`;
+  return `https://journal.bigmarkt.co?ref=${ref}`;
 }
 
 async function renderReferral() {
