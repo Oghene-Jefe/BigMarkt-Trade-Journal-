@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --gold: #D4AF37;
@@ -1482,9 +1483,10 @@
    BIGMARKT FTS TRADE JOURNAL
    ================================================================= */
 
-const STORAGE_KEY_USERS = 'bigmarkt_users';
-const STORAGE_KEY_SESSION = 'bigmarkt_session';
-const STORAGE_KEY_TRADES = 'bigmarkt_trades';
+// ── SUPABASE INIT ──────────────────────────────────────────────
+const SUPABASE_URL = 'https://awvrylniqppybwaiwzse.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_5OJ_zt_xFWKjwle4ic4uNg_81LRjJpBGVkc';
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let state = {
   user: null,
@@ -1493,7 +1495,7 @@ let state = {
   formDirection: 'BUY',
   formResult: 'WIN',
   calYear: new Date().getFullYear(),
-  calMonth: new Date().getMonth(), // 0-indexed
+  calMonth: new Date().getMonth(),
   journalView: 'table'
 };
 
@@ -1509,10 +1511,7 @@ function toast(msg, type = 'success') {
   toast._t = setTimeout(() => el.classList.remove('show'), 2400);
 }
 
-/* ---------- auth ---------- */
-function getUsers() { return JSON.parse(localStorage.getItem(STORAGE_KEY_USERS) || '{}'); }
-function saveUsers(u) { localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(u)); }
-
+/* ---------- DEMO GATE ---------- */
 function showDemoGate() {
   document.getElementById('demoGate').style.display = 'block';
   document.getElementById('demoBtn').style.display = 'none';
@@ -1521,96 +1520,140 @@ function hideDemoGate() {
   document.getElementById('demoGate').style.display = 'none';
   document.getElementById('demoBtn').style.display = 'flex';
 }
-function submitDemoGate() {
+async function submitDemoGate() {
   const name = document.getElementById('demoName').value.trim();
   const email = document.getElementById('demoEmail').value.trim().toLowerCase();
   if (!name) { toast('Enter your name.', 'error'); return; }
   if (!email || !email.includes('@')) { toast('Enter a valid email.', 'error'); return; }
 
-  // Save lead to localStorage (will move to Supabase in Week 2)
-  const leads = JSON.parse(localStorage.getItem('bigmarkt_leads') || '[]');
-  const existing = leads.find(l => l.email === email);
-  if (!existing) {
-    leads.push({ name, email, joinedAt: Date.now(), source: 'demo' });
-    localStorage.setItem('bigmarkt_leads', JSON.stringify(leads));
+  // Save lead to Supabase leads table
+  await _sb.from('leads').upsert({ name, email, source: 'demo' }, { onConflict: 'email' });
+
+  // Sign them up / sign them in with a fixed demo password
+  const demoPassword = 'BigMarktDemo2026!';
+  let { error } = await _sb.auth.signInWithPassword({ email, password: demoPassword });
+  if (error) {
+    // Account doesn't exist yet — create it
+    const { error: signUpError } = await _sb.auth.signUp({ email, password: demoPassword, options: { data: { name } } });
+    if (signUpError) { toast('Error: ' + signUpError.message, 'error'); return; }
+    // Sign in after signup
+    await _sb.auth.signInWithPassword({ email, password: demoPassword });
   }
 
-  // Log them in as demo
-  const users = getUsers();
-  if (!users[email]) {
-    users[email] = { password: 'demo_' + Date.now(), name, createdAt: Date.now(), isDemoUser: true };
-    saveUsers(users);
-  }
-  localStorage.setItem(STORAGE_KEY_SESSION, email);
-  localStorage.setItem('bigmarkt_username', name);
-  state.user = email;
-  state.userName = name;
-  const existing2 = loadTrades();
-  if (existing2.length === 0) seedDemoTrades();
+  const { data: { user } } = await _sb.auth.getUser();
+  if (!user) { toast('Something went wrong. Try again.', 'error'); return; }
+  state.user = user;
+
+  // Save profile
+  await _sb.from('profiles').upsert({ id: user.id, email, name, source: 'demo' });
+
+  // Seed demo trades if none exist
+  const { data: existing } = await _sb.from('trades').select('id').eq('user_id', user.id).limit(1);
+  if (!existing || existing.length === 0) await seedDemoTrades(user.id);
+
+  await loadTrades();
   enterApp();
   toast('Welcome, ' + name + '. Let\'s build your edge.');
 }
 
-function seedDemoTrades() {
+async function seedDemoTrades(userId) {
   const now = Date.now();
   const day = 86400000;
   const seeded = [
-    { pair: 'XAU/USD', direction: 'BUY', entry_price: 2340.5, exit_price: 2358.2, stop_loss: 2335, take_profit: 2360, lot_size: 0.5, result: 'WIN', pnl: 885, rr_ratio: 3.2, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Clean break of London high. Held through retest.', created_at: now - day*8 },
-    { pair: 'GBP/JPY', direction: 'SELL', entry_price: 198.45, exit_price: 197.20, stop_loss: 198.90, take_profit: 197.00, lot_size: 0.3, result: 'WIN', pnl: 375, rr_ratio: 2.8, session: 'New York', emotions: 'Patient', strategy: 'Liquidity Grab', notes: 'Took out Asian high then rejected hard.', created_at: now - day*7 },
-    { pair: 'EUR/USD', direction: 'BUY', entry_price: 1.0820, exit_price: 1.0805, stop_loss: 1.0800, take_profit: 1.0860, lot_size: 0.5, result: 'LOSS', pnl: -75, rr_ratio: -0.4, session: 'London', emotions: 'FOMO', strategy: 'Scalp', notes: 'Chased entry. Should have waited for retest.', created_at: now - day*6 },
-    { pair: 'XAU/USD', direction: 'SELL', entry_price: 2380, exit_price: 2370, stop_loss: 2385, take_profit: 2365, lot_size: 0.4, result: 'WIN', pnl: 400, rr_ratio: 2.0, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Distribution at all-time highs.', created_at: now - day*5 },
-    { pair: 'NAS100', direction: 'BUY', entry_price: 18420, exit_price: 18390, stop_loss: 18380, take_profit: 18500, lot_size: 0.2, result: 'LOSS', pnl: -60, rr_ratio: -0.75, session: 'New York', emotions: 'Revenge', strategy: 'Breakout', notes: 'Revenge trade after EU loss. Bad idea.', created_at: now - day*4 },
-    { pair: 'BTC/USD', direction: 'BUY', entry_price: 67800, exit_price: 69100, stop_loss: 67200, take_profit: 69500, lot_size: 0.05, result: 'WIN', pnl: 65, rr_ratio: 2.1, session: 'Asian', emotions: 'Patient', strategy: 'Swing', notes: 'Asian range break with volume confirmation.', created_at: now - day*3 },
-    { pair: 'GBP/JPY', direction: 'BUY', entry_price: 197.10, exit_price: 198.40, stop_loss: 196.80, take_profit: 198.50, lot_size: 0.3, result: 'WIN', pnl: 390, rr_ratio: 4.3, session: 'Overlap', emotions: 'Confident', strategy: 'SMC', notes: 'Order block held. Clean 4R.', created_at: now - day*2 },
-    { pair: 'XAU/USD', direction: 'BUY', entry_price: 2390, exit_price: 2390, stop_loss: 2385, take_profit: 2400, lot_size: 0.3, result: 'BREAKEVEN', pnl: 0, rr_ratio: 0, session: 'New York', emotions: 'Hesitant', strategy: 'Scalp', notes: 'Moved SL to BE too early.', created_at: now - day*1 },
-    // May 2026 trades for calendar demo
-    { pair: 'XAU/USD', direction: 'BUY', entry_price: 3280, exit_price: 3312, stop_loss: 3270, take_profit: 3320, lot_size: 0.5, result: 'WIN', pnl: 1600, rr_ratio: 3.2, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Strong London open breakout.', created_at: new Date('2026-05-01').getTime() },
-    { pair: 'GBP/USD', direction: 'SELL', entry_price: 1.2750, exit_price: 1.2690, stop_loss: 1.2780, take_profit: 1.2680, lot_size: 0.4, result: 'WIN', pnl: 240, rr_ratio: 2.3, session: 'New York', emotions: 'Patient', strategy: 'Liquidity Grab', notes: 'NY session reversal.', created_at: new Date('2026-05-01').getTime() + 3600000 },
-    { pair: 'NAS100', direction: 'BUY', entry_price: 19200, exit_price: 19150, stop_loss: 19100, take_profit: 19400, lot_size: 0.2, result: 'LOSS', pnl: -100, rr_ratio: -0.5, session: 'New York', emotions: 'FOMO', strategy: 'Breakout', notes: 'Faded too early.', created_at: new Date('2026-05-02').getTime() },
-    { pair: 'XAU/USD', direction: 'BUY', entry_price: 3295, exit_price: 3320, stop_loss: 3285, take_profit: 3325, lot_size: 0.6, result: 'WIN', pnl: 1500, rr_ratio: 2.5, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Beautiful OB retest.', created_at: new Date('2026-05-02').getTime() + 7200000 },
+    { user_id: userId, pair: 'XAU/USD', direction: 'BUY', entry_price: 2340.5, exit_price: 2358.2, stop_loss: 2335, take_profit: 2360, lot_size: 0.5, result: 'WIN', pnl: 885, rr_ratio: 3.2, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Clean break of London high.', created_at: new Date(now - day*8).toISOString() },
+    { user_id: userId, pair: 'GBP/JPY', direction: 'SELL', entry_price: 198.45, exit_price: 197.20, stop_loss: 198.90, take_profit: 197.00, lot_size: 0.3, result: 'WIN', pnl: 375, rr_ratio: 2.8, session: 'New York', emotions: 'Patient', strategy: 'Liquidity Grab', notes: 'Took out Asian high.', created_at: new Date(now - day*7).toISOString() },
+    { user_id: userId, pair: 'EUR/USD', direction: 'BUY', entry_price: 1.0820, exit_price: 1.0805, stop_loss: 1.0800, take_profit: 1.0860, lot_size: 0.5, result: 'LOSS', pnl: -75, rr_ratio: -0.4, session: 'London', emotions: 'FOMO', strategy: 'Scalp', notes: 'Chased entry.', created_at: new Date(now - day*6).toISOString() },
+    { user_id: userId, pair: 'XAU/USD', direction: 'SELL', entry_price: 2380, exit_price: 2370, stop_loss: 2385, take_profit: 2365, lot_size: 0.4, result: 'WIN', pnl: 400, rr_ratio: 2.0, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Distribution at highs.', created_at: new Date(now - day*5).toISOString() },
+    { user_id: userId, pair: 'NAS100', direction: 'BUY', entry_price: 18420, exit_price: 18390, stop_loss: 18380, take_profit: 18500, lot_size: 0.2, result: 'LOSS', pnl: -60, rr_ratio: -0.75, session: 'New York', emotions: 'Revenge', strategy: 'Breakout', notes: 'Revenge trade. Bad idea.', created_at: new Date(now - day*4).toISOString() },
+    { user_id: userId, pair: 'BTC/USD', direction: 'BUY', entry_price: 67800, exit_price: 69100, stop_loss: 67200, take_profit: 69500, lot_size: 0.05, result: 'WIN', pnl: 65, rr_ratio: 2.1, session: 'Asian', emotions: 'Patient', strategy: 'Swing', notes: 'Asian range break.', created_at: new Date(now - day*3).toISOString() },
+    { user_id: userId, pair: 'GBP/JPY', direction: 'BUY', entry_price: 197.10, exit_price: 198.40, stop_loss: 196.80, take_profit: 198.50, lot_size: 0.3, result: 'WIN', pnl: 390, rr_ratio: 4.3, session: 'Overlap', emotions: 'Confident', strategy: 'SMC', notes: 'Order block held. 4R.', created_at: new Date(now - day*2).toISOString() },
+    { user_id: userId, pair: 'XAU/USD', direction: 'BUY', entry_price: 2390, exit_price: 2390, stop_loss: 2385, take_profit: 2400, lot_size: 0.3, result: 'BREAKEVEN', pnl: 0, rr_ratio: 0, session: 'New York', emotions: 'Hesitant', strategy: 'Scalp', notes: 'Moved SL to BE too early.', created_at: new Date(now - day*1).toISOString() },
+    { user_id: userId, pair: 'XAU/USD', direction: 'BUY', entry_price: 3280, exit_price: 3312, stop_loss: 3270, take_profit: 3320, lot_size: 0.5, result: 'WIN', pnl: 1600, rr_ratio: 3.2, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Strong London breakout.', created_at: new Date('2026-05-01').toISOString() },
+    { user_id: userId, pair: 'GBP/USD', direction: 'SELL', entry_price: 1.2750, exit_price: 1.2690, stop_loss: 1.2780, take_profit: 1.2680, lot_size: 0.4, result: 'WIN', pnl: 240, rr_ratio: 2.3, session: 'New York', emotions: 'Patient', strategy: 'Liquidity Grab', notes: 'NY reversal.', created_at: new Date('2026-05-01T10:00:00').toISOString() },
+    { user_id: userId, pair: 'NAS100', direction: 'BUY', entry_price: 19200, exit_price: 19150, stop_loss: 19100, take_profit: 19400, lot_size: 0.2, result: 'LOSS', pnl: -100, rr_ratio: -0.5, session: 'New York', emotions: 'FOMO', strategy: 'Breakout', notes: 'Faded too early.', created_at: new Date('2026-05-02').toISOString() },
+    { user_id: userId, pair: 'XAU/USD', direction: 'BUY', entry_price: 3295, exit_price: 3320, stop_loss: 3285, take_profit: 3325, lot_size: 0.6, result: 'WIN', pnl: 1500, rr_ratio: 2.5, session: 'London', emotions: 'Confident', strategy: 'SMC', notes: 'Beautiful OB retest.', created_at: new Date('2026-05-02T10:00:00').toISOString() },
   ];
-  saveTrades(seeded.map((t, i) => ({ ...t, id: 't' + (now + i) })));
+  await _sb.from('trades').insert(seeded);
 }
 
-function login(email, password) {
-  const users = getUsers();
-  if (users[email]) {
-    if (users[email].password !== password) { toast('Wrong password.', 'error'); return false; }
-  } else {
-    users[email] = { password, createdAt: Date.now() };
-    saveUsers(users);
+/* ---------- AUTH ---------- */
+async function login(email, password) {
+  const { error } = await _sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    // Try sign up if not found
+    if (error.message.includes('Invalid login')) {
+      toast('Wrong password.', 'error'); return;
+    }
+    const { error: signUpError } = await _sb.auth.signUp({ email, password });
+    if (signUpError) { toast(signUpError.message, 'error'); return; }
+    await _sb.auth.signInWithPassword({ email, password });
   }
-  localStorage.setItem(STORAGE_KEY_SESSION, email);
-  state.user = email;
+  const { data: { user } } = await _sb.auth.getUser();
+  if (!user) { toast('Login failed.', 'error'); return; }
+  state.user = user;
+  await _sb.from('profiles').upsert({ id: user.id, email, source: 'signup' });
+  await loadTrades();
   enterApp();
   toast('Welcome back, trader.');
-  return true;
 }
 
-function logout() {
-  localStorage.removeItem(STORAGE_KEY_SESSION);
+async function logout() {
+  await _sb.auth.signOut();
   state.user = null;
+  state.trades = [];
   document.getElementById('app').classList.remove('active');
   document.getElementById('bottomNav').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
 }
 
-function checkSession() {
-  const email = localStorage.getItem(STORAGE_KEY_SESSION);
-  if (email) { state.user = email; enterApp(); }
+async function checkSession() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (session) {
+    state.user = session.user;
+    await loadTrades();
+    enterApp();
+  }
 }
 
 function enterApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').classList.add('active');
   document.getElementById('bottomNav').style.display = 'flex';
-  state.trades = loadTrades();
   navigate('dashboard');
 }
 
-function tradesStorageKey() { return STORAGE_KEY_TRADES + '_' + (state.user || 'anon'); }
-function loadTrades() { return JSON.parse(localStorage.getItem(tradesStorageKey()) || '[]'); }
-function saveTrades(arr) { localStorage.setItem(tradesStorageKey(), JSON.stringify(arr)); state.trades = arr; }
+/* ---------- TRADES — SUPABASE ---------- */
+async function loadTrades() {
+  if (!state.user) return;
+  const { data, error } = await _sb.from('trades')
+    .select('*')
+    .eq('user_id', state.user.id)
+    .order('created_at', { ascending: false });
+  if (error) { console.error(error); return; }
+  // Normalize created_at to timestamp number for compatibility
+  state.trades = (data || []).map(t => ({
+    ...t,
+    created_at: new Date(t.created_at).getTime(),
+    pnl: Number(t.pnl) || 0,
+    rr_ratio: Number(t.rr_ratio) || 0
+  }));
+}
+
+async function saveTrade(trade) {
+  const { error } = await _sb.from('trades').insert(trade);
+  if (error) { toast('Error saving trade: ' + error.message, 'error'); return false; }
+  await loadTrades();
+  return true;
+}
+
+async function deleteTrade(id) {
+  if (!confirm('Delete this trade? This cannot be undone.')) return;
+  const { error } = await _sb.from('trades').delete().eq('id', id).eq('user_id', state.user.id);
+  if (error) { toast('Error deleting trade.', 'error'); return; }
+  await loadTrades();
+  toast('Trade deleted.');
+  renderJournal();
+}
 
 /* ---------- navigation ---------- */
 function navigate(page) {
@@ -2011,7 +2054,7 @@ document.getElementById('pairSelect').addEventListener('change', e => {
   else wrap.classList.remove('custom');
 });
 
-document.getElementById('tradeForm').addEventListener('submit', e => {
+document.getElementById('tradeForm').addEventListener('submit', async e => {
   e.preventDefault();
   let pair = document.getElementById('pairSelect').value;
   if (pair === '__custom') {
@@ -2019,9 +2062,7 @@ document.getElementById('tradeForm').addEventListener('submit', e => {
     if (!pair) { toast('Enter a pair.', 'error'); return; }
   }
   const trade = {
-    id: 't' + Date.now(),
-    user_id: state.user,
-    created_at: Date.now(),
+    user_id: state.user.id,
     pair,
     direction: state.formDirection,
     entry_price: parseFloat(document.getElementById('entryPrice').value),
@@ -2038,11 +2079,11 @@ document.getElementById('tradeForm').addEventListener('submit', e => {
     notes: document.getElementById('notes').value,
     image_url: null
   };
-  const arr = state.trades.slice();
-  arr.push(trade);
-  saveTrades(arr);
-  toast('Trade logged. ' + (trade.result === 'WIN' ? 'Stack the wins.' : trade.result === 'LOSS' ? 'Learn and move on.' : 'Lock it in.'));
-  navigate('dashboard');
+  const ok = await saveTrade(trade);
+  if (ok) {
+    toast('Trade logged. ' + (trade.result === 'WIN' ? 'Stack the wins.' : trade.result === 'LOSS' ? 'Learn and move on.' : 'Lock it in.'));
+    navigate('dashboard');
+  }
 });
 
 /* ---------- ANALYTICS ---------- */
@@ -2160,13 +2201,14 @@ function drawEmotionChart() {
   });
 }
 
-/* ---------- LOGIN ---------- */
-document.getElementById('loginForm').addEventListener('submit', e => {
+/* ---------- INIT ---------- */
+checkSession();
+document.getElementById('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pwd = document.getElementById('loginPassword').value;
   if (!email || !pwd) return;
-  login(email, pwd);
+  await login(email, pwd);
 });
 
 /* ---------- INIT ---------- */
