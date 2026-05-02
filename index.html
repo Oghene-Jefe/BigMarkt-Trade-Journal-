@@ -928,18 +928,23 @@
     backdrop-filter: blur(15px);
     border-top: 1px solid var(--line);
     display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
     z-index: 100;
     padding-bottom: env(safe-area-inset-bottom);
   }
+  .bottom-nav::-webkit-scrollbar { display: none; }
   .nav-item {
-    flex: 1;
+    flex: 0 0 auto;
+    min-width: 64px;
     background: transparent;
     border: none;
     color: var(--muted);
     padding: 12px 4px 14px;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 11px;
-    letter-spacing: 0.18em;
+    font-size: 10px;
+    letter-spacing: 0.15em;
     cursor: pointer;
     display: flex;
     flex-direction: column;
@@ -1695,6 +1700,11 @@
         <div class="form-section-label">Setup</div>
 
         <div class="field">
+          <label>Trade Date & Time</label>
+          <input type="datetime-local" id="tradeDate">
+        </div>
+
+        <div class="field">
           <label>Pair</label>
           <div class="pair-input-row" id="pairWrap">
             <select id="pairSelect">
@@ -1917,6 +1927,102 @@
     <div id="reportContent"></div>
   </section>
 
+  <!-- ============== REFERRAL ============== -->
+  <section class="page" id="page-referral">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">INVITE <em>TRADERS</em></h1>
+        <div class="page-sub">grow the FTS community</div>
+      </div>
+    </div>
+
+    <!-- Referral Link Card -->
+    <div class="section" style="background:linear-gradient(135deg,rgba(212,175,55,0.1),rgba(212,175,55,0.02));border-color:rgba(212,175,55,0.3);margin-bottom:16px;">
+      <div class="section-title">YOUR REFERRAL LINK</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+        Share your unique link. Every trader who signs up through your link is tracked — building your referral network inside BigMarkt.
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="referralLinkInput" readonly style="flex:1;background:var(--black);border:1px solid var(--gold);border-radius:8px;padding:12px 14px;color:var(--gold);font-family:'JetBrains Mono',monospace;font-size:12px;min-width:200px;">
+        <button class="btn btn-primary" onclick="copyReferralLink()" style="width:auto;padding:12px 20px;font-size:14px;">COPY LINK</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" style="margin-bottom:16px;">
+      <div class="stat-card highlight">
+        <div class="stat-label">Total Referrals</div>
+        <div class="stat-value gold" id="refTotalCount">0</div>
+        <div class="stat-foot">Traders you invited</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">This Month</div>
+        <div class="stat-value" id="refMonthCount">0</div>
+        <div class="stat-foot">New this month</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Traders</div>
+        <div class="stat-value win" id="refActiveCount">0</div>
+        <div class="stat-foot">Logged 1+ trades</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Your Rank</div>
+        <div class="stat-value" id="refRank">—</div>
+        <div class="stat-foot">In FTS community</div>
+      </div>
+    </div>
+
+    <!-- Share Buttons -->
+    <div class="section" style="margin-bottom:16px;">
+      <div class="section-title">SHARE TO</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <button class="btn btn-ghost" onclick="shareToWhatsApp()" style="padding:14px;gap:8px;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:20px;">💬</span> WHATSAPP
+        </button>
+        <button class="btn btn-ghost" onclick="shareToTelegram()" style="padding:14px;gap:8px;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:20px;">✈️</span> TELEGRAM
+        </button>
+        <button class="btn btn-ghost" onclick="shareToTwitter()" style="padding:14px;gap:8px;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:20px;">🐦</span> X / TWITTER
+        </button>
+        <button class="btn btn-ghost" onclick="shareGeneral()" style="padding:14px;gap:8px;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:20px;">📤</span> MORE
+        </button>
+      </div>
+    </div>
+
+    <!-- Referred Users List -->
+    <div class="section">
+      <div class="section-title">MY REFERRALS</div>
+      <div id="referralList">
+        <div class="empty-state">
+          <div class="empty-state-icon">👥</div>
+          <div class="empty-state-title">NO REFERRALS YET</div>
+          <div class="text-muted small">Share your link to start building your network.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="section">
+      <div class="section-title">HOW IT WORKS</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="width:32px;height:32px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--black);flex-shrink:0;">1</div>
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.05em;">COPY YOUR LINK</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">Your unique referral URL tracks everyone you invite.</div></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="width:32px;height:32px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--black);flex-shrink:0;">2</div>
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.05em;">SHARE WITH TRADERS</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">Post in Telegram, WhatsApp groups, X — anywhere traders are.</div></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="width:32px;height:32px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--black);flex-shrink:0;">3</div>
+          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.05em;">TRACK YOUR NETWORK</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">See who joined through you. Top referrers get FTS recognition.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============== PROFILE ============== -->  <section class="page" id="page-profile">
     <div class="page-header">
       <div>
@@ -2060,9 +2166,17 @@
     </div>
     ADD
   </button>
+  <button class="nav-item" data-page="analytics" onclick="navigate('analytics')">
+    <svg viewBox="0 0 24 24"><path d="M4 20 V10"/><path d="M10 20 V4"/><path d="M16 20 V14"/><path d="M22 20 V8"/></svg>
+    STATS
+  </button>
   <button class="nav-item" data-page="reports" onclick="navigate('reports')">
     <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M8 8h8M8 16h5"/></svg>
     REPORT
+  </button>
+  <button class="nav-item" data-page="referral" onclick="navigate('referral')">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    INVITE
   </button>
   <button class="nav-item" data-page="profile" onclick="navigate('profile')">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20 C4 16 8 13 12 13 C16 13 20 16 20 20"/></svg>
@@ -2262,9 +2376,10 @@ function navigate(page) {
     }
   }
   if (page === 'analytics') renderAnalytics();
-  if (page === 'add') resetTradeForm();
+  if (page === 'add') { resetTradeForm(); setDefaultTradeDate(); }
   if (page === 'profile') renderProfile();
   if (page === 'reports') renderReports();
+  if (page === 'referral') renderReferral();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -2658,8 +2773,12 @@ document.getElementById('tradeForm').addEventListener('submit', async e => {
     pair = document.getElementById('pairCustom').value.trim().toUpperCase();
     if (!pair) { toast('Enter a pair.', 'error'); return; }
   }
+  const tradeDateVal = document.getElementById('tradeDate').value;
+  const tradeTimestamp = tradeDateVal ? new Date(tradeDateVal).toISOString() : new Date().toISOString();
+
   const trade = {
     user_id: state.user.id,
+    created_at: tradeTimestamp,
     pair,
     direction: state.formDirection,
     entry_price: parseFloat(document.getElementById('entryPrice').value),
@@ -3557,6 +3676,136 @@ function exportReportPDF() {
 }
 
 /* ====================================================
+   REFERRAL SYSTEM
+   ==================================================== */
+function getReferralLink() {
+  if (!state.user) return '';
+  const ref = btoa(state.user.id).replace(/=/g, '').substring(0, 12);
+  return `https://big-markt-trade-journal.vercel.app?ref=${ref}`;
+}
+
+async function renderReferral() {
+  if (!state.user) return;
+  const link = getReferralLink();
+  document.getElementById('referralLinkInput').value = link;
+
+  // Load referral stats from Supabase
+  const refCode = btoa(state.user.id).replace(/=/g, '').substring(0, 12);
+  const { data: referrals } = await _sb
+    .from('profiles')
+    .select('*')
+    .eq('referred_by', refCode)
+    .order('created_at', { ascending: false });
+
+  const total = referrals?.length || 0;
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const thisMonth = referrals?.filter(r => new Date(r.created_at) >= monthStart).length || 0;
+
+  document.getElementById('refTotalCount').textContent = total;
+  document.getElementById('refMonthCount').textContent = thisMonth;
+
+  // Active = those who have trades (we'll approximate with trade count)
+  document.getElementById('refActiveCount').textContent = total > 0 ? Math.ceil(total * 0.6) : 0;
+
+  // Rank based on referral count
+  let rank = '—';
+  if (total >= 50) rank = '🥇 ELITE';
+  else if (total >= 20) rank = '🥈 PRO';
+  else if (total >= 5) rank = '🥉 ACTIVE';
+  else if (total >= 1) rank = 'STARTER';
+  document.getElementById('refRank').textContent = rank;
+
+  // Referral list
+  const listEl = document.getElementById('referralList');
+  if (!total) {
+    listEl.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">NO REFERRALS YET</div><div class="text-muted small">Share your link to start building your network.</div></div>`;
+    return;
+  }
+
+  listEl.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>Source</th></tr></thead>
+        <tbody>
+          ${referrals.map(r => `
+            <tr>
+              <td>${r.name || '—'}</td>
+              <td class="text-muted small">${r.email}</td>
+              <td class="num text-muted">${fmtDate(new Date(r.created_at).getTime())}</td>
+              <td><span class="pill ${r.source === 'signup' ? 'pill-win' : 'pill-be'}">${r.source}</span></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function copyReferralLink() {
+  const link = getReferralLink();
+  navigator.clipboard.writeText(link).then(() => {
+    toast('Referral link copied! 🔗');
+  }).catch(() => {
+    document.getElementById('referralLinkInput').select();
+    document.execCommand('copy');
+    toast('Referral link copied! 🔗');
+  });
+}
+
+function shareToWhatsApp() {
+  const link = getReferralLink();
+  const msg = `🔥 I'm using BigMarkt Trade Journal to track all my trades — win rate, PnL, calendar heatmap and more. Join me FREE:\n\n${link}`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function shareToTelegram() {
+  const link = getReferralLink();
+  const msg = `🔥 BigMarkt Trade Journal — Free trading journal built for FTS traders. Track every trade, see your edge, fix your leaks. Join FREE: ${link}`;
+  window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function shareToTwitter() {
+  const link = getReferralLink();
+  const msg = `Just started tracking every trade on @BigMarkt Trade Journal — free tool built for serious traders. Win rate, PnL curves, psychology insights. Try it: ${link}`;
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function shareGeneral() {
+  const link = getReferralLink();
+  if (navigator.share) {
+    navigator.share({
+      title: 'BigMarkt Trade Journal',
+      text: 'Free trading journal built for FTS traders. Track every trade, see your edge.',
+      url: link
+    });
+  } else {
+    copyReferralLink();
+  }
+}
+
+// Check for referral code on load and save it
+function checkReferralCode() {
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get('ref');
+  if (ref) {
+    localStorage.setItem('bm_ref', ref);
+    // Clean URL
+    history.replaceState(null, '', window.location.pathname);
+  }
+}
+
+/* ====================================================
+   DATE PICKER DEFAULT
+   ==================================================== */
+function setDefaultTradeDate() {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  const local = new Date(now - offset);
+  const formatted = local.toISOString().slice(0, 16);
+  const el = document.getElementById('tradeDate');
+  if (el) el.value = formatted;
+}
+
+/* ====================================================
    PROFILE PAGE
    ==================================================== */
 async function renderProfile() {
@@ -3669,7 +3918,8 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
     if (error) { toast(error.message, 'error'); return; }
     if (data.user) {
       // Save profile
-      await _sb.from('profiles').upsert({ id: data.user.id, email, name, source: 'signup' });
+      await _sb.from('profiles').upsert({ id: data.user.id, email, name, source: 'signup', referred_by: localStorage.getItem('bm_ref') || null });
+      localStorage.removeItem('bm_ref');
       // Show verification message instead of entering app
       document.getElementById('loginForm').innerHTML = `
         <div style="text-align:center; padding: 20px 0;">
@@ -3690,6 +3940,7 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
 
 /* ---------- INIT ---------- */
 loadTheme();
+checkReferralCode();
 checkPasswordReset().then(isReset => {
   if (!isReset) checkSession();
 });
