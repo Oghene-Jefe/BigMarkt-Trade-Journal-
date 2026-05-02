@@ -2684,6 +2684,49 @@ function autoCalcPnLRR() {
 });
 
 /* ====================================================
+   AUTO-CALC FOR EDIT MODAL
+   ==================================================== */
+function autoCalcEditPnL() {
+  const entry = parseFloat(document.getElementById('editEntry')?.value);
+  const exit = parseFloat(document.getElementById('editExit')?.value);
+  const sl = parseFloat(document.getElementById('editSL')?.value);
+  const lot = parseFloat(document.getElementById('editLot')?.value);
+  const dir = document.getElementById('editDirection')?.value || 'BUY';
+  const pair = document.getElementById('editPair')?.value || 'XAU/USD';
+
+  if (!entry || !exit || !lot) return;
+
+  const diff = dir === 'BUY' ? exit - entry : entry - exit;
+  let pnl = 0;
+
+  if (pair === 'XAU/USD') pnl = diff * 100 * lot;
+  else if (pair === 'XAG/USD') pnl = diff * 5000 * lot;
+  else if (['US30','NAS100','US500','UK100','GER40'].includes(pair)) pnl = diff * lot;
+  else if (pair === 'JP225') pnl = (diff * lot * 100) / 150;
+  else if (pair === 'USOIL' || pair === 'UKOIL') pnl = diff * lot * 1000;
+  else if (['BTC/USD','ETH/USD','XRP/USD'].includes(pair)) pnl = diff * lot;
+  else if (pair.includes('Boom') || pair.includes('Crash') || pair.includes('Volatility') || pair === 'V75' || pair === 'V25') pnl = diff * lot;
+  else {
+    const isJPY = pair.includes('JPY');
+    const pipValue = isJPY ? 0.01 : 0.0001;
+    pnl = (diff / pipValue) * lot * (isJPY ? 1000 : 10);
+  }
+
+  const pnlEl = document.getElementById('editPnL');
+  if (pnlEl) pnlEl.value = pnl.toFixed(2);
+
+  // Auto RR
+  if (sl && entry) {
+    const risk = Math.abs(entry - sl);
+    const reward = Math.abs(exit - entry);
+    if (risk > 0) {
+      const rrEl = document.getElementById('editRR');
+      if (rrEl) rrEl.value = (reward / risk).toFixed(2);
+    }
+  }
+}
+
+/* ====================================================
    EDIT TRADE
    ==================================================== */
 let editingTradeId = null;
@@ -2700,22 +2743,22 @@ function openEditModal(id) {
     </div>
     <div class="field">
       <label>Direction</label>
-      <select id="editDirection">
+      <select id="editDirection" onchange="autoCalcEditPnL()">
         <option ${t.direction==='BUY'?'selected':''}>BUY</option>
         <option ${t.direction==='SELL'?'selected':''}>SELL</option>
       </select>
     </div>
     <div class="field">
       <label>Entry Price</label>
-      <input type="number" step="any" id="editEntry" value="${t.entry_price}">
+      <input type="number" step="any" id="editEntry" value="${t.entry_price}" oninput="autoCalcEditPnL()">
     </div>
     <div class="field">
       <label>Exit Price</label>
-      <input type="number" step="any" id="editExit" value="${t.exit_price}">
+      <input type="number" step="any" id="editExit" value="${t.exit_price}" oninput="autoCalcEditPnL()">
     </div>
     <div class="field">
       <label>Stop Loss</label>
-      <input type="number" step="any" id="editSL" value="${t.stop_loss || ''}">
+      <input type="number" step="any" id="editSL" value="${t.stop_loss || ''}" oninput="autoCalcEditPnL()">
     </div>
     <div class="field">
       <label>Take Profit</label>
@@ -2723,7 +2766,7 @@ function openEditModal(id) {
     </div>
     <div class="field">
       <label>Lot Size</label>
-      <input type="number" step="any" id="editLot" value="${t.lot_size}">
+      <input type="number" step="any" id="editLot" value="${t.lot_size}" oninput="autoCalcEditPnL()">
     </div>
     <div class="field">
       <label>Result</label>
