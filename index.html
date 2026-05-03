@@ -1104,6 +1104,175 @@
   .session-banner-close:hover { color: var(--text); }
 
   /* ====================================================
+     FLOATING CALC BUTTON + DRAWER
+     ==================================================== */
+  .calc-fab {
+    position: fixed;
+    bottom: calc(72px + env(safe-area-inset-bottom) + 12px);
+    right: 16px;
+    z-index: 90;
+    background: var(--gold);
+    color: var(--black);
+    border: none;
+    border-radius: 50px;
+    padding: 10px 16px 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    box-shadow: 0 6px 24px rgba(212,175,55,0.45), 0 2px 8px rgba(0,0,0,0.4);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .calc-fab:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(212,175,55,0.55); }
+  .calc-fab:active { transform: scale(0.96); }
+  .calc-fab svg { flex-shrink: 0; }
+
+  .calc-drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(3px);
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .calc-drawer-backdrop.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .calc-drawer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 201;
+    background: var(--black-2);
+    border-top: 2px solid var(--gold);
+    border-radius: 20px 20px 0 0;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    box-shadow: 0 -10px 60px rgba(0,0,0,0.6);
+  }
+  .calc-drawer.open {
+    transform: translateY(0);
+  }
+  @media (min-width: 640px) {
+    .calc-drawer {
+      left: auto;
+      width: 480px;
+      right: 0;
+      max-height: 100vh;
+      border-radius: 20px 0 0 0;
+      border-top: none;
+      border-left: 2px solid var(--gold);
+      bottom: 0; top: 0;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .calc-drawer.open { transform: translateX(0); }
+  }
+
+  .calc-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px 14px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .calc-drawer-header::before {
+    content: '';
+    position: absolute;
+    top: 8px; left: 50%; transform: translateX(-50%);
+    width: 40px; height: 4px;
+    background: var(--line-2);
+    border-radius: 2px;
+  }
+  @media (min-width: 640px) {
+    .calc-drawer-header::before { display: none; }
+  }
+  .calc-drawer-close {
+    background: var(--black-3);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+  .calc-drawer-close:hover { color: var(--text); border-color: var(--muted); }
+
+  .calc-drawer-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px 20px;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
+    flex: 1;
+  }
+  .calc-drawer-result {
+    background: linear-gradient(135deg, rgba(212,175,55,0.1), rgba(212,175,55,0.03));
+    border: 1px solid rgba(212,175,55,0.35);
+    border-radius: 14px;
+    padding: 24px 20px 20px;
+    text-align: center;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .calc-drawer-result::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: 25%; right: 25%; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    border-radius: 0 0 2px 2px;
+  }
+  .calc-drawer-breakdown {
+    display: grid;
+    grid-template-columns: repeat(4,1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 380px) {
+    .calc-drawer-breakdown { grid-template-columns: repeat(2,1fr); }
+  }
+  .calc-drawer-bd-item {
+    background: var(--black-3);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .calc-drawer-bd-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .calc-drawer-bd-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .calc-drawer-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  /* ====================================================
      INLINE CALC PANEL (inside Add Trade)
      ==================================================== */
   .calc-panel {
@@ -1995,104 +2164,6 @@
       </div>
     </div>
 
-    <!-- Inline Risk Calculator Panel — full version as toggle -->
-    <div class="calc-panel">
-      <button type="button" class="calc-panel-toggle" id="calcPanelToggle" onclick="toggleCalcPanel()">
-        <span class="cpt-left">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h4"/><circle cx="16" cy="16" r="2" fill="currentColor" stroke="none"/></svg>
-          RISK CALCULATOR — SIZE YOUR LOT BEFORE YOU TRADE
-        </span>
-        <span class="cpt-arrow">▼</span>
-      </button>
-      <div class="calc-panel-body" id="calcPanelBody">
-
-        <!-- Result box -->
-        <div style="background:linear-gradient(135deg,rgba(212,175,55,0.1),rgba(212,175,55,0.03));border:1px solid rgba(212,175,55,0.35);border-radius:12px;padding:20px;text-align:center;margin:14px 0 16px;position:relative;">
-          <div style="font-size:10px;letter-spacing:0.3em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;font-weight:600;">Recommended Lot Size</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--gold);line-height:1;" id="cpLotOutput">—</div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);margin-top:4px;" id="cpLotSub">Enter details below to calculate</div>
-          <div style="display:none;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;" id="cpBreakdown">
-            <div style="background:var(--black-3);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;">
-              <div style="font-size:9px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">Risk $</div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;" id="cpRiskAmt">—</div>
-            </div>
-            <div style="background:var(--black-3);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;">
-              <div style="font-size:9px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">Pip/Pt Value</div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;" id="cpPipVal">—</div>
-            </div>
-            <div style="background:var(--black-3);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;">
-              <div style="font-size:9px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">SL Distance</div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;" id="cpSLDistOut">—</div>
-            </div>
-            <div style="background:var(--black-3);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;">
-              <div style="font-size:9px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">Max Loss</div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;" id="cpMaxLoss">—</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Inputs grid -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-          <div class="field" style="margin-bottom:0;">
-            <label>Account Balance ($)</label>
-            <input type="number" id="cpBalance" placeholder="e.g. 1000" min="1" oninput="runInlineCalc()">
-          </div>
-          <div class="field" style="margin-bottom:0;">
-            <label>Risk % <span id="cpSLUnit" style="color:var(--gold);font-size:10px;"></span></label>
-            <input type="number" id="cpRiskPct" placeholder="1" step="0.1" value="1" min="0.1" max="100" oninput="runInlineCalc()">
-          </div>
-          <div class="field" style="margin-bottom:0;">
-            <label>SL Distance <span id="cpSLUnitLabel" style="color:var(--gold);font-size:10px;">(pips)</span></label>
-            <input type="number" id="cpSLPips" placeholder="e.g. 20" step="any" min="0.1" oninput="runInlineCalc()">
-          </div>
-          <div class="field" style="margin-bottom:0;">
-            <label>Quick Risk Preset</label>
-            <div style="display:flex;gap:5px;flex-wrap:wrap;padding-top:5px;">
-              <button type="button" onclick="setCPRisk(0.5)" class="btn btn-ghost" style="width:auto;padding:6px 8px;font-size:11px;flex:1;">0.5%</button>
-              <button type="button" onclick="setCPRisk(1)" class="btn btn-ghost" style="width:auto;padding:6px 8px;font-size:11px;flex:1;">1%</button>
-              <button type="button" onclick="setCPRisk(1.5)" class="btn btn-ghost" style="width:auto;padding:6px 8px;font-size:11px;flex:1;">1.5%</button>
-              <button type="button" onclick="setCPRisk(2)" class="btn btn-ghost" style="width:auto;padding:6px 8px;font-size:11px;flex:1;">2%</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- SL hint -->
-        <div id="cpHintText" style="font-size:12px;color:var(--muted);background:var(--black-3);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:14px;line-height:1.6;"></div>
-
-        <!-- Account size × risk % table -->
-        <div style="margin-bottom:14px;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.08em;color:var(--text);margin-bottom:8px;">📊 ACCOUNT SIZE vs RISK REFERENCE</div>
-          <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:380px;">
-              <thead>
-                <tr style="border-bottom:1px solid var(--line);">
-                  <th style="text-align:left;padding:6px 8px;font-size:9px;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase;">Balance</th>
-                  <th style="text-align:right;padding:6px 8px;font-size:9px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;">0.5%</th>
-                  <th style="text-align:right;padding:6px 8px;font-size:9px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;">1%</th>
-                  <th style="text-align:right;padding:6px 8px;font-size:9px;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase;">2%</th>
-                  <th style="text-align:right;padding:6px 8px;font-size:9px;letter-spacing:0.2em;color:var(--loss);text-transform:uppercase;">5%</th>
-                </tr>
-              </thead>
-              <tbody id="cpRiskTable"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Psychology tips -->
-        <div style="background:linear-gradient(135deg,rgba(212,175,55,0.06),rgba(212,175,55,0.02));border:1px solid rgba(212,175,55,0.2);border-radius:10px;padding:14px;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.08em;color:var(--gold);margin-bottom:10px;">🧠 RISK PSYCHOLOGY — KNOW THIS</div>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <div style="font-size:12px;color:var(--muted);line-height:1.6;display:flex;gap:8px;"><span style="color:var(--gold);">◆</span><span>Risk <strong style="color:var(--text);">1% per trade max</strong> when starting. At 1%, you can lose 20 trades in a row and still have 82% of your account. At 5%, 20 losses = only 36% left.</span></div>
-            <div style="font-size:12px;color:var(--muted);line-height:1.6;display:flex;gap:8px;"><span style="color:var(--gold);">◆</span><span><strong style="color:var(--text);">Set your SL first.</strong> Then calculate lot size. Never open a trade and think about risk after — that's how accounts blow.</span></div>
-            <div style="font-size:12px;color:var(--muted);line-height:1.6;display:flex;gap:8px;"><span style="color:var(--gold);">◆</span><span>After <strong style="color:var(--text);">3 consecutive losses</strong>, drop to 0.5% for your next trade. Losing streaks are real. Protect the account, not your ego.</span></div>
-            <div style="font-size:12px;color:var(--muted);line-height:1.6;display:flex;gap:8px;"><span style="color:var(--win);">◆</span><span>A <strong style="color:var(--text);">1:2 RR at 50% win rate</strong> is profitable. You don't need to be right 70% of the time — you need to cut losses and let winners run.</span></div>
-            <div style="font-size:12px;color:var(--muted);line-height:1.6;display:flex;gap:8px;"><span style="color:var(--loss);">◆</span><span>Daily loss limit = <strong style="color:var(--text);">3% max</strong>. Hit it? Stop. Log it. Close the platform. Tomorrow is a new session.</span></div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
     <form id="tradeForm" class="form-card">
       <div class="form-grid">
         <div class="form-section-label">Setup</div>
@@ -2328,6 +2399,16 @@
         <div class="chart-canvas-wrap">
           <canvas id="chartEmotion"></canvas>
         </div>
+      </div>
+
+      <div class="chart-box">
+        <div class="section-title">WIN RATE BY SETUP GRADE</div>
+        <div id="gradeBreakdown"></div>
+      </div>
+
+      <div class="chart-box">
+        <div class="section-title">PNL IMPACT BY TAG</div>
+        <div id="tagBreakdown"></div>
       </div>
     </div>
   </section>
@@ -2655,6 +2736,206 @@
   </section>
 
 </div>
+<!-- FLOATING RISK CALCULATOR BUTTON -->
+<button class="calc-fab" id="calcFab" onclick="openCalcDrawer()" title="Risk Calculator" style="display:none;">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <rect x="4" y="2" width="16" height="20" rx="2"/>
+    <path d="M8 6h8M8 10h8M8 14h4"/>
+    <circle cx="16" cy="16" r="2.5" fill="currentColor" stroke="none"/>
+  </svg>
+  <span>CALC</span>
+</button>
+
+<!-- CALC DRAWER BACKDROP -->
+<div class="calc-drawer-backdrop" id="calcDrawerBackdrop" onclick="closeCalcDrawer()"></div>
+
+<!-- CALC DRAWER -->
+<div class="calc-drawer" id="calcDrawer">
+  <div class="calc-drawer-header">
+    <div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.08em;color:var(--gold);">⚖️ RISK CALCULATOR</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">Size your position. Protect your capital.</div>
+    </div>
+    <button class="calc-drawer-close" onclick="closeCalcDrawer()">✕</button>
+  </div>
+
+  <div class="calc-drawer-body">
+
+    <!-- Big lot output -->
+    <div class="calc-drawer-result">
+      <div style="font-size:10px;letter-spacing:0.3em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;font-weight:600;">Recommended Lot Size</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:64px;color:var(--gold);line-height:1;letter-spacing:0.02em;" id="drawerLotOutput">—</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);margin-top:6px;" id="drawerLotSub">Enter your details below</div>
+    </div>
+
+    <!-- Breakdown row -->
+    <div class="calc-drawer-breakdown" id="drawerBreakdown" style="display:none;">
+      <div class="calc-drawer-bd-item">
+        <div class="calc-drawer-bd-label">Risk $</div>
+        <div class="calc-drawer-bd-val" id="drawerRiskAmt">—</div>
+      </div>
+      <div class="calc-drawer-bd-item">
+        <div class="calc-drawer-bd-label">Pip Value</div>
+        <div class="calc-drawer-bd-val" id="drawerPipVal">—</div>
+      </div>
+      <div class="calc-drawer-bd-item">
+        <div class="calc-drawer-bd-label">SL Distance</div>
+        <div class="calc-drawer-bd-val" id="drawerSLDist">—</div>
+      </div>
+      <div class="calc-drawer-bd-item">
+        <div class="calc-drawer-bd-label">Max Loss</div>
+        <div class="calc-drawer-bd-val" style="color:var(--loss);" id="drawerMaxLoss">—</div>
+      </div>
+    </div>
+
+    <!-- Inputs -->
+    <div class="calc-drawer-inputs">
+      <div class="field" style="margin-bottom:0;">
+        <label>Account Balance ($)</label>
+        <input type="number" id="drawerBalance" placeholder="e.g. 1000" min="1" oninput="runDrawerCalc()">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Risk Per Trade %</label>
+        <input type="number" id="drawerRiskPct" placeholder="1" step="0.1" value="1" min="0.1" max="100" oninput="runDrawerCalc()">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Instrument / Pair</label>
+        <select id="drawerPair" onchange="runDrawerCalc()">
+          <optgroup label="Metals">
+            <option value="XAU/USD">XAU/USD (Gold)</option>
+            <option value="XAG/USD">XAG/USD (Silver)</option>
+          </optgroup>
+          <optgroup label="Forex">
+            <option value="EUR/USD">EUR/USD</option>
+            <option value="GBP/USD">GBP/USD</option>
+            <option value="GBP/JPY">GBP/JPY</option>
+            <option value="USD/JPY">USD/JPY</option>
+            <option value="AUD/USD">AUD/USD</option>
+            <option value="USD/CAD">USD/CAD</option>
+            <option value="EUR/JPY">EUR/JPY</option>
+          </optgroup>
+          <optgroup label="Indices">
+            <option value="US30">US30 (Dow Jones)</option>
+            <option value="NAS100">NAS100 (Nasdaq)</option>
+            <option value="US500">US500 (S&P 500)</option>
+            <option value="UK100">UK100 (FTSE)</option>
+            <option value="GER40">GER40 (DAX)</option>
+          </optgroup>
+          <optgroup label="Commodities">
+            <option value="USOIL">USOIL (Crude Oil)</option>
+            <option value="UKOIL">UKOIL (Brent)</option>
+          </optgroup>
+          <optgroup label="Crypto">
+            <option value="BTC/USD">BTC/USD</option>
+            <option value="ETH/USD">ETH/USD</option>
+            <option value="XRP/USD">XRP/USD</option>
+          </optgroup>
+          <optgroup label="Synthetic">
+            <option value="Boom 500">Boom 500</option>
+            <option value="Boom 1000">Boom 1000</option>
+            <option value="Crash 500">Crash 500</option>
+            <option value="Crash 1000">Crash 1000</option>
+            <option value="V75">Volatility 75</option>
+            <option value="V25">Volatility 25</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>SL Distance <span id="drawerSLUnit" style="color:var(--gold);font-size:10px;">(pips)</span></label>
+        <input type="number" id="drawerSLPips" placeholder="e.g. 20" step="any" min="0.01" oninput="runDrawerCalc()">
+      </div>
+    </div>
+
+    <!-- Quick presets -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <span style="font-size:10px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;align-self:center;font-weight:600;">Quick:</span>
+      <button type="button" onclick="setDrawerRisk(0.5)" class="btn btn-ghost" style="width:auto;padding:7px 12px;font-size:12px;">0.5%</button>
+      <button type="button" onclick="setDrawerRisk(1)"   class="btn btn-ghost" style="width:auto;padding:7px 12px;font-size:12px;">1%</button>
+      <button type="button" onclick="setDrawerRisk(1.5)" class="btn btn-ghost" style="width:auto;padding:7px 12px;font-size:12px;">1.5%</button>
+      <button type="button" onclick="setDrawerRisk(2)"   class="btn btn-ghost" style="width:auto;padding:7px 12px;font-size:12px;">2%</button>
+      <button type="button" onclick="setDrawerRisk(3)"   class="btn btn-ghost" style="width:auto;padding:7px 12px;font-size:12px;">3%</button>
+    </div>
+
+    <!-- SL hint -->
+    <div id="drawerHintText" style="font-size:12px;color:var(--muted);background:var(--black-3);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:16px;line-height:1.7;min-height:44px;"></div>
+
+    <!-- Account size risk table -->
+    <div style="margin-bottom:16px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.08em;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+        <span style="color:var(--gold);">◆</span> ACCOUNT SIZE vs RISK REFERENCE
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:340px;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--line);">
+              <th style="text-align:left;padding:7px 8px;font-size:9px;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase;font-weight:600;">Balance</th>
+              <th style="text-align:right;padding:7px 8px;font-size:9px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;">0.5%</th>
+              <th style="text-align:right;padding:7px 8px;font-size:9px;letter-spacing:0.2em;color:var(--text);text-transform:uppercase;font-weight:600;">1%</th>
+              <th style="text-align:right;padding:7px 8px;font-size:9px;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase;font-weight:600;">2%</th>
+              <th style="text-align:right;padding:7px 8px;font-size:9px;letter-spacing:0.2em;color:var(--loss);text-transform:uppercase;font-weight:600;">5%</th>
+            </tr>
+          </thead>
+          <tbody id="drawerRiskTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pip reference -->
+    <div style="margin-bottom:16px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.08em;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+        <span style="color:var(--gold);">◆</span> PIP / POINT VALUE REFERENCE
+      </div>
+      <table class="pip-ref-table">
+        <tbody>
+          <tr><td>XAU/USD</td><td>$1 price move = $100 per lot · enter SL as dollar distance (e.g. 2350→2340 = 10)</td></tr>
+          <tr><td>XAG/USD</td><td>1 lot = 5,000 oz · 1 pip = $50 · enter SL in price points</td></tr>
+          <tr><td>EUR/USD</td><td>1 pip = $10 per std lot · count 4th decimal (1.0850→1.0820 = 30 pips)</td></tr>
+          <tr><td>GBP/USD</td><td>1 pip = $10 per std lot · count 4th decimal</td></tr>
+          <tr><td>GBP/JPY</td><td>1 pip ≈ $8/lot · count 2nd decimal for JPY pairs</td></tr>
+          <tr><td>US30</td><td>$1 per point per lot · 30-point stop → enter 30</td></tr>
+          <tr><td>NAS100</td><td>$1 per point per lot · 50-point stop → enter 50</td></tr>
+          <tr><td>USOIL</td><td>1 lot = 1,000 barrels · enter SL as price distance (e.g. $0.30 = 0.3)</td></tr>
+          <tr><td>BTC/USD</td><td>$1 per dollar move per lot · $65k→$64k SL = 1000</td></tr>
+          <tr><td>V75 / V25</td><td>Synthetic indices · $1/point per lot · enter SL in points</td></tr>
+          <tr><td>Boom/Crash</td><td>Synthetic · enter SL distance in points</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Risk psychology -->
+    <div style="background:linear-gradient(135deg,rgba(212,175,55,0.07),rgba(212,175,55,0.02));border:1px solid rgba(212,175,55,0.2);border-radius:12px;padding:16px;margin-bottom:20px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.08em;color:var(--gold);margin-bottom:12px;">🧠 RISK PSYCHOLOGY — KNOW THIS</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;display:flex;gap:10px;">
+          <span style="color:var(--gold);flex-shrink:0;">◆</span>
+          <span>Risk <strong style="color:var(--text);">1% per trade max</strong> when starting. At 1%, you can lose 20 in a row and still have 82% left. At 5%, 20 losses = 36% left. The math is unforgiving.</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;display:flex;gap:10px;">
+          <span style="color:var(--gold);flex-shrink:0;">◆</span>
+          <span><strong style="color:var(--text);">Set your stop loss first.</strong> Lot size is a calculation, not a decision. Never enter a trade and figure out risk afterward.</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;display:flex;gap:10px;">
+          <span style="color:var(--gold);flex-shrink:0;">◆</span>
+          <span>After <strong style="color:var(--text);">3 consecutive losses</strong>, drop to 0.5% for the next trade. Losing streaks are real. Protect the account, not your ego.</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;display:flex;gap:10px;">
+          <span style="color:var(--win);flex-shrink:0;">◆</span>
+          <span>A <strong style="color:var(--text);">1:2 RR at 50% win rate</strong> is profitable. You don't need to be right 70% of the time — cut losses fast and let winners run.</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;display:flex;gap:10px;">
+          <span style="color:var(--loss);flex-shrink:0;">◆</span>
+          <span>Daily loss limit = <strong style="color:var(--text);">3% of account max</strong>. Hit it → close the platform. No revenge trades. No recovery attempts. Tomorrow is a new session.</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;display:flex;gap:10px;">
+          <span style="color:var(--loss);flex-shrink:0;">◆</span>
+          <span>Increasing lot size after a loss to "make it back" is <strong style="color:var(--loss);">how accounts blow up</strong>. Same size, every trade, every day.</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /calc-drawer-body -->
+</div><!-- /calc-drawer -->
+
 <!-- SPINNER OVERLAY -->
 <div class="spinner-overlay" id="spinnerOverlay">
   <div class="spinner-ring"></div>
@@ -2817,12 +3098,22 @@ async function login(email, password) {
   toast('Welcome back, trader.');
 }
 
+function enterApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+  document.getElementById('bottomNav').style.display = 'flex';
+  document.getElementById('calcFab').style.display = 'flex';
+  navigate('dashboard');
+}
+
 async function logout() {
   await _sb.auth.signOut();
   state.user = null;
   state.trades = [];
   document.getElementById('app').classList.remove('active');
   document.getElementById('bottomNav').style.display = 'none';
+  document.getElementById('calcFab').style.display = 'none';
+  closeCalcDrawer();
   document.getElementById('loginScreen').style.display = 'flex';
 }
 
@@ -2837,13 +3128,6 @@ async function checkSession() {
   } else {
     hideSpinner();
   }
-}
-
-function enterApp() {
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('app').classList.add('active');
-  document.getElementById('bottomNav').style.display = 'flex';
-  navigate('dashboard');
 }
 
 /* ---------- TRADES — SUPABASE ---------- */
@@ -2918,7 +3202,7 @@ function navigate(page) {
     renderJournal();
   }
   if (page === 'analytics') renderAnalytics();
-  if (page === 'add') { resetTradeForm(); setDefaultTradeDate(); syncCalcPairWithForm(); }
+  if (page === 'add') { resetTradeForm(); setDefaultTradeDate(); }
   if (page === 'profile') renderProfile();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -3517,6 +3801,86 @@ function drawEmotionChart() {
     },
     options: { ...chartCommon(), plugins: { ...chartCommon().plugins, tooltip: { ...chartCommon().plugins.tooltip, callbacks: { label: (c) => { const i = c.dataIndex; return ['PnL: ' + fmtMoney(pnls[i]), 'Trades: ' + counts[i]]; } } } } }
   });
+
+  // ── GRADE WIN RATE BREAKDOWN ──
+  const gradeEl = document.getElementById('gradeBreakdown');
+  if (gradeEl) {
+    const grades = ['A+', 'A', 'B', 'C', 'D'];
+    const gradeColors = { 'A+': '#16a34a', 'A': '#22c55e', 'B': '#D4AF37', 'C': '#f97316', 'D': '#ef4444' };
+    const gradedTrades = state.trades.filter(t => t.setup_grade);
+    if (gradedTrades.length === 0) {
+      gradeEl.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0;">No graded trades yet.<br><span style="font-size:11px;">Add setup grades when logging trades.</span></div>`;
+    } else {
+      const rows = grades.map(g => {
+        const gt = gradedTrades.filter(t => t.setup_grade === g);
+        if (gt.length === 0) return '';
+        const wins = gt.filter(t => t.result === 'WIN').length;
+        const wr = Math.round(wins / gt.length * 100);
+        const pnl = gt.reduce((s,t) => s+(Number(t.pnl)||0), 0);
+        const col = gradeColors[g] || 'var(--gold)';
+        return `
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);">
+            <div style="width:36px;height:36px;border-radius:8px;background:${col};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:${g==='A'||g==='B'?'#000':'#fff'};flex-shrink:0;">${g}</div>
+            <div style="flex:1;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                <span style="font-size:12px;color:var(--text);font-weight:600;">${gt.length} trade${gt.length>1?'s':''}</span>
+                <span style="font-size:12px;color:${pnl>=0?'var(--win)':'var(--loss)'};">${fmtMoney(pnl)}</span>
+              </div>
+              <div style="background:var(--black-3);border-radius:4px;height:6px;overflow:hidden;">
+                <div style="width:${wr}%;height:100%;background:${col};border-radius:4px;transition:width 0.4s;"></div>
+              </div>
+              <div style="font-size:10px;color:var(--muted);margin-top:3px;">${wr}% win rate · ${wins}W / ${gt.length-wins}L</div>
+            </div>
+          </div>`;
+      }).filter(Boolean).join('');
+      gradeEl.innerHTML = rows || `<div style="color:var(--muted);font-size:13px;padding:16px 0;">No graded trades yet.</div>`;
+    }
+  }
+
+  // ── TAG PNL IMPACT ──
+  const tagEl = document.getElementById('tagBreakdown');
+  if (tagEl) {
+    const taggedTrades = state.trades.filter(t => t.tags);
+    if (taggedTrades.length === 0) {
+      tagEl.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0;">No tagged trades yet.<br><span style="font-size:11px;">Add tags when logging trades.</span></div>`;
+    } else {
+      const tagStats = {};
+      taggedTrades.forEach(t => {
+        (t.tags || '').split(',').forEach(tag => {
+          tag = tag.trim();
+          if (!tag) return;
+          if (!tagStats[tag]) tagStats[tag] = { total: 0, wins: 0, pnl: 0 };
+          tagStats[tag].total++;
+          if (t.result === 'WIN') tagStats[tag].wins++;
+          tagStats[tag].pnl += Number(t.pnl) || 0;
+        });
+      });
+
+      const sorted = Object.entries(tagStats).sort((a,b) => a[1].pnl - b[1].pnl); // worst first
+      const maxAbs = Math.max(1, ...Object.values(tagStats).map(v => Math.abs(v.pnl)));
+
+      const rows = sorted.map(([tag, s]) => {
+        const wr = Math.round(s.wins / s.total * 100);
+        const isNeg = s.pnl < 0;
+        const barWidth = Math.round(Math.abs(s.pnl) / maxAbs * 100);
+        const barCol = isNeg ? 'var(--loss)' : 'var(--win)';
+        return `
+          <div style="padding:10px 0;border-bottom:1px solid var(--line);">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:12px;font-weight:600;color:var(--text);">${tag}</span>
+              <div style="display:flex;gap:10px;align-items:center;">
+                <span style="font-size:11px;color:var(--muted);">${s.total} trades · ${wr}% WR</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:${isNeg?'var(--loss)':'var(--win)'};">${fmtMoney(s.pnl)}</span>
+              </div>
+            </div>
+            <div style="background:var(--black-3);border-radius:4px;height:5px;overflow:hidden;">
+              <div style="width:${barWidth}%;height:100%;background:${barCol};border-radius:4px;"></div>
+            </div>
+          </div>`;
+      }).join('');
+      tagEl.innerHTML = rows;
+    }
+  }
 }
 
 /* ====================================================
@@ -4021,31 +4385,120 @@ function renderPsychAdvisor() {
   const insights = [];
   const trades = state.trades;
 
-  // Emotion analysis
-  const fomoTrades = trades.filter(t => t.emotions === 'FOMO');
-  const fomoLosses = fomoTrades.filter(t => t.result === 'LOSS').length;
+  // ── EMOTION ANALYSIS ──
+  const fomoTrades  = trades.filter(t => t.emotions === 'FOMO');
+  const fomoLosses  = fomoTrades.filter(t => t.result === 'LOSS').length;
   if (fomoTrades.length >= 2 && fomoLosses / fomoTrades.length > 0.5) {
-    insights.push({ type: 'warning', text: `⚠️ FOMO is costing you — ${fomoLosses} of your ${fomoTrades.length} FOMO trades were losses. Wait for confirmation before entering.` });
+    insights.push({ type: 'warning', text: `⚠️ FOMO is costing you — ${fomoLosses} of ${fomoTrades.length} FOMO trades were losses. Wait for confirmation before entering.` });
   }
 
   const revengeTrades = trades.filter(t => t.emotions === 'Revenge');
   if (revengeTrades.length >= 1) {
     const revLoss = revengeTrades.filter(t => t.result === 'LOSS').length;
-    insights.push({ type: 'warning', text: `🚨 Revenge trading detected — ${revengeTrades.length} revenge trade(s), ${revLoss} losses. Step away after a loss before re-entering.` });
+    insights.push({ type: 'warning', text: `🚨 Revenge trading detected — ${revengeTrades.length} revenge trade(s), ${revLoss} ended in losses. Step away after a loss before re-entering.` });
   }
 
-  // Best session
+  // ── TAG ANALYSIS ──
+  const taggedTrades = trades.filter(t => t.tags);
+  if (taggedTrades.length >= 2) {
+    // Collect all tags and their loss rates
+    const tagStats = {};
+    taggedTrades.forEach(t => {
+      (t.tags || '').split(',').forEach(tag => {
+        tag = tag.trim();
+        if (!tag) return;
+        if (!tagStats[tag]) tagStats[tag] = { total: 0, losses: 0, pnl: 0 };
+        tagStats[tag].total++;
+        if (t.result === 'LOSS') tagStats[tag].losses++;
+        tagStats[tag].pnl += Number(t.pnl) || 0;
+      });
+    });
+
+    // Worst tag by loss rate (min 2 occurrences)
+    const badTags = Object.entries(tagStats)
+      .filter(([, v]) => v.total >= 2 && v.losses / v.total > 0.6)
+      .sort((a, b) => b[1].losses / b[1].total - a[1].losses / a[1].total);
+    if (badTags.length > 0) {
+      const [tag, stats] = badTags[0];
+      const lossRate = Math.round(stats.losses / stats.total * 100);
+      insights.push({ type: 'warning', text: `🏷️ Tag "${tag}" appears on ${stats.total} trades with a ${lossRate}% loss rate. This is a pattern — address it before it compounds.` });
+    }
+
+    // Tags with negative total PnL
+    const drainTags = Object.entries(tagStats)
+      .filter(([, v]) => v.total >= 2 && v.pnl < -50)
+      .sort((a, b) => a[1].pnl - b[1].pnl);
+    if (drainTags.length > 0) {
+      const [tag, stats] = drainTags[0];
+      insights.push({ type: 'warning', text: `💸 Trades tagged "${tag}" have cost you ${fmtMoney(Math.abs(stats.pnl))} total. Eliminate this behaviour from your process.` });
+    }
+
+    // Best positive tag
+    const goodTags = Object.entries(tagStats)
+      .filter(([, v]) => v.total >= 2 && v.pnl > 0)
+      .sort((a, b) => b[1].pnl - a[1].pnl);
+    if (goodTags.length > 0) {
+      const [tag, stats] = goodTags[0];
+      insights.push({ type: 'good', text: `✅ Trades tagged "${tag}" generated ${fmtMoney(stats.pnl)} total. Keep doing what that tag represents.` });
+    }
+  }
+
+  // ── SETUP GRADE ANALYSIS ──
+  const gradedTrades = trades.filter(t => t.setup_grade);
+  if (gradedTrades.length >= 3) {
+    const gradeStats = {};
+    gradedTrades.forEach(t => {
+      if (!gradeStats[t.setup_grade]) gradeStats[t.setup_grade] = { total: 0, wins: 0, pnl: 0 };
+      gradeStats[t.setup_grade].total++;
+      if (t.result === 'WIN') gradeStats[t.setup_grade].wins++;
+      gradeStats[t.setup_grade].pnl += Number(t.pnl) || 0;
+    });
+
+    // D/C grade trades that lost
+    const weakGrades = ['D', 'C'].filter(g => gradeStats[g] && gradeStats[g].total >= 2);
+    weakGrades.forEach(g => {
+      const s = gradeStats[g];
+      const lossRate = Math.round((1 - s.wins / s.total) * 100);
+      if (lossRate > 55) {
+        insights.push({ type: 'warning', text: `📉 You've taken ${s.total} Grade ${g} setups with a ${lossRate}% loss rate. You know these setups are weak — stop taking them.` });
+      }
+    });
+
+    // A+ or A grade performance
+    const topGrades = ['A+', 'A'].filter(g => gradeStats[g] && gradeStats[g].total >= 2);
+    topGrades.forEach(g => {
+      const s = gradeStats[g];
+      const wr = Math.round(s.wins / s.total * 100);
+      if (wr >= 60) {
+        insights.push({ type: 'good', text: `🥇 Grade ${g} setups have a ${wr}% win rate across ${s.total} trades and ${fmtMoney(s.pnl)} total PnL. Stack more of these only.` });
+      }
+    });
+
+    // Grade mismatch insight — B/C/D outperforming A+ in PnL (inconsistency signal)
+    if (gradeStats['D'] && gradeStats['A+'] && gradeStats['D'].pnl > gradeStats['A+'].pnl) {
+      insights.push({ type: 'warning', text: `⚠️ Your D-grade trades are generating more PnL than A+ trades — check if your grading system reflects your actual edge or if you're undergrading quality setups.` });
+    }
+  }
+
+  // ── SESSION ANALYSIS ──
   const sessions = ['London','New York','Asian','Overlap'];
   let bestSession = null, bestPnL = -Infinity;
+  let worstSession = null, worstPnL = Infinity;
   sessions.forEach(s => {
-    const sp = trades.filter(t => t.session === s).reduce((sum,t) => sum+(Number(t.pnl)||0), 0);
+    const sTrades = trades.filter(t => t.session === s);
+    if (sTrades.length < 2) return;
+    const sp = sTrades.reduce((sum,t) => sum+(Number(t.pnl)||0), 0);
     if (sp > bestPnL) { bestPnL = sp; bestSession = s; }
+    if (sp < worstPnL) { worstPnL = sp; worstSession = s; }
   });
   if (bestSession && bestPnL > 0) {
-    insights.push({ type: 'good', text: `💪 Your strongest session is ${bestSession} with ${fmtMoney(bestPnL)} total PnL. Focus your best setups here.` });
+    insights.push({ type: 'good', text: `💪 Your strongest session is ${bestSession} with ${fmtMoney(bestPnL)} PnL. Prioritise your best setups here.` });
+  }
+  if (worstSession && worstPnL < -50 && worstSession !== bestSession) {
+    insights.push({ type: 'warning', text: `⏰ The ${worstSession} session is costing you ${fmtMoney(Math.abs(worstPnL))}. Consider reducing size or avoiding it entirely.` });
   }
 
-  // Best pair
+  // ── BEST PAIR ──
   const pairs = [...new Set(trades.map(t => t.pair))];
   let bestPair = null, bestPairPnL = -Infinity;
   pairs.forEach(p => {
@@ -4053,10 +4506,10 @@ function renderPsychAdvisor() {
     if (pp > bestPairPnL) { bestPairPnL = pp; bestPair = p; }
   });
   if (bestPair && bestPairPnL > 0) {
-    insights.push({ type: 'good', text: `🎯 Your best pair is ${bestPair} with ${fmtMoney(bestPairPnL)}. Specialise and master it.` });
+    insights.push({ type: 'good', text: `🎯 Your best pair is ${bestPair} with ${fmtMoney(bestPairPnL)} total PnL. Specialise — master the instrument you print on.` });
   }
 
-  // Win streak check
+  // ── LOSING STREAK ──
   const sorted = [...trades].sort((a,b) => b.created_at - a.created_at);
   let streak = 0, streakType = null;
   for (const t of sorted) {
@@ -4066,17 +4519,25 @@ function renderPsychAdvisor() {
     else break;
   }
   if (streakType === 'LOSS' && streak >= 2) {
-    insights.push({ type: 'warning', text: `🛑 You're on a ${streak}-trade losing streak. Consider reducing lot size or taking a break to reset mentally.` });
+    insights.push({ type: 'warning', text: `🛑 You're on a ${streak}-trade losing streak. Reduce size to 0.5%, review your last ${streak} charts, and only re-enter on an A-grade setup.` });
+  }
+  if (streakType === 'WIN' && streak >= 3) {
+    insights.push({ type: 'good', text: `🔥 ${streak}-trade winning streak. You're in flow — stay disciplined, don't revenge-size, keep the same process that got you here.` });
   }
 
   if (insights.length === 0) {
-    insights.push({ type: 'good', text: `✅ Your trading looks solid. Keep logging consistently to get deeper insights.` });
+    insights.push({ type: 'good', text: `✅ Your trading looks solid. Keep logging consistently — deeper insights unlock as your data grows.` });
   }
+
+  // Limit to 4 most important insights
+  const priority = insights.filter(i => i.type === 'warning').slice(0, 3);
+  const good = insights.filter(i => i.type === 'good').slice(0, 1);
+  const final = [...priority, ...good];
 
   el.innerHTML = `
     <div class="psych-card">
       <div class="psych-title">🧠 PSYCHOLOGY ADVISOR</div>
-      ${insights.map(i => `<div class="psych-insight ${i.type}">${i.text}</div>`).join('')}
+      ${final.map(i => `<div class="psych-insight ${i.type}">${i.text}</div>`).join('')}
     </div>`;
 }
 
@@ -4730,8 +5191,102 @@ function runCalc() {
 }
 
 /* ====================================================
-   SESSION BANNER — in-app only, no push notifications
+   FLOATING RISK CALCULATOR DRAWER
    ==================================================== */
+function openCalcDrawer() {
+  document.getElementById('calcDrawer').classList.add('open');
+  document.getElementById('calcDrawerBackdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // Sync pair from form if on Add page
+  syncDrawerPairFromForm();
+  // Build risk table immediately on open
+  runDrawerCalc();
+}
+
+function closeCalcDrawer() {
+  document.getElementById('calcDrawer').classList.remove('open');
+  document.getElementById('calcDrawerBackdrop').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Sync drawer pair from the Add Trade form pair selector
+function syncDrawerPairFromForm() {
+  const formPair = document.getElementById('pairSelect')?.value;
+  const drawerSel = document.getElementById('drawerPair');
+  if (formPair && formPair !== '__custom' && drawerSel) {
+    const opt = drawerSel.querySelector(`option[value="${formPair}"]`);
+    if (opt) drawerSel.value = formPair;
+  }
+}
+
+function setDrawerRisk(pct) {
+  document.getElementById('drawerRiskPct').value = pct;
+  runDrawerCalc();
+}
+
+function runDrawerCalc() {
+  const balance = parseFloat(document.getElementById('drawerBalance')?.value);
+  const riskPct = parseFloat(document.getElementById('drawerRiskPct')?.value);
+  const slDist  = parseFloat(document.getElementById('drawerSLPips')?.value);
+  const pair    = document.getElementById('drawerPair')?.value || 'XAU/USD';
+
+  const info = getInstrumentInfo(pair);
+
+  // Update unit label and hint
+  const unitEl = document.getElementById('drawerSLUnit');
+  const hintEl = document.getElementById('drawerHintText');
+  if (unitEl) unitEl.textContent = '(' + info.unit + ')';
+  if (hintEl) hintEl.innerHTML = info.hint || 'Enter your stop loss distance.';
+
+  // Always build the account risk reference table
+  const tableEl = document.getElementById('drawerRiskTable');
+  if (tableEl) {
+    const sizes = [100, 200, 500, 1000, 2000, 5000, 10000, 25000, 50000];
+    tableEl.innerHTML = sizes.map(s => `
+      <tr style="border-bottom:1px solid var(--line);">
+        <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);">$${s.toLocaleString()}</td>
+        <td style="text-align:right;padding:6px 8px;font-family:'JetBrains Mono',monospace;color:var(--muted);">$${(s*0.005).toFixed(2)}</td>
+        <td style="text-align:right;padding:6px 8px;font-family:'JetBrains Mono',monospace;color:var(--text);">$${(s*0.01).toFixed(2)}</td>
+        <td style="text-align:right;padding:6px 8px;font-family:'JetBrains Mono',monospace;color:var(--gold);">$${(s*0.02).toFixed(2)}</td>
+        <td style="text-align:right;padding:6px 8px;font-family:'JetBrains Mono',monospace;color:var(--loss);">$${(s*0.05).toFixed(2)}</td>
+      </tr>`).join('');
+  }
+
+  const loEl = document.getElementById('drawerLotOutput');
+  const lsEl = document.getElementById('drawerLotSub');
+  const bdEl = document.getElementById('drawerBreakdown');
+
+  if (!balance || !riskPct || !slDist || slDist <= 0) {
+    if (loEl) loEl.textContent = '—';
+    if (lsEl) lsEl.textContent = 'Enter balance, risk % and SL distance';
+    if (bdEl) bdEl.style.display = 'none';
+    return;
+  }
+
+  const riskAmount = (balance * riskPct) / 100;
+  const lotSize    = riskAmount / (slDist * info.pipValue);
+  const clamped    = Math.max(0.001, Math.min(lotSize, 999));
+  const display    = clamped >= 0.1 ? clamped.toFixed(2) : clamped.toFixed(3);
+
+  if (loEl) loEl.textContent = display;
+  if (lsEl) lsEl.textContent = `${riskPct}% of $${balance.toLocaleString()} · ${pair} · SL ${slDist} ${info.unit}`;
+  if (bdEl) bdEl.style.display = 'grid';
+
+  const raEl = document.getElementById('drawerRiskAmt');
+  const pvEl = document.getElementById('drawerPipVal');
+  const sdEl = document.getElementById('drawerSLDist');
+  const mlEl = document.getElementById('drawerMaxLoss');
+
+  if (raEl) raEl.textContent = '$' + riskAmount.toFixed(2);
+  if (pvEl) pvEl.textContent = '$' + (info.pipValue * clamped).toFixed(2);
+  if (sdEl) sdEl.textContent = slDist + ' ' + info.unit;
+  if (mlEl) mlEl.textContent = '$' + (slDist * info.pipValue * clamped).toFixed(2);
+}
+
+// Close drawer on Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeCalcDrawer();
+});
 const SESSIONS_UTC = [
   { name: 'Asian',    start: 23, end: 8,  emoji: '🌏', msg: 'Asian Session is LIVE — Tokyo & Sydney markets are open.' },
   { name: 'London',   start: 7,  end: 16, emoji: '🏦', msg: 'London Session is LIVE — highest liquidity window is open.' },
@@ -4796,98 +5351,6 @@ function dismissBanner(key) {
   bannerDismissed[key] = true;
   const el = document.getElementById('sessionBanner');
   if (el) el.style.display = 'none';
-}
-
-/* ====================================================
-   INLINE CALC PANEL (inside Add Trade page)
-   ==================================================== */
-function toggleCalcPanel() {
-  const body   = document.getElementById('calcPanelBody');
-  const toggle = document.getElementById('calcPanelToggle');
-  const isOpen = body.classList.contains('open');
-  body.classList.toggle('open', !isOpen);
-  toggle.classList.toggle('open', !isOpen);
-}
-
-// Sync the inline calc pair with whatever pair is selected in the form
-function syncCalcPairWithForm() {
-  const pair = document.getElementById('pairSelect')?.value;
-  if (!pair || pair === '__custom') return;
-  const info = getInstrumentInfo(pair);
-  const el = document.getElementById('cpSLUnitLabel');
-  if (el) el.textContent = '(' + info.unit + ')';
-  const hintEl = document.getElementById('cpHintText');
-  if (hintEl) hintEl.innerHTML = info.hint || '';
-  runInlineCalc();
-}
-
-// Listen to pair changes in the form → update calc hint
-document.getElementById('pairSelect').addEventListener('change', () => {
-  syncCalcPairWithForm();
-});
-
-function setCPRisk(pct) {
-  document.getElementById('cpRiskPct').value = pct;
-  runInlineCalc();
-}
-
-function runInlineCalc() {
-  const balance = parseFloat(document.getElementById('cpBalance')?.value);
-  const riskPct = parseFloat(document.getElementById('cpRiskPct')?.value);
-  const slDist  = parseFloat(document.getElementById('cpSLPips')?.value);
-  const pair    = document.getElementById('pairSelect')?.value || 'XAU/USD';
-
-  const info = getInstrumentInfo(pair);
-
-  // Update unit labels and hint
-  const unitEl  = document.getElementById('cpSLUnitLabel');
-  const hintEl  = document.getElementById('cpHintText');
-  if (unitEl) unitEl.textContent = '(' + info.unit + ')';
-  if (hintEl) hintEl.innerHTML = info.hint || '';
-
-  // Build account size reference table
-  const tableEl = document.getElementById('cpRiskTable');
-  if (tableEl) {
-    const sizes = [100, 250, 500, 1000, 2000, 5000, 10000];
-    tableEl.innerHTML = sizes.map(s => `
-      <tr style="border-bottom:1px solid var(--line);">
-        <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);">$${s.toLocaleString()}</td>
-        <td style="text-align:right;padding:6px 8px;font-family:'JetBrains Mono',monospace;color:var(--muted);">$${(s*0.005).toFixed(2)}</td>
-        <td style="text-align:right;padding:6px 8px;font-family:'JetBrains Mono',monospace;color:var(--text);">$${(s*0.01).toFixed(2)}</td>
-        <td style="text-align:right;padding:6px 8px;font-family:'JetBrains Mono',monospace;color:var(--gold);">$${(s*0.02).toFixed(2)}</td>
-        <td style="text-align:right;padding:6px 8px;font-family:'JetBrains Mono',monospace;color:var(--loss);">$${(s*0.05).toFixed(2)}</td>
-      </tr>`).join('');
-  }
-
-  const loEl = document.getElementById('cpLotOutput');
-  const lsEl = document.getElementById('cpLotSub');
-  const bdEl = document.getElementById('cpBreakdown');
-
-  if (!balance || !riskPct || !slDist || slDist <= 0) {
-    if (loEl) loEl.textContent = '—';
-    if (lsEl) lsEl.textContent = 'Enter balance, risk % and SL distance';
-    if (bdEl) bdEl.style.display = 'none';
-    return;
-  }
-
-  const riskAmount = (balance * riskPct) / 100;
-  const lotSize = riskAmount / (slDist * info.pipValue);
-  const clamped = Math.max(0.001, Math.min(lotSize, 999));
-  const display = clamped >= 0.1 ? clamped.toFixed(2) : clamped.toFixed(3);
-
-  if (loEl) loEl.textContent = display;
-  if (lsEl) lsEl.textContent = `${riskPct}% of $${balance.toLocaleString()} on ${pair} · SL ${slDist} ${info.unit}`;
-  if (bdEl) bdEl.style.display = 'grid';
-
-  const raEl  = document.getElementById('cpRiskAmt');
-  const pvEl  = document.getElementById('cpPipVal');
-  const sdEl  = document.getElementById('cpSLDistOut');
-  const mlEl  = document.getElementById('cpMaxLoss');
-
-  if (raEl) raEl.textContent = '$' + riskAmount.toFixed(2);
-  if (pvEl) pvEl.textContent = '$' + (info.pipValue * clamped).toFixed(2);
-  if (sdEl) sdEl.textContent = slDist + ' ' + info.unit;
-  if (mlEl) mlEl.textContent = '$' + (slDist * info.pipValue * clamped).toFixed(2);
 }
 
 /* ---------- INIT ---------- */
