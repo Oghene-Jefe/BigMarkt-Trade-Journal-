@@ -1868,10 +1868,9 @@
     </div>
 
     <!-- Table View -->
-    <div id="journalTableView">
+    <div id="journalTableView" style="display:block;">
       <div class="export-bar">
         <button class="export-btn" onclick="exportCSV()">📊 CSV</button>
-        <button class="export-btn" onclick="exportJSON()">📁 JSON</button>
         <button class="export-btn" onclick="exportPDF()">📄 PDF</button>
       </div>
       <div class="filters">
@@ -1914,7 +1913,7 @@
     </div>
 
     <!-- Calendar View -->
-    <div id="journalCalView" style="display:none !important;">
+    <div id="journalCalView" style="display:none;">
       <div class="cal-wrap">
         <div class="cal-header">
           <div class="cal-title" id="calMonthLabel">MAY <span>2026</span></div>
@@ -1996,7 +1995,7 @@
       </div>
     </div>
 
-    <!-- Inline Risk Calculator Panel -->
+    <!-- Inline Risk Calculator Panel — full version as toggle -->
     <div class="calc-panel">
       <button type="button" class="calc-panel-toggle" id="calcPanelToggle" onclick="toggleCalcPanel()">
         <span class="cpt-left">
@@ -2006,44 +2005,91 @@
         <span class="cpt-arrow">▼</span>
       </button>
       <div class="calc-panel-body" id="calcPanelBody">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
-          <div class="field" style="margin-bottom:0;">
-            <label>Balance ($)</label>
-            <input type="number" id="cpBalance" placeholder="1000" min="1" oninput="runInlineCalc()">
-          </div>
-          <div class="field" style="margin-bottom:0;">
-            <label>Risk %</label>
-            <input type="number" id="cpRiskPct" placeholder="1" step="0.1" value="1" min="0.1" max="100" oninput="runInlineCalc()">
-          </div>
-          <div class="field" style="margin-bottom:0;">
-            <label>SL Distance <span id="cpSLUnit" style="color:var(--gold);font-size:10px;">(pips)</span></label>
-            <input type="number" id="cpSLPips" placeholder="20" step="any" min="0.1" oninput="runInlineCalc()">
-          </div>
-          <div class="field" style="margin-bottom:0;">
-            <label>Quick Risk</label>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:4px;">
-              <button type="button" onclick="setCPRisk(0.5)" class="btn btn-ghost" style="width:auto;padding:6px 10px;font-size:12px;flex:1;">0.5%</button>
-              <button type="button" onclick="setCPRisk(1)" class="btn btn-ghost" style="width:auto;padding:6px 10px;font-size:12px;flex:1;">1%</button>
-              <button type="button" onclick="setCPRisk(2)" class="btn btn-ghost" style="width:auto;padding:6px 10px;font-size:12px;flex:1;">2%</button>
+
+        <!-- Result box -->
+        <div style="background:linear-gradient(135deg,rgba(212,175,55,0.1),rgba(212,175,55,0.03));border:1px solid rgba(212,175,55,0.35);border-radius:12px;padding:20px;text-align:center;margin:14px 0 16px;position:relative;">
+          <div style="font-size:10px;letter-spacing:0.3em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;font-weight:600;">Recommended Lot Size</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--gold);line-height:1;" id="cpLotOutput">—</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);margin-top:4px;" id="cpLotSub">Enter details below to calculate</div>
+          <div style="display:none;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;" id="cpBreakdown">
+            <div style="background:var(--black-3);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-size:9px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">Risk $</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;" id="cpRiskAmt">—</div>
+            </div>
+            <div style="background:var(--black-3);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-size:9px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">Pip/Pt Value</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;" id="cpPipVal">—</div>
+            </div>
+            <div style="background:var(--black-3);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-size:9px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">SL Distance</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;" id="cpSLDistOut">—</div>
+            </div>
+            <div style="background:var(--black-3);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-size:9px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">Max Loss</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;" id="cpMaxLoss">—</div>
             </div>
           </div>
         </div>
-        <div class="calc-panel-result" id="cpLotOutput">—</div>
-        <div class="calc-panel-sub" id="cpLotSub">LOT SIZE</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
-          <div style="background:var(--black);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;">
-            <div style="font-size:9px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">Risk $</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;" id="cpRiskAmt">$—</div>
+
+        <!-- Inputs grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div class="field" style="margin-bottom:0;">
+            <label>Account Balance ($)</label>
+            <input type="number" id="cpBalance" placeholder="e.g. 1000" min="1" oninput="runInlineCalc()">
           </div>
-          <div style="background:var(--black);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;">
-            <div style="font-size:9px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">Pip Value</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;" id="cpPipVal">$—</div>
+          <div class="field" style="margin-bottom:0;">
+            <label>Risk % <span id="cpSLUnit" style="color:var(--gold);font-size:10px;"></span></label>
+            <input type="number" id="cpRiskPct" placeholder="1" step="0.1" value="1" min="0.1" max="100" oninput="runInlineCalc()">
           </div>
-          <div style="background:var(--black);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;">
-            <div style="font-size:9px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">Max Loss</div>
-            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;" id="cpMaxLoss">$—</div>
+          <div class="field" style="margin-bottom:0;">
+            <label>SL Distance <span id="cpSLUnitLabel" style="color:var(--gold);font-size:10px;">(pips)</span></label>
+            <input type="number" id="cpSLPips" placeholder="e.g. 20" step="any" min="0.1" oninput="runInlineCalc()">
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>Quick Risk Preset</label>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;padding-top:5px;">
+              <button type="button" onclick="setCPRisk(0.5)" class="btn btn-ghost" style="width:auto;padding:6px 8px;font-size:11px;flex:1;">0.5%</button>
+              <button type="button" onclick="setCPRisk(1)" class="btn btn-ghost" style="width:auto;padding:6px 8px;font-size:11px;flex:1;">1%</button>
+              <button type="button" onclick="setCPRisk(1.5)" class="btn btn-ghost" style="width:auto;padding:6px 8px;font-size:11px;flex:1;">1.5%</button>
+              <button type="button" onclick="setCPRisk(2)" class="btn btn-ghost" style="width:auto;padding:6px 8px;font-size:11px;flex:1;">2%</button>
+            </div>
           </div>
         </div>
+
+        <!-- SL hint -->
+        <div id="cpHintText" style="font-size:12px;color:var(--muted);background:var(--black-3);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:14px;line-height:1.6;"></div>
+
+        <!-- Account size × risk % table -->
+        <div style="margin-bottom:14px;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.08em;color:var(--text);margin-bottom:8px;">📊 ACCOUNT SIZE vs RISK REFERENCE</div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:380px;">
+              <thead>
+                <tr style="border-bottom:1px solid var(--line);">
+                  <th style="text-align:left;padding:6px 8px;font-size:9px;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase;">Balance</th>
+                  <th style="text-align:right;padding:6px 8px;font-size:9px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;">0.5%</th>
+                  <th style="text-align:right;padding:6px 8px;font-size:9px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;">1%</th>
+                  <th style="text-align:right;padding:6px 8px;font-size:9px;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase;">2%</th>
+                  <th style="text-align:right;padding:6px 8px;font-size:9px;letter-spacing:0.2em;color:var(--loss);text-transform:uppercase;">5%</th>
+                </tr>
+              </thead>
+              <tbody id="cpRiskTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Psychology tips -->
+        <div style="background:linear-gradient(135deg,rgba(212,175,55,0.06),rgba(212,175,55,0.02));border:1px solid rgba(212,175,55,0.2);border-radius:10px;padding:14px;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.08em;color:var(--gold);margin-bottom:10px;">🧠 RISK PSYCHOLOGY — KNOW THIS</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="font-size:12px;color:var(--muted);line-height:1.6;display:flex;gap:8px;"><span style="color:var(--gold);">◆</span><span>Risk <strong style="color:var(--text);">1% per trade max</strong> when starting. At 1%, you can lose 20 trades in a row and still have 82% of your account. At 5%, 20 losses = only 36% left.</span></div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.6;display:flex;gap:8px;"><span style="color:var(--gold);">◆</span><span><strong style="color:var(--text);">Set your SL first.</strong> Then calculate lot size. Never open a trade and think about risk after — that's how accounts blow.</span></div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.6;display:flex;gap:8px;"><span style="color:var(--gold);">◆</span><span>After <strong style="color:var(--text);">3 consecutive losses</strong>, drop to 0.5% for your next trade. Losing streaks are real. Protect the account, not your ego.</span></div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.6;display:flex;gap:8px;"><span style="color:var(--win);">◆</span><span>A <strong style="color:var(--text);">1:2 RR at 50% win rate</strong> is profitable. You don't need to be right 70% of the time — you need to cut losses and let winners run.</span></div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.6;display:flex;gap:8px;"><span style="color:var(--loss);">◆</span><span>Daily loss limit = <strong style="color:var(--text);">3% max</strong>. Hit it? Stop. Log it. Close the platform. Tomorrow is a new session.</span></div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -2590,7 +2636,7 @@
 
     <!-- Risk Management Tips -->
     <div class="section" style="background:linear-gradient(135deg,rgba(212,175,55,0.06),rgba(212,175,55,0.02));border-color:rgba(212,175,55,0.2);">
-      <div class="section-title">RISK RULES — FTS STANDARD</div>
+      <div class="section-title">RISK RULES — BIGMARKT STANDARD</div>
       <div style="display:flex;flex-direction:column;gap:10px;">
         <div style="display:flex;gap:12px;align-items:flex-start;">
           <span style="color:var(--gold);font-size:18px;line-height:1;">◆</span>
@@ -2861,9 +2907,9 @@ function navigate(page) {
 
   if (page === 'dashboard') { renderDashboard(); checkSessionBanner(); }
   if (page === 'journal') {
-    // reset to table view each time unless already in a view
-    document.getElementById('journalTableView').style.display = 'block';
-    document.getElementById('journalCalView').style.display = 'none';
+    // Always reset to table view on navigation
+    document.getElementById('journalTableView').style.display  = 'block';
+    document.getElementById('journalCalView').style.display    = 'none';
     document.getElementById('journalReportView').style.display = 'none';
     document.getElementById('btnTableView').classList.add('active');
     document.getElementById('btnCalView').classList.remove('active');
@@ -2989,33 +3035,31 @@ function renderDashboard() {
 /* ---------- JOURNAL ---------- */
 function switchJournalView(view) {
   state.journalView = view;
-  const tableDiv  = document.getElementById('journalTableView');
-  const calDiv    = document.getElementById('journalCalView');
-  const reportDiv = document.getElementById('journalReportView');
-  const btnTable  = document.getElementById('btnTableView');
-  const btnCal    = document.getElementById('btnCalView');
-  const btnReport = document.getElementById('btnReportView');
 
-  tableDiv.style.display  = 'none';
-  calDiv.style.display    = 'none !important';
-  reportDiv.style.display = 'none';
-  btnTable.classList.remove('active');
-  btnCal.classList.remove('active');
-  btnReport.classList.remove('active');
+  // Always hide all three panels first
+  document.getElementById('journalTableView').style.display  = 'none';
+  document.getElementById('journalCalView').style.display    = 'none';
+  document.getElementById('journalReportView').style.display = 'none';
 
+  // Remove active from all tab buttons
+  document.getElementById('btnTableView').classList.remove('active');
+  document.getElementById('btnCalView').classList.remove('active');
+  document.getElementById('btnReportView').classList.remove('active');
+
+  // Show only the selected panel
   if (view === 'calendar') {
-    calDiv.style.display = 'block';
-    btnCal.classList.add('active');
-    state.calYear = new Date().getFullYear();
+    document.getElementById('journalCalView').style.display = 'block';
+    document.getElementById('btnCalView').classList.add('active');
+    state.calYear  = new Date().getFullYear();
     state.calMonth = new Date().getMonth();
     renderCalendar();
   } else if (view === 'reports') {
-    reportDiv.style.display = 'block';
-    btnReport.classList.add('active');
+    document.getElementById('journalReportView').style.display = 'block';
+    document.getElementById('btnReportView').classList.add('active');
     renderReports();
   } else {
-    tableDiv.style.display = 'block';
-    btnTable.classList.add('active');
+    document.getElementById('journalTableView').style.display = 'block';
+    document.getElementById('btnTableView').classList.add('active');
     renderJournal();
   }
 }
@@ -4770,8 +4814,10 @@ function syncCalcPairWithForm() {
   const pair = document.getElementById('pairSelect')?.value;
   if (!pair || pair === '__custom') return;
   const info = getInstrumentInfo(pair);
-  const el = document.getElementById('cpSLUnit');
+  const el = document.getElementById('cpSLUnitLabel');
   if (el) el.textContent = '(' + info.unit + ')';
+  const hintEl = document.getElementById('cpHintText');
+  if (hintEl) hintEl.innerHTML = info.hint || '';
   runInlineCalc();
 }
 
@@ -4792,14 +4838,35 @@ function runInlineCalc() {
   const pair    = document.getElementById('pairSelect')?.value || 'XAU/USD';
 
   const info = getInstrumentInfo(pair);
-  const unitEl = document.getElementById('cpSLUnit');
+
+  // Update unit labels and hint
+  const unitEl  = document.getElementById('cpSLUnitLabel');
+  const hintEl  = document.getElementById('cpHintText');
   if (unitEl) unitEl.textContent = '(' + info.unit + ')';
+  if (hintEl) hintEl.innerHTML = info.hint || '';
+
+  // Build account size reference table
+  const tableEl = document.getElementById('cpRiskTable');
+  if (tableEl) {
+    const sizes = [100, 250, 500, 1000, 2000, 5000, 10000];
+    tableEl.innerHTML = sizes.map(s => `
+      <tr style="border-bottom:1px solid var(--line);">
+        <td style="padding:6px 8px;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gold);">$${s.toLocaleString()}</td>
+        <td style="text-align:right;padding:6px 8px;font-family:'JetBrains Mono',monospace;color:var(--muted);">$${(s*0.005).toFixed(2)}</td>
+        <td style="text-align:right;padding:6px 8px;font-family:'JetBrains Mono',monospace;color:var(--text);">$${(s*0.01).toFixed(2)}</td>
+        <td style="text-align:right;padding:6px 8px;font-family:'JetBrains Mono',monospace;color:var(--gold);">$${(s*0.02).toFixed(2)}</td>
+        <td style="text-align:right;padding:6px 8px;font-family:'JetBrains Mono',monospace;color:var(--loss);">$${(s*0.05).toFixed(2)}</td>
+      </tr>`).join('');
+  }
+
+  const loEl = document.getElementById('cpLotOutput');
+  const lsEl = document.getElementById('cpLotSub');
+  const bdEl = document.getElementById('cpBreakdown');
 
   if (!balance || !riskPct || !slDist || slDist <= 0) {
-    const lo = document.getElementById('cpLotOutput');
-    const ls = document.getElementById('cpLotSub');
-    if (lo) lo.textContent = '—';
-    if (ls) ls.textContent = 'LOT SIZE';
+    if (loEl) loEl.textContent = '—';
+    if (lsEl) lsEl.textContent = 'Enter balance, risk % and SL distance';
+    if (bdEl) bdEl.style.display = 'none';
     return;
   }
 
@@ -4808,17 +4875,19 @@ function runInlineCalc() {
   const clamped = Math.max(0.001, Math.min(lotSize, 999));
   const display = clamped >= 0.1 ? clamped.toFixed(2) : clamped.toFixed(3);
 
-  const lo = document.getElementById('cpLotOutput');
-  const ls = document.getElementById('cpLotSub');
-  const ra = document.getElementById('cpRiskAmt');
-  const pv = document.getElementById('cpPipVal');
-  const ml = document.getElementById('cpMaxLoss');
+  if (loEl) loEl.textContent = display;
+  if (lsEl) lsEl.textContent = `${riskPct}% of $${balance.toLocaleString()} on ${pair} · SL ${slDist} ${info.unit}`;
+  if (bdEl) bdEl.style.display = 'grid';
 
-  if (lo) lo.textContent = display;
-  if (ls) ls.textContent = 'LOT SIZE';
-  if (ra) ra.textContent = '$' + riskAmount.toFixed(2);
-  if (pv) pv.textContent = '$' + (info.pipValue * clamped).toFixed(2);
-  if (ml) ml.textContent = '$' + (slDist * info.pipValue * clamped).toFixed(2);
+  const raEl  = document.getElementById('cpRiskAmt');
+  const pvEl  = document.getElementById('cpPipVal');
+  const sdEl  = document.getElementById('cpSLDistOut');
+  const mlEl  = document.getElementById('cpMaxLoss');
+
+  if (raEl) raEl.textContent = '$' + riskAmount.toFixed(2);
+  if (pvEl) pvEl.textContent = '$' + (info.pipValue * clamped).toFixed(2);
+  if (sdEl) sdEl.textContent = slDist + ' ' + info.unit;
+  if (mlEl) mlEl.textContent = '$' + (slDist * info.pipValue * clamped).toFixed(2);
 }
 
 /* ---------- INIT ---------- */
