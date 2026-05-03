@@ -1133,8 +1133,8 @@
   .calc-drawer-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(3px);
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(4px);
     z-index: 200;
     opacity: 0;
     pointer-events: none;
@@ -1145,6 +1145,7 @@
     pointer-events: all;
   }
 
+  /* Mobile: bottom sheet */
   .calc-drawer {
     position: fixed;
     bottom: 0; left: 0; right: 0;
@@ -1158,24 +1159,36 @@
     transform: translateY(100%);
     transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
     box-shadow: 0 -10px 60px rgba(0,0,0,0.6);
+    overscroll-behavior: contain;
   }
   .calc-drawer.open {
     transform: translateY(0);
   }
+
+  /* Desktop: centered modal */
   @media (min-width: 640px) {
     .calc-drawer {
-      left: auto;
-      width: 480px;
-      right: 0;
-      max-height: 100vh;
-      border-radius: 20px 0 0 0;
+      top: 50%;
+      left: 50%;
+      right: auto;
+      bottom: auto;
+      width: 560px;
+      max-width: calc(100vw - 48px);
+      max-height: 88vh;
+      border-radius: 20px;
       border-top: none;
-      border-left: 2px solid var(--gold);
-      bottom: 0; top: 0;
-      transform: translateX(100%);
-      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+      border: 1px solid rgba(212,175,55,0.4);
+      transform: translate(-50%, -48%) scale(0.96);
+      opacity: 0;
+      transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(212,175,55,0.15);
     }
-    .calc-drawer.open { transform: translateX(0); }
+    .calc-drawer.open {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+    /* Hide the drag handle on desktop */
+    .calc-drawer-header::before { display: none; }
   }
 
   .calc-drawer-header {
@@ -1215,9 +1228,12 @@
   .calc-drawer-body {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
     padding: 16px 20px;
     padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
     flex: 1;
+    min-height: 0;
   }
   .calc-drawer-result {
     background: linear-gradient(135deg, rgba(212,175,55,0.1), rgba(212,175,55,0.03));
