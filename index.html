@@ -933,47 +933,55 @@
     scrollbar-width: none;
     z-index: 100;
     padding-bottom: env(safe-area-inset-bottom);
+    /* Distribute items evenly when they fit; scroll when they don't */
+    justify-content: space-around;
   }
   .bottom-nav::-webkit-scrollbar { display: none; }
   .nav-item {
-    flex: 0 0 auto;
-    min-width: 64px;
+    flex: 1 0 auto;
+    /* Floor at 48px — enough room for icon + label on most phones */
+    min-width: 48px;
+    max-width: 72px;
     background: transparent;
     border: none;
     color: var(--muted);
-    padding: 12px 4px 14px;
+    /* Reduced vertical padding so the bar stays compact */
+    padding: 10px 2px 12px;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 10px;
-    letter-spacing: 0.15em;
+    /* Slightly smaller label so 7 items don't overflow on 375px screens */
+    font-size: 9px;
+    letter-spacing: 0.12em;
     cursor: pointer;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     transition: color 0.15s;
     position: relative;
   }
-  .nav-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; }
+  /* Smaller icon size so all 7 items fit at 375px */
+  .nav-item svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
   .nav-item.active { color: var(--gold); }
   .nav-item.active::before {
     content: '';
     position: absolute;
-    top: 0; left: 25%; right: 25%; height: 2px;
+    top: 0; left: 20%; right: 20%; height: 2px;
     background: var(--gold);
     border-radius: 0 0 2px 2px;
   }
   .nav-item.nav-add { color: var(--black); }
   .nav-add-button {
-    width: 52px; height: 52px;
+    width: 46px; height: 46px;
     background: var(--gold);
-    border-radius: 14px;
+    border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
-    margin-top: -16px;
+    /* Reduced pop-up offset to keep bar height stable */
+    margin-top: -12px;
     box-shadow: 0 6px 20px rgba(212,175,55,0.4);
     transition: transform 0.15s;
   }
   .nav-item.nav-add:hover .nav-add-button { transform: translateY(-2px); }
-  .nav-add-button svg { stroke: var(--black); stroke-width: 2.5; }
+  .nav-add-button svg { stroke: var(--black); stroke-width: 2.5; width: 20px; height: 20px; }
   .nav-item.nav-add { color: var(--gold); font-weight: 700; }
 
   /* ====================================================
@@ -998,6 +1006,37 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.error { border-color: var(--loss); }
+
+  /* ====================================================
+     LOADING SPINNER OVERLAY
+     ==================================================== */
+  .spinner-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,10,0.6);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .spinner-overlay.show { display: flex; }
+  .spinner-ring {
+    width: 48px; height: 48px;
+    border: 3px solid var(--line-2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+  }
+  .spinner-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   /* ====================================================
      DARK / LIGHT MODE
@@ -2151,6 +2190,12 @@
   </section>
 
 </div>
+<!-- SPINNER OVERLAY -->
+<div class="spinner-overlay" id="spinnerOverlay">
+  <div class="spinner-ring"></div>
+  <div class="spinner-label" id="spinnerLabel">LOADING…</div>
+</div>
+
 <nav class="bottom-nav" id="bottomNav" style="display:none;">
   <button class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
     <svg viewBox="0 0 24 24"><path d="M3 12 L12 4 L21 12"/><path d="M5 10 V20 H19 V10"/></svg>
@@ -2217,6 +2262,16 @@ function toast(msg, type = 'success') {
   toast._t = setTimeout(() => el.classList.remove('show'), 2400);
 }
 
+/* ---------- spinner ---------- */
+function showSpinner(label = 'LOADING…') {
+  const overlay = document.getElementById('spinnerOverlay');
+  document.getElementById('spinnerLabel').textContent = label;
+  overlay.classList.add('show');
+}
+function hideSpinner() {
+  document.getElementById('spinnerOverlay').classList.remove('show');
+}
+
 /* ---------- DEMO GATE ---------- */
 function showDemoGate() {
   document.getElementById('demoGate').style.display = 'block';
@@ -2232,6 +2287,7 @@ async function submitDemoGate() {
   if (!name) { toast('Enter your name.', 'error'); return; }
   if (!email || !email.includes('@')) { toast('Enter a valid email.', 'error'); return; }
 
+  showSpinner('SETTING UP YOUR ACCOUNT…');
   // Save lead to Supabase leads table
   await _sb.from('leads').upsert({ name, email, source: 'demo' }, { onConflict: 'email' });
 
@@ -2241,13 +2297,14 @@ async function submitDemoGate() {
   if (error) {
     // Account doesn't exist yet — create it
     const { data: signUpData, error: signUpError } = await _sb.auth.signUp({ email, password: demoPassword, options: { data: { name } } });
-    if (signUpError) { toast('Error: ' + signUpError.message, 'error'); return; }
+    if (signUpError) { hideSpinner(); toast('Error: ' + signUpError.message, 'error'); return; }
 
     // Save lead + profile
     await _sb.from('leads').upsert({ name, email, source: 'demo' }, { onConflict: 'email' });
     if (signUpData.user) {
       await _sb.from('profiles').upsert({ id: signUpData.user.id, email, name, source: 'demo' });
     }
+    hideSpinner();
 
     // Show verification message
     document.getElementById('demoGate').innerHTML = `
@@ -2264,30 +2321,35 @@ async function submitDemoGate() {
   }
 
   const { data: { user } } = await _sb.auth.getUser();
-  if (!user) { toast('Something went wrong. Try again.', 'error'); return; }
+  if (!user) { hideSpinner(); toast('Something went wrong. Try again.', 'error'); return; }
   state.user = user;
 
   // Save profile
   await _sb.from('profiles').upsert({ id: user.id, email, name, source: 'demo' });
 
   await loadTrades();
+  hideSpinner();
   enterApp();
   toast('Welcome, ' + name + '. Log your first trade! 🔥');
 }
 
 /* ---------- AUTH ---------- */
 async function login(email, password) {
+  showSpinner('SIGNING IN…');
   const { error } = await _sb.auth.signInWithPassword({ email, password });
   if (error) {
+    hideSpinner();
     // Try sign up if not found
     if (error.message.includes('Invalid login')) {
       toast('Wrong password.', 'error'); return;
     }
+    showSpinner('CREATING ACCOUNT…');
     const { error: signUpError } = await _sb.auth.signUp({ email, password });
-    if (signUpError) { toast(signUpError.message, 'error'); return; }
+    if (signUpError) { hideSpinner(); toast(signUpError.message, 'error'); return; }
     await _sb.auth.signInWithPassword({ email, password });
   }
   const { data: { user } } = await _sb.auth.getUser();
+  hideSpinner();
   if (!user) { toast('Login failed.', 'error'); return; }
   state.user = user;
   await _sb.from('profiles').upsert({ id: user.id, email, source: 'signup' });
@@ -2306,11 +2368,15 @@ async function logout() {
 }
 
 async function checkSession() {
+  showSpinner('LOADING…');
   const { data: { session } } = await _sb.auth.getSession();
   if (session) {
     state.user = session.user;
     await loadTrades();
+    hideSpinner();
     enterApp();
+  } else {
+    hideSpinner();
   }
 }
 
@@ -2324,10 +2390,12 @@ function enterApp() {
 /* ---------- TRADES — SUPABASE ---------- */
 async function loadTrades() {
   if (!state.user) return;
+  showSpinner('LOADING TRADES…');
   const { data, error } = await _sb.from('trades')
     .select('*')
     .eq('user_id', state.user.id)
     .order('created_at', { ascending: false });
+  hideSpinner();
   if (error) { console.error(error); return; }
   // Normalize created_at to timestamp number for compatibility
   state.trades = (data || []).map(t => ({
@@ -2339,7 +2407,9 @@ async function loadTrades() {
 }
 
 async function saveTrade(trade) {
+  showSpinner('SAVING TRADE…');
   const { error } = await _sb.from('trades').insert(trade);
+  hideSpinner();
   if (error) { toast('Error saving trade: ' + error.message, 'error'); return false; }
   await loadTrades();
   return true;
@@ -2347,7 +2417,9 @@ async function saveTrade(trade) {
 
 async function deleteTrade(id) {
   if (!confirm('Delete this trade? This cannot be undone.')) return;
+  showSpinner('DELETING…');
   const { error } = await _sb.from('trades').delete().eq('id', id).eq('user_id', state.user.id);
+  hideSpinner();
   if (error) { toast('Error deleting trade.', 'error'); return; }
   await loadTrades();
   toast('Trade deleted.');
@@ -2363,6 +2435,17 @@ function navigate(page) {
   document.querySelectorAll('.nav-item[data-page]').forEach(n => {
     n.classList.toggle('active', n.dataset.page === page);
   });
+
+  // Auto-scroll the active nav item to center on narrow screens
+  const activeNavBtn = document.querySelector('.nav-item.active[data-page]');
+  if (activeNavBtn) {
+    const nav = document.getElementById('bottomNav');
+    const btnLeft = activeNavBtn.offsetLeft;
+    const btnWidth = activeNavBtn.offsetWidth;
+    const navWidth = nav.offsetWidth;
+    nav.scrollTo({ left: btnLeft - navWidth / 2 + btnWidth / 2, behavior: 'smooth' });
+  }
+
   if (page === 'dashboard') renderDashboard();
   if (page === 'journal') {
     if (state.journalView === 'calendar') {
@@ -2394,6 +2477,13 @@ function fmtMoney(n) {
 function fmtDate(ts) {
   const d = new Date(ts);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+// Full date + time for journal table — shows "May 3, 2026 · 14:35"
+function fmtDateTime(ts) {
+  const d = new Date(ts);
+  const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return date + '<br><span style="color:var(--muted-2);font-size:11px;">' + time + '</span>';
 }
 function pillResult(r) {
   const cls = r === 'WIN' ? 'pill-win' : r === 'LOSS' ? 'pill-loss' : 'pill-be';
@@ -2543,7 +2633,7 @@ function renderJournal() {
         <tbody>
           ${list.map(t => `
             <tr>
-              <td class="num text-muted">${fmtDate(t.created_at)}</td>
+              <td class="num text-muted" style="white-space:nowrap;min-width:100px;">${fmtDateTime(t.created_at)}</td>
               <td class="pair-cell">${t.pair}</td>
               <td>${pillDir(t.direction)}</td>
               <td class="num">${t.entry_price}</td>
@@ -3037,9 +3127,11 @@ function hideForgotPassword() {
 async function sendResetEmail() {
   const email = document.getElementById('forgotEmail').value.trim().toLowerCase();
   if (!email) { toast('Enter your email.', 'error'); return; }
+  showSpinner('SENDING RESET EMAIL…');
   const { error } = await _sb.auth.resetPasswordForEmail(email, {
     redirectTo: 'https://journal.bigmarkt.co'
   });
+  hideSpinner();
   if (error) { toast(error.message, 'error'); return; }
   toast('Reset link sent! Check your inbox.');
   hideForgotPassword();
@@ -3285,11 +3377,13 @@ async function saveEditTrade() {
     state.trades[idx] = { ...state.trades[idx], ...updates };
   }
 
+  showSpinner('SAVING…');
   // Push to Supabase
   const { error } = await _sb
     .from('trades')
     .update(updates)
     .eq('id', editingTradeId);
+  hideSpinner();
 
   if (error) {
     toast('Save failed: ' + error.message, 'error');
@@ -3691,11 +3785,13 @@ async function renderReferral() {
 
   // Load referral stats from Supabase
   const refCode = btoa(state.user.id).replace(/=/g, '').substring(0, 12);
+  showSpinner('LOADING REFERRALS…');
   const { data: referrals } = await _sb
     .from('profiles')
     .select('*')
     .eq('referred_by', refCode)
     .order('created_at', { ascending: false });
+  hideSpinner();
 
   const total = referrals?.length || 0;
   const now = new Date();
@@ -3810,7 +3906,9 @@ function setDefaultTradeDate() {
    ==================================================== */
 async function renderProfile() {
   if (!state.user) return;
+  showSpinner('LOADING PROFILE…');
   const { data: profile } = await _sb.from('profiles').select('*').eq('id', state.user.id).single();
+  hideSpinner();
   const name = profile?.name || state.user.email.split('@')[0];
   const email = state.user.email;
   document.getElementById('avatarInitial').textContent = name.charAt(0).toUpperCase();
@@ -3846,7 +3944,9 @@ async function saveProfile() {
   const experience = document.getElementById('editProfileExperience').value;
   const preferred_pairs = document.getElementById('editProfilePairs').value.trim();
   if (!name) { toast('Enter your name.', 'error'); return; }
+  showSpinner('SAVING PROFILE…');
   const { error } = await _sb.from('profiles').upsert({ id: state.user.id, email: state.user.email, name, timezone, experience, preferred_pairs });
+  hideSpinner();
   if (error) { toast('Error saving profile.', 'error'); return; }
   document.getElementById('profileName').textContent = name;
   document.getElementById('avatarInitial').textContent = name.charAt(0).toUpperCase();
@@ -3858,7 +3958,9 @@ async function changePassword() {
   const confirmPw = document.getElementById('profileConfirmPw').value;
   if (!newPw || newPw.length < 6) { toast('Password must be at least 6 characters.', 'error'); return; }
   if (newPw !== confirmPw) { toast('Passwords do not match.', 'error'); return; }
+  showSpinner('UPDATING PASSWORD…');
   const { error } = await _sb.auth.updateUser({ password: newPw });
+  hideSpinner();
   if (error) { toast('Error: ' + error.message, 'error'); return; }
   document.getElementById('profileNewPw').value = '';
   document.getElementById('profileConfirmPw').value = '';
@@ -3884,7 +3986,9 @@ function uploadAvatar(input) {
 async function deleteAllTrades() {
   if (!confirm('Delete ALL your trades permanently? This cannot be undone.')) return;
   if (!confirm('Are you absolutely sure? All your trading history will be gone.')) return;
+  showSpinner('DELETING ALL TRADES…');
   const { error } = await _sb.from('trades').delete().eq('user_id', state.user.id);
+  hideSpinner();
   if (error) { toast('Error deleting trades.', 'error'); return; }
   await loadTrades();
   toast('All trades deleted.');
@@ -3914,7 +4018,9 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
 
   if (authMode === 'signup') {
     if (!name) { toast('Enter your name.', 'error'); return; }
+    showSpinner('CREATING ACCOUNT…');
     const { data, error } = await _sb.auth.signUp({ email, password: pwd, options: { data: { name } } });
+    hideSpinner();
     if (error) { toast(error.message, 'error'); return; }
     if (data.user) {
       // Save profile
