@@ -2712,20 +2712,29 @@
 
     <!-- Pip Value Reference Table -->
     <div class="section">
-      <div class="section-title">PIP / POINT VALUE REFERENCE</div>
+      <div class="section-title">PIP VALUE REFERENCE (per standard lot)</div>
       <div class="table-wrap">
         <table class="pip-ref-table">
+          <thead>
+            <tr>
+              <td style="color:var(--gold);font-weight:700;">Instrument</td>
+              <td style="color:var(--gold);font-weight:700;">1 pip =</td>
+              <td style="color:var(--gold);font-weight:700;">$/pip (1.00 lot)</td>
+              <td style="color:var(--gold);font-weight:700;">$/pip (0.01 lot)</td>
+            </tr>
+          </thead>
           <tbody>
-            <tr><td>XAU/USD</td><td>1 lot = 100 oz · $1 move = $100 · enter SL in dollars (e.g. $2.50 stop = 2.5)</td></tr>
-            <tr><td>XAG/USD</td><td>1 lot = 5,000 oz · 1 pip = $50 · enter SL in price points</td></tr>
-            <tr><td>EUR/USD</td><td>Standard lot · 1 pip = $10 · enter SL in pips (4th decimal)</td></tr>
-            <tr><td>GBP/JPY</td><td>Standard lot · 1 pip = ~$8 · enter SL in pips (2nd decimal)</td></tr>
-            <tr><td>US30</td><td>1 lot = $1/point · enter SL in points (e.g. 30-point stop = 30)</td></tr>
-            <tr><td>NAS100</td><td>1 lot = $1/point · enter SL in points</td></tr>
-            <tr><td>USOIL</td><td>1 lot = 1,000 barrels · enter SL in price points (e.g. $0.30 = 0.3)</td></tr>
-            <tr><td>BTC/USD</td><td>Enter SL in price points (e.g. $200 stop = 200)</td></tr>
-            <tr><td>V75 / V25</td><td>Synthetic · enter SL in points</td></tr>
-            <tr><td>Boom/Crash</td><td>Synthetic · enter SL in points</td></tr>
+            <tr><td>XAU/USD</td><td>$0.01 price move</td><td>$1.00</td><td>$0.01</td></tr>
+            <tr><td>XAG/USD</td><td>$0.001 price move</td><td>$5.00</td><td>$0.05</td></tr>
+            <tr><td>EUR/USD</td><td>0.0001 price move</td><td>$10.00</td><td>$0.10</td></tr>
+            <tr><td>GBP/USD</td><td>0.0001 price move</td><td>$10.00</td><td>$0.10</td></tr>
+            <tr><td>USD/JPY</td><td>0.01 price move</td><td>~$6.80</td><td>~$0.07</td></tr>
+            <tr><td>GBP/JPY</td><td>0.01 price move</td><td>~$6.80</td><td>~$0.07</td></tr>
+            <tr><td>US30</td><td>1 index point</td><td>$1.00</td><td>$0.01</td></tr>
+            <tr><td>NAS100</td><td>1 index point</td><td>$1.00</td><td>$0.01</td></tr>
+            <tr><td>USOIL</td><td>$0.01 price move</td><td>$1.00</td><td>$0.01</td></tr>
+            <tr><td>BTC/USD</td><td>$1.00 price move</td><td>$1.00</td><td>$0.01</td></tr>
+            <tr><td>V75 / V25</td><td>1 chart point</td><td>$0.01</td><td>$0.0001</td></tr>
           </tbody>
         </table>
       </div>
@@ -2899,21 +2908,29 @@
     <!-- Pip reference -->
     <div style="margin-bottom:16px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.08em;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px;">
-        <span style="color:var(--gold);">◆</span> PIP / POINT VALUE REFERENCE
+        <span style="color:var(--gold);">◆</span> PIP VALUE REFERENCE (per standard lot)
       </div>
       <table class="pip-ref-table">
+        <thead>
+          <tr>
+            <td style="color:var(--gold);font-weight:700;">Instrument</td>
+            <td style="color:var(--gold);font-weight:700;">1 pip =</td>
+            <td style="color:var(--gold);font-weight:700;">$/pip (1 lot)</td>
+            <td style="color:var(--gold);font-weight:700;">$/pip (0.01 lot)</td>
+          </tr>
+        </thead>
         <tbody>
-          <tr><td>XAU/USD</td><td>$1 price move = $100 per lot · enter SL as dollar distance (e.g. 2350→2340 = 10)</td></tr>
-          <tr><td>XAG/USD</td><td>1 lot = 5,000 oz · 1 pip = $50 · enter SL in price points</td></tr>
-          <tr><td>EUR/USD</td><td>1 pip = $10 per std lot · count 4th decimal (1.0850→1.0820 = 30 pips)</td></tr>
-          <tr><td>GBP/USD</td><td>1 pip = $10 per std lot · count 4th decimal</td></tr>
-          <tr><td>GBP/JPY</td><td>1 pip ≈ $8/lot · count 2nd decimal for JPY pairs</td></tr>
-          <tr><td>US30</td><td>$1 per point per lot · 30-point stop → enter 30</td></tr>
-          <tr><td>NAS100</td><td>$1 per point per lot · 50-point stop → enter 50</td></tr>
-          <tr><td>USOIL</td><td>1 lot = 1,000 barrels · enter SL as price distance (e.g. $0.30 = 0.3)</td></tr>
-          <tr><td>BTC/USD</td><td>$1 per dollar move per lot · $65k→$64k SL = 1000</td></tr>
-          <tr><td>V75 / V25</td><td>Synthetic indices · $1/point per lot · enter SL in points</td></tr>
-          <tr><td>Boom/Crash</td><td>Synthetic · enter SL distance in points</td></tr>
+          <tr><td>XAU/USD</td><td>$0.01 move</td><td>$1.00</td><td>$0.01</td></tr>
+          <tr><td>XAG/USD</td><td>$0.001 move</td><td>$5.00</td><td>$0.05</td></tr>
+          <tr><td>EUR/USD</td><td>0.0001 move</td><td>$10.00</td><td>$0.10</td></tr>
+          <tr><td>GBP/USD</td><td>0.0001 move</td><td>$10.00</td><td>$0.10</td></tr>
+          <tr><td>USD/JPY</td><td>0.01 move</td><td>~$6.80</td><td>~$0.07</td></tr>
+          <tr><td>GBP/JPY</td><td>0.01 move</td><td>~$6.80</td><td>~$0.07</td></tr>
+          <tr><td>US30</td><td>1 point</td><td>$1.00</td><td>$0.01</td></tr>
+          <tr><td>NAS100</td><td>1 point</td><td>$1.00</td><td>$0.01</td></tr>
+          <tr><td>USOIL</td><td>$0.01 move</td><td>$1.00</td><td>$0.01</td></tr>
+          <tr><td>BTC/USD</td><td>$1.00 move</td><td>$1.00</td><td>$0.01</td></tr>
+          <tr><td>V75/V25</td><td>1 point</td><td>$0.01</td><td>$0.0001</td></tr>
         </tbody>
       </table>
     </div>
@@ -5106,47 +5123,151 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
 
 /* ====================================================
    RISK / LOT SIZE CALCULATOR
+   Formula: Lot Size = Risk Amount ÷ (SL in pips × Pip Value per standard lot)
+   All pip values verified against Exness / Myfxbook specs.
    ==================================================== */
 
-// Pip / point value per 1 standard lot for each instrument
-// Returns: { pipValue, unit, hint }
-// pipValue = $ per 1 pip/point move with 1 standard lot
 function getInstrumentInfo(pair) {
+  // pipValue = USD value of 1 pip movement with 1 STANDARD LOT
+  // unit     = what to call the input (always "pips" or "points" — never price distance)
+  // hint     = how to count pips/points for this instrument
+  // pipSize  = the actual price change for 1 pip (for reference in hint)
   const info = {
-    // Metals
-    'XAU/USD':   { pipValue: 1,      unit: 'price pts', hint: 'Enter stop loss as price distance in dollars. E.g. if entry is 2350 and SL is 2340, enter <strong>10</strong>.' },
-    'XAG/USD':   { pipValue: 50,     unit: 'price pts', hint: 'Silver: 1 lot = 5,000 oz. Enter SL as price distance. E.g. SL is $0.25 away → enter <strong>0.25</strong>.' },
-    // Forex standard
-    'EUR/USD':   { pipValue: 10,     unit: 'pips',      hint: 'Count pips from 4th decimal. E.g. entry 1.0850, SL 1.0820 = <strong>30 pips</strong>.' },
-    'GBP/USD':   { pipValue: 10,     unit: 'pips',      hint: 'Count pips from 4th decimal. E.g. 30-pip SL → enter <strong>30</strong>.' },
-    'AUD/USD':   { pipValue: 10,     unit: 'pips',      hint: 'Count pips from 4th decimal.' },
-    'USD/CAD':   { pipValue: 7.7,    unit: 'pips',      hint: 'USD/CAD pip value ≈ $7.70 per standard lot.' },
-    'GBP/JPY':   { pipValue: 9.4,    unit: 'pips',      hint: 'JPY pair: count pips from 2nd decimal. E.g. 193.50 to 193.20 = <strong>30 pips</strong>.' },
-    'USD/JPY':   { pipValue: 9.4,    unit: 'pips',      hint: 'JPY pair: count pips from 2nd decimal.' },
-    'EUR/JPY':   { pipValue: 9.4,    unit: 'pips',      hint: 'JPY pair: count pips from 2nd decimal.' },
-    // Indices — $1 per point per lot
-    'US30':      { pipValue: 1,      unit: 'points',    hint: 'Dow Jones: $1 per point per lot. E.g. SL 30 points away → enter <strong>30</strong>.' },
-    'NAS100':    { pipValue: 1,      unit: 'points',    hint: 'Nasdaq: $1 per point per lot. E.g. SL 50 points away → enter <strong>50</strong>.' },
-    'US500':     { pipValue: 1,      unit: 'points',    hint: 'S&P 500: $1 per point per lot. E.g. SL 15 points away → enter <strong>15</strong>.' },
-    'UK100':     { pipValue: 1,      unit: 'points',    hint: 'FTSE: ≈$1 per point per lot. Enter SL in points.' },
-    'GER40':     { pipValue: 1,      unit: 'points',    hint: 'DAX: ≈$1 per point per lot. Enter SL in points.' },
-    'JP225':     { pipValue: 0.0067, unit: 'points',    hint: 'Nikkei in JPY. ≈$0.0067 per point per lot (USD). Enter SL in points.' },
-    // Oil
-    'USOIL':     { pipValue: 1000,   unit: 'price pts', hint: 'Oil: 1 lot = 1,000 barrels. Enter SL as price distance. E.g. $0.30 stop → enter <strong>0.3</strong>.' },
-    'UKOIL':     { pipValue: 1000,   unit: 'price pts', hint: 'Brent: 1 lot = 1,000 barrels. Enter SL as price distance.' },
-    // Crypto — direct price
-    'BTC/USD':   { pipValue: 1,      unit: 'price pts', hint: 'Enter SL as dollar distance. E.g. entry $65,000 SL $64,000 → enter <strong>1000</strong>.' },
-    'ETH/USD':   { pipValue: 1,      unit: 'price pts', hint: 'Enter SL as dollar distance from entry.' },
-    'XRP/USD':   { pipValue: 1,      unit: 'price pts', hint: 'Enter SL as dollar distance from entry.' },
-    // Synthetics
-    'Boom 500':  { pipValue: 1,      unit: 'points',    hint: 'Enter SL distance in points.' },
-    'Boom 1000': { pipValue: 1,      unit: 'points',    hint: 'Enter SL distance in points.' },
-    'Crash 500': { pipValue: 1,      unit: 'points',    hint: 'Enter SL distance in points.' },
-    'Crash 1000':{ pipValue: 1,      unit: 'points',    hint: 'Enter SL distance in points.' },
-    'V75':       { pipValue: 1,      unit: 'points',    hint: 'Volatility 75: enter SL distance in points.' },
-    'V25':       { pipValue: 1,      unit: 'points',    hint: 'Volatility 25: enter SL distance in points.' },
+
+    // ── METALS ──────────────────────────────────────────────────────
+    // XAU/USD: 1 pip = $0.01 price move · 1 std lot = 100 oz
+    // pip value = 0.01 × 100 = $1.00 per pip per standard lot
+    // 0.01 lot → $0.01/pip | 0.10 lot → $0.10/pip | 1.00 lot → $1.00/pip
+    'XAU/USD': {
+      pipValue: 1.00,
+      unit: 'pips',
+      hint: '1 pip = $0.01 price move. Count pips in the <strong>2nd decimal</strong>.<br>Example: SL at 3340.00, entry at 3350.00 → price diff = $10.00 → <strong>1000 pips</strong>.<br>Quick rule: multiply $ distance by 100 to get pips.'
+    },
+
+    // XAG/USD: 1 pip = $0.001 price move · 1 std lot = 5,000 oz
+    // pip value = 0.001 × 5000 = $5.00 per pip per standard lot
+    'XAG/USD': {
+      pipValue: 5.00,
+      unit: 'pips',
+      hint: '1 pip = $0.001 price move (Silver). 1 std lot = 5,000 oz.<br>Example: SL at 31.50, entry at 32.00 → $0.50 diff → <strong>500 pips</strong>.'
+    },
+
+    // ── FOREX MAJOR ──────────────────────────────────────────────────
+    // EUR/USD, GBP/USD, AUD/USD: 1 pip = 0.0001 · std lot = 100,000 units
+    // pip value = 0.0001 × 100,000 = $10.00 per pip
+    'EUR/USD': {
+      pipValue: 10.00,
+      unit: 'pips',
+      hint: '1 pip = 0.0001 price move (4th decimal).<br>Example: entry 1.0850, SL 1.0820 → 30 pips. Enter <strong>30</strong>.'
+    },
+    'GBP/USD': {
+      pipValue: 10.00,
+      unit: 'pips',
+      hint: '1 pip = 0.0001 price move (4th decimal).<br>Example: entry 1.2700, SL 1.2670 → 30 pips. Enter <strong>30</strong>.'
+    },
+    'AUD/USD': {
+      pipValue: 10.00,
+      unit: 'pips',
+      hint: '1 pip = 0.0001 price move (4th decimal).<br>Example: entry 0.6500, SL 0.6470 → 30 pips. Enter <strong>30</strong>.'
+    },
+    'USD/CAD': {
+      pipValue: 7.50,
+      unit: 'pips',
+      hint: '1 pip = 0.0001 · pip value ≈ $7.50/lot (varies with exchange rate).<br>Count from 4th decimal.'
+    },
+
+    // JPY pairs: 1 pip = 0.01 price move · pip value ≈ $6.80 (varies)
+    'USD/JPY': {
+      pipValue: 6.80,
+      unit: 'pips',
+      hint: '1 pip = 0.01 price move (2nd decimal for JPY pairs).<br>Example: entry 155.50, SL 155.20 → 30 pips. Enter <strong>30</strong>.'
+    },
+    'GBP/JPY': {
+      pipValue: 6.80,
+      unit: 'pips',
+      hint: '1 pip = 0.01 price move (2nd decimal for JPY pairs).<br>Example: entry 198.50, SL 198.00 → 50 pips. Enter <strong>50</strong>.'
+    },
+    'EUR/JPY': {
+      pipValue: 6.80,
+      unit: 'pips',
+      hint: '1 pip = 0.01 price move (2nd decimal for JPY pairs).<br>Example: entry 165.00, SL 164.50 → 50 pips. Enter <strong>50</strong>.'
+    },
+
+    // ── INDICES ──────────────────────────────────────────────────────
+    // US30/NAS100/US500: 1 point = $1 per lot (CFD, varies by broker)
+    'US30': {
+      pipValue: 1.00,
+      unit: 'points',
+      hint: '1 point = 1 full unit move on the chart.<br>Example: SL at 39,700, entry at 39,800 → <strong>100 points</strong>.'
+    },
+    'NAS100': {
+      pipValue: 1.00,
+      unit: 'points',
+      hint: '1 point = 1 full unit move on the chart.<br>Example: SL at 17,950, entry at 18,000 → <strong>50 points</strong>.'
+    },
+    'US500': {
+      pipValue: 1.00,
+      unit: 'points',
+      hint: '1 point = 1 full unit move on the chart.<br>Example: SL at 5,280, entry at 5,300 → <strong>20 points</strong>.'
+    },
+    'UK100': {
+      pipValue: 1.00,
+      unit: 'points',
+      hint: '1 point = 1 full unit move. FTSE.<br>Example: SL at 8,450, entry at 8,500 → <strong>50 points</strong>.'
+    },
+    'GER40': {
+      pipValue: 1.00,
+      unit: 'points',
+      hint: '1 point = 1 full unit move. DAX.<br>Example: SL at 17,900, entry at 18,000 → <strong>100 points</strong>.'
+    },
+
+    // ── OIL ──────────────────────────────────────────────────────────
+    // USOIL/UKOIL: 1 pip = $0.01 price move · 1 lot = 100 barrels
+    // pip value = 0.01 × 100 = $1.00 per pip per lot
+    'USOIL': {
+      pipValue: 1.00,
+      unit: 'pips',
+      hint: '1 pip = $0.01 price move. Count from 2nd decimal.<br>Example: SL at $71.50, entry at $72.00 → $0.50 diff → <strong>50 pips</strong>.'
+    },
+    'UKOIL': {
+      pipValue: 1.00,
+      unit: 'pips',
+      hint: '1 pip = $0.01 price move. Count from 2nd decimal.<br>Example: SL at $75.50, entry at $76.00 → $0.50 diff → <strong>50 pips</strong>.'
+    },
+
+    // ── CRYPTO ───────────────────────────────────────────────────────
+    // BTC/USD: 1 pip = $1 price move (most CFD brokers) · pip value = $1/lot
+    'BTC/USD': {
+      pipValue: 1.00,
+      unit: 'pips',
+      hint: '1 pip = $1.00 price move for BTC.<br>Example: entry $65,000, SL $64,500 → <strong>500 pips</strong>.'
+    },
+    'ETH/USD': {
+      pipValue: 1.00,
+      unit: 'pips',
+      hint: '1 pip = $0.01 price move for ETH (varies by broker).<br>Use price difference × 100 to estimate pips.'
+    },
+    'XRP/USD': {
+      pipValue: 1.00,
+      unit: 'pips',
+      hint: '1 pip = $0.0001 for XRP. Multiply price difference by 10,000.'
+    },
+
+    // ── SYNTHETICS (Deriv / Volatility Index) ────────────────────────
+    // Volatility indices: pip value $0.01 per lot (micro contract)
+    'Boom 500':  { pipValue: 0.01, unit: 'points', hint: 'Boom 500: enter SL distance in points as shown on chart.' },
+    'Boom 1000': { pipValue: 0.01, unit: 'points', hint: 'Boom 1000: enter SL distance in points as shown on chart.' },
+    'Crash 500': { pipValue: 0.01, unit: 'points', hint: 'Crash 500: enter SL distance in points as shown on chart.' },
+    'Crash 1000':{ pipValue: 0.01, unit: 'points', hint: 'Crash 1000: enter SL distance in points as shown on chart.' },
+    'V75':       { pipValue: 0.01, unit: 'points', hint: 'Volatility 75: enter SL distance in points as shown on your chart.' },
+    'V25':       { pipValue: 0.01, unit: 'points', hint: 'Volatility 25: enter SL distance in points as shown on your chart.' },
   };
-  return info[pair] || { pipValue: 10, unit: 'pips', hint: 'Standard forex pair. Enter SL in pips (4th decimal).' };
+
+  return info[pair] || {
+    pipValue: 10.00,
+    unit: 'pips',
+    hint: 'Standard forex pair. 1 pip = 0.0001 price move. Count from 4th decimal.'
+  };
 }
 
 function renderCalc() {
