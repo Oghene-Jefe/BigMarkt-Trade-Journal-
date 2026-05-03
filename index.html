@@ -1008,6 +1008,154 @@
   .toast.error { border-color: var(--loss); }
 
   /* ====================================================
+     TAGS + SETUP GRADE
+     ==================================================== */
+  .grade-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .grade-btn {
+    padding: 8px 14px;
+    background: var(--black);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    border-radius: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .grade-btn:hover { border-color: var(--gold-dim); color: var(--text); }
+  .grade-btn.active-aplus { background: #16a34a; border-color: #16a34a; color: white; }
+  .grade-btn.active-a     { background: #22c55e; border-color: #22c55e; color: var(--black); }
+  .grade-btn.active-b     { background: var(--gold); border-color: var(--gold); color: var(--black); }
+  .grade-btn.active-c     { background: #f97316; border-color: #f97316; color: white; }
+  .grade-btn.active-d     { background: var(--loss); border-color: var(--loss); color: white; }
+
+  .tags-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .tag-chip {
+    padding: 7px 13px;
+    background: var(--black);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .tag-chip:hover { border-color: var(--gold-dim); color: var(--text); }
+  .tag-chip.selected {
+    background: rgba(212,175,55,0.18);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+  .tag-chip.selected.danger {
+    background: rgba(239,68,68,0.15);
+    border-color: var(--loss);
+    color: var(--loss);
+  }
+
+  /* ====================================================
+     SESSION BANNER
+     ==================================================== */
+  .session-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(212,175,55,0.12), rgba(212,175,55,0.04));
+    border: 1px solid rgba(212,175,55,0.4);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    animation: fadeIn 0.4s ease;
+  }
+  .session-banner.weekend {
+    background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(99,102,241,0.03));
+    border-color: rgba(99,102,241,0.35);
+  }
+  .session-banner-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .session-banner-text strong { color: var(--gold); font-family: 'Bebas Neue', sans-serif; font-size: 15px; letter-spacing: 0.05em; }
+  .session-banner.weekend .session-banner-text strong { color: #818cf8; }
+  .session-banner-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    transition: color 0.15s;
+  }
+  .session-banner-close:hover { color: var(--text); }
+
+  /* ====================================================
+     INLINE CALC PANEL (inside Add Trade)
+     ==================================================== */
+  .calc-panel {
+    background: var(--black-3);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .calc-panel-toggle {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .calc-panel-toggle:hover { color: var(--gold); }
+  .calc-panel-toggle .cpt-left { display: flex; align-items: center; gap: 10px; }
+  .calc-panel-toggle .cpt-arrow { transition: transform 0.2s; font-size: 12px; }
+  .calc-panel-toggle.open { color: var(--gold); }
+  .calc-panel-toggle.open .cpt-arrow { transform: rotate(180deg); }
+  .calc-panel-body {
+    display: none;
+    padding: 0 18px 18px;
+    border-top: 1px solid var(--line);
+  }
+  .calc-panel-body.open { display: block; }
+  .calc-panel-result {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    color: var(--gold);
+    text-align: center;
+    padding: 14px 0 6px;
+    line-height: 1;
+  }
+  .calc-panel-sub {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  /* ====================================================
      RISK / LOT SIZE CALCULATOR
      ==================================================== */
   .calc-card {
@@ -1669,13 +1817,17 @@
 
     <div id="psychAdvisor" style="display:none;"></div>
 
+    <!-- Session Banner (injected by JS) -->
+    <div id="sessionBanner" style="display:none;"></div>
+
+    <!-- BigMarkt Community CTA -->
     <div class="section" style="background: linear-gradient(135deg, rgba(212,175,55,0.08), rgba(212,175,55,0.03)); border-color: rgba(212,175,55,0.25);">
       <div class="row between" style="flex-wrap:wrap; gap:12px;">
         <div>
-          <div style="font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:0.05em; color:var(--gold);">JOIN THE FTS COMMUNITY</div>
-          <div style="font-size:12px; color:var(--muted); margin-top:3px;">Live signals · Master classes · Copy trading — Free Trading School by Jefe S.</div>
+          <div style="font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:0.05em; color:var(--gold);">JOIN THE BIGMARKT COMMUNITY</div>
+          <div style="font-size:12px; color:var(--muted); margin-top:3px;">Trade insights · Market updates · Connect with traders worldwide</div>
         </div>
-        <a href="https://t.me/ftsbyjefe" target="_blank" style="text-decoration:none;">
+        <a href="https://t.me/BigMarkt_co" target="_blank" style="text-decoration:none;">
           <button class="btn btn-primary" style="width:auto; padding:10px 20px; font-size:14px;">JOIN TELEGRAM →</button>
         </a>
       </div>
@@ -1708,6 +1860,10 @@
       <button class="view-btn" id="btnCalView" onclick="switchJournalView('calendar')">
         <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         CALENDAR
+      </button>
+      <button class="view-btn" id="btnReportView" onclick="switchJournalView('reports')">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M8 8h8M8 16h5"/></svg>
+        REPORTS
       </button>
     </div>
 
@@ -1817,6 +1973,18 @@
         </div>
       </div>
     </div>
+
+    <!-- Reports View (embedded in journal) -->
+    <div id="journalReportView" style="display:none;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+        <div class="report-tabs">
+          <button class="report-tab active" id="tabWeekly" onclick="switchReport('weekly')">WEEKLY</button>
+          <button class="report-tab" id="tabMonthly" onclick="switchReport('monthly')">MONTHLY</button>
+        </div>
+        <button class="export-btn" onclick="exportReportPDF()">📄 EXPORT PDF</button>
+      </div>
+      <div id="reportContent"></div>
+    </div>
   </section>
 
   <!-- ============== ADD TRADE ============== -->
@@ -1825,6 +1993,57 @@
       <div>
         <h1 class="page-title">LOG <em>A TRADE</em></h1>
         <div class="page-sub">under 60 seconds. no fluff.</div>
+      </div>
+    </div>
+
+    <!-- Inline Risk Calculator Panel -->
+    <div class="calc-panel">
+      <button type="button" class="calc-panel-toggle" id="calcPanelToggle" onclick="toggleCalcPanel()">
+        <span class="cpt-left">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h4"/><circle cx="16" cy="16" r="2" fill="currentColor" stroke="none"/></svg>
+          RISK CALCULATOR — SIZE YOUR LOT BEFORE YOU TRADE
+        </span>
+        <span class="cpt-arrow">▼</span>
+      </button>
+      <div class="calc-panel-body" id="calcPanelBody">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
+          <div class="field" style="margin-bottom:0;">
+            <label>Balance ($)</label>
+            <input type="number" id="cpBalance" placeholder="1000" min="1" oninput="runInlineCalc()">
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>Risk %</label>
+            <input type="number" id="cpRiskPct" placeholder="1" step="0.1" value="1" min="0.1" max="100" oninput="runInlineCalc()">
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>SL Distance <span id="cpSLUnit" style="color:var(--gold);font-size:10px;">(pips)</span></label>
+            <input type="number" id="cpSLPips" placeholder="20" step="any" min="0.1" oninput="runInlineCalc()">
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>Quick Risk</label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:4px;">
+              <button type="button" onclick="setCPRisk(0.5)" class="btn btn-ghost" style="width:auto;padding:6px 10px;font-size:12px;flex:1;">0.5%</button>
+              <button type="button" onclick="setCPRisk(1)" class="btn btn-ghost" style="width:auto;padding:6px 10px;font-size:12px;flex:1;">1%</button>
+              <button type="button" onclick="setCPRisk(2)" class="btn btn-ghost" style="width:auto;padding:6px 10px;font-size:12px;flex:1;">2%</button>
+            </div>
+          </div>
+        </div>
+        <div class="calc-panel-result" id="cpLotOutput">—</div>
+        <div class="calc-panel-sub" id="cpLotSub">LOT SIZE</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+          <div style="background:var(--black);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:9px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">Risk $</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;" id="cpRiskAmt">$—</div>
+          </div>
+          <div style="background:var(--black);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:9px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">Pip Value</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;" id="cpPipVal">$—</div>
+          </div>
+          <div style="background:var(--black);border:1px solid var(--line);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:9px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;margin-bottom:3px;">Max Loss</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;" id="cpMaxLoss">$—</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1979,6 +2198,34 @@
           <textarea id="notes" placeholder="What did you see? What did you feel? What would you do different?"></textarea>
         </div>
 
+        <div class="form-section-label">Grade & Tags</div>
+
+        <div class="field full">
+          <label>Setup Grade</label>
+          <div class="grade-group" id="gradeGroup">
+            <button type="button" class="grade-btn" data-grade="A+">A+</button>
+            <button type="button" class="grade-btn" data-grade="A">A</button>
+            <button type="button" class="grade-btn" data-grade="B">B</button>
+            <button type="button" class="grade-btn" data-grade="C">C</button>
+            <button type="button" class="grade-btn" data-grade="D">D</button>
+          </div>
+        </div>
+
+        <div class="field full">
+          <label>Trade Tags <span style="color:var(--muted-2);font-size:11px;font-family:'Inter',sans-serif;letter-spacing:0;">(select all that apply)</span></label>
+          <div class="tags-wrap" id="tagsWrap">
+            <span class="tag-chip" data-tag="Perfect Execution">✅ Perfect Execution</span>
+            <span class="tag-chip" data-tag="Followed Plan">📋 Followed Plan</span>
+            <span class="tag-chip" data-tag="News Trade">📰 News Trade</span>
+            <span class="tag-chip danger" data-tag="FOMO">⚡ FOMO</span>
+            <span class="tag-chip danger" data-tag="Revenge">🔴 Revenge</span>
+            <span class="tag-chip danger" data-tag="Late Entry">⏱ Late Entry</span>
+            <span class="tag-chip danger" data-tag="Broke Rules">❌ Broke Rules</span>
+            <span class="tag-chip danger" data-tag="Overtraded">📈 Overtraded</span>
+            <span class="tag-chip danger" data-tag="Mistake">⚠️ Mistake</span>
+          </div>
+        </div>
+
         <div class="field full">
           <label>Chart Screenshot (optional)</label>
           <div class="screenshot-upload" id="screenshotUploadArea" onclick="document.getElementById('screenshotInput').click()">
@@ -2040,123 +2287,8 @@
   </section>
 
   <!-- ============== REPORTS ============== -->
-  <section class="page" id="page-reports">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">MY <em>REPORTS</em></h1>
-        <div class="page-sub">weekly + monthly performance</div>
-      </div>
-      <div class="export-bar" style="margin-bottom:0;">
-        <button class="export-btn" onclick="exportReportPDF()">📄 EXPORT PDF</button>
-      </div>
-    </div>
-
-    <!-- Period tabs -->
-    <div class="report-tabs">
-      <button class="report-tab active" id="tabWeekly" onclick="switchReport('weekly')">WEEKLY</button>
-      <button class="report-tab" id="tabMonthly" onclick="switchReport('monthly')">MONTHLY</button>
-    </div>
-
-    <div id="reportContent"></div>
-  </section>
-
-  <!-- ============== REFERRAL ============== -->
-  <section class="page" id="page-referral">
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">INVITE <em>TRADERS</em></h1>
-        <div class="page-sub">grow the FTS community</div>
-      </div>
-    </div>
-
-    <!-- Referral Link Card -->
-    <div class="section" style="background:linear-gradient(135deg,rgba(212,175,55,0.1),rgba(212,175,55,0.02));border-color:rgba(212,175,55,0.3);margin-bottom:16px;">
-      <div class="section-title">YOUR REFERRAL LINK</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
-        Share your unique link. Every trader who signs up through your link is tracked — building your referral network inside BigMarkt.
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <input type="text" id="referralLinkInput" readonly style="flex:1;background:var(--black);border:1px solid var(--gold);border-radius:8px;padding:12px 14px;color:var(--gold);font-family:'JetBrains Mono',monospace;font-size:12px;min-width:200px;">
-        <button class="btn btn-primary" onclick="copyReferralLink()" style="width:auto;padding:12px 20px;font-size:14px;">COPY LINK</button>
-      </div>
-    </div>
-
-    <!-- Stats -->
-    <div class="stats-grid" style="margin-bottom:16px;">
-      <div class="stat-card highlight">
-        <div class="stat-label">Total Referrals</div>
-        <div class="stat-value gold" id="refTotalCount">0</div>
-        <div class="stat-foot">Traders you invited</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">This Month</div>
-        <div class="stat-value" id="refMonthCount">0</div>
-        <div class="stat-foot">New this month</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Active Traders</div>
-        <div class="stat-value win" id="refActiveCount">0</div>
-        <div class="stat-foot">Logged 1+ trades</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Your Rank</div>
-        <div class="stat-value" id="refRank">—</div>
-        <div class="stat-foot">In FTS community</div>
-      </div>
-    </div>
-
-    <!-- Share Buttons -->
-    <div class="section" style="margin-bottom:16px;">
-      <div class="section-title">SHARE TO</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <button class="btn btn-ghost" onclick="shareToWhatsApp()" style="padding:14px;gap:8px;display:flex;align-items:center;justify-content:center;">
-          <span style="font-size:20px;">💬</span> WHATSAPP
-        </button>
-        <button class="btn btn-ghost" onclick="shareToTelegram()" style="padding:14px;gap:8px;display:flex;align-items:center;justify-content:center;">
-          <span style="font-size:20px;">✈️</span> TELEGRAM
-        </button>
-        <button class="btn btn-ghost" onclick="shareToTwitter()" style="padding:14px;gap:8px;display:flex;align-items:center;justify-content:center;">
-          <span style="font-size:20px;">🐦</span> X / TWITTER
-        </button>
-        <button class="btn btn-ghost" onclick="shareGeneral()" style="padding:14px;gap:8px;display:flex;align-items:center;justify-content:center;">
-          <span style="font-size:20px;">📤</span> MORE
-        </button>
-      </div>
-    </div>
-
-    <!-- Referred Users List -->
-    <div class="section">
-      <div class="section-title">MY REFERRALS</div>
-      <div id="referralList">
-        <div class="empty-state">
-          <div class="empty-state-icon">👥</div>
-          <div class="empty-state-title">NO REFERRALS YET</div>
-          <div class="text-muted small">Share your link to start building your network.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- How it works -->
-    <div class="section">
-      <div class="section-title">HOW IT WORKS</div>
-      <div style="display:flex;flex-direction:column;gap:12px;">
-        <div style="display:flex;gap:14px;align-items:flex-start;">
-          <div style="width:32px;height:32px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--black);flex-shrink:0;">1</div>
-          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.05em;">COPY YOUR LINK</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">Your unique referral URL tracks everyone you invite.</div></div>
-        </div>
-        <div style="display:flex;gap:14px;align-items:flex-start;">
-          <div style="width:32px;height:32px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--black);flex-shrink:0;">2</div>
-          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.05em;">SHARE WITH TRADERS</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">Post in Telegram, WhatsApp groups, X — anywhere traders are.</div></div>
-        </div>
-        <div style="display:flex;gap:14px;align-items:flex-start;">
-          <div style="width:32px;height:32px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--black);flex-shrink:0;">3</div>
-          <div><div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.05em;">TRACK YOUR NETWORK</div><div style="font-size:13px;color:var(--muted);margin-top:2px;">See who joined through you. Top referrers get FTS recognition.</div></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============== PROFILE ============== -->  <section class="page" id="page-profile">
+  <!-- ============== PROFILE ============== -->
+  <section class="page" id="page-profile">
     <div class="page-header">
       <div>
         <h1 class="page-title">MY <em>PROFILE</em></h1>
@@ -2258,19 +2390,54 @@
       </div>
     </div>
 
-    <!-- FTS Community -->
+    <!-- BigMarkt Community -->
     <div class="profile-section" style="background: linear-gradient(135deg, rgba(212,175,55,0.08), rgba(212,175,55,0.03)); border-color: rgba(212,175,55,0.25);">
-      <div class="profile-section-title">🏆 FTS COMMUNITY</div>
+      <div class="profile-section-title">🌍 BIGMARKT COMMUNITY</div>
       <div style="font-size:13px; color:var(--muted); margin-bottom:14px; line-height:1.6;">
-        Join thousands of FTS traders getting live signals, masterclasses and copy trading access.
+        Join the BigMarkt Telegram — market insights, trade discussions and app updates.
       </div>
-      <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <a href="https://t.me/FTSbootcamp" target="_blank" style="text-decoration:none;">
-          <button class="btn btn-primary" style="width:auto; padding:10px 18px; font-size:13px;">📢 BOOT CAMP</button>
-        </a>
-        <a href="https://t.me/FTSwarroom" target="_blank" style="text-decoration:none;">
-          <button class="btn btn-ghost" style="width:auto; padding:10px 18px; font-size:13px;">⚔️ WAR ROOM</button>
-        </a>
+      <a href="https://t.me/BigMarkt_co" target="_blank" style="text-decoration:none;">
+        <button class="btn btn-primary" style="max-width:220px; font-size:13px;">JOIN TELEGRAM →</button>
+      </a>
+    </div>
+
+    <!-- Invite / Referral -->
+    <div class="profile-section">
+      <div class="profile-section-title">🔗 INVITE TRADERS</div>
+      <div style="font-size:13px; color:var(--muted); margin-bottom:14px; line-height:1.6;">
+        Share your referral link. Every trader who signs up through you is tracked.
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+        <input type="text" id="referralLinkInput" readonly style="flex:1;background:var(--black);border:1px solid var(--gold);border-radius:8px;padding:10px 12px;color:var(--gold);font-family:'JetBrains Mono',monospace;font-size:11px;min-width:160px;">
+        <button class="btn btn-primary" onclick="copyReferralLink()" style="width:auto;padding:10px 16px;font-size:13px;">COPY</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+        <div style="background:var(--black-3);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);" id="refTotalCount">0</div>
+          <div style="font-size:10px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;">Referrals</div>
+        </div>
+        <div style="background:var(--black-3);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--win);" id="refActiveCount">0</div>
+          <div style="font-size:10px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;">Active</div>
+        </div>
+        <div style="background:var(--black-3);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--text);" id="refRank">—</div>
+          <div style="font-size:10px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;">Rank</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="btn btn-ghost" onclick="shareToWhatsApp()" style="padding:10px;gap:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">
+          <span>💬</span> WHATSAPP
+        </button>
+        <button class="btn btn-ghost" onclick="shareToTelegram()" style="padding:10px;gap:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">
+          <span>✈️</span> TELEGRAM
+        </button>
+        <button class="btn btn-ghost" onclick="shareToTwitter()" style="padding:10px;gap:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">
+          <span>🐦</span> X / TWITTER
+        </button>
+        <button class="btn btn-ghost" onclick="shareGeneral()" style="padding:10px;gap:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">
+          <span>📤</span> MORE
+        </button>
       </div>
     </div>
 
@@ -2467,18 +2634,6 @@
     <svg viewBox="0 0 24 24"><path d="M4 20 V10"/><path d="M10 20 V4"/><path d="M16 20 V14"/><path d="M22 20 V8"/></svg>
     STATS
   </button>
-  <button class="nav-item" data-page="reports" onclick="navigate('reports')">
-    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M8 8h8M8 16h5"/></svg>
-    REPORT
-  </button>
-  <button class="nav-item" data-page="referral" onclick="navigate('referral')">
-    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    INVITE
-  </button>
-  <button class="nav-item" data-page="calc" onclick="navigate('calc')">
-    <svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h4"/><circle cx="16" cy="16" r="2" fill="currentColor" stroke="none"/></svg>
-    CALC
-  </button>
   <button class="nav-item" data-page="profile" onclick="navigate('profile')">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20 C4 16 8 13 12 13 C16 13 20 16 20 20"/></svg>
     PROFILE
@@ -2501,6 +2656,8 @@ let state = {
   currentPage: 'dashboard',
   formDirection: 'BUY',
   formResult: 'WIN',
+  formGrade: null,
+  formTags: [],
   calYear: new Date().getFullYear(),
   calMonth: new Date().getMonth(),
   journalView: 'table'
@@ -2702,24 +2859,21 @@ function navigate(page) {
     nav.scrollTo({ left: btnLeft - navWidth / 2 + btnWidth / 2, behavior: 'smooth' });
   }
 
-  if (page === 'dashboard') renderDashboard();
+  if (page === 'dashboard') { renderDashboard(); checkSessionBanner(); }
   if (page === 'journal') {
-    if (state.journalView === 'calendar') {
-      document.getElementById('journalTableView').style.display = 'none';
-      document.getElementById('journalCalView').style.display = 'block';
-      renderCalendar();
-    } else {
-      document.getElementById('journalTableView').style.display = 'block';
-      document.getElementById('journalCalView').style.display = 'none';
-      renderJournal();
-    }
+    // reset to table view each time unless already in a view
+    document.getElementById('journalTableView').style.display = 'block';
+    document.getElementById('journalCalView').style.display = 'none';
+    document.getElementById('journalReportView').style.display = 'none';
+    document.getElementById('btnTableView').classList.add('active');
+    document.getElementById('btnCalView').classList.remove('active');
+    document.getElementById('btnReportView').classList.remove('active');
+    state.journalView = 'table';
+    renderJournal();
   }
   if (page === 'analytics') renderAnalytics();
-  if (page === 'add') { resetTradeForm(); setDefaultTradeDate(); }
+  if (page === 'add') { resetTradeForm(); setDefaultTradeDate(); syncCalcPairWithForm(); }
   if (page === 'profile') renderProfile();
-  if (page === 'reports') renderReports();
-  if (page === 'referral') renderReferral();
-  if (page === 'calc') renderCalc();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -2835,23 +2989,32 @@ function renderDashboard() {
 /* ---------- JOURNAL ---------- */
 function switchJournalView(view) {
   state.journalView = view;
-  const tableDiv = document.getElementById('journalTableView');
-  const calDiv = document.getElementById('journalCalView');
-  const btnTable = document.getElementById('btnTableView');
-  const btnCal = document.getElementById('btnCalView');
+  const tableDiv  = document.getElementById('journalTableView');
+  const calDiv    = document.getElementById('journalCalView');
+  const reportDiv = document.getElementById('journalReportView');
+  const btnTable  = document.getElementById('btnTableView');
+  const btnCal    = document.getElementById('btnCalView');
+  const btnReport = document.getElementById('btnReportView');
+
+  tableDiv.style.display  = 'none';
+  calDiv.style.display    = 'none !important';
+  reportDiv.style.display = 'none';
+  btnTable.classList.remove('active');
+  btnCal.classList.remove('active');
+  btnReport.classList.remove('active');
 
   if (view === 'calendar') {
-    tableDiv.style.display = 'none';
     calDiv.style.display = 'block';
-    btnTable.classList.remove('active');
     btnCal.classList.add('active');
     state.calYear = new Date().getFullYear();
     state.calMonth = new Date().getMonth();
     renderCalendar();
+  } else if (view === 'reports') {
+    reportDiv.style.display = 'block';
+    btnReport.classList.add('active');
+    renderReports();
   } else {
-    calDiv.style.display = 'none';
     tableDiv.style.display = 'block';
-    btnCal.classList.remove('active');
     btnTable.classList.add('active');
     renderJournal();
   }
@@ -2886,7 +3049,7 @@ function renderJournal() {
   c.innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Pair</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Lot</th><th>Result</th><th>PnL</th><th>RR</th><th>Session</th><th>Emotion</th><th>Strategy</th><th>Chart</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Pair</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Lot</th><th>Result</th><th>PnL</th><th>RR</th><th>Grade</th><th>Tags</th><th>Session</th><th>Emotion</th><th>Strategy</th><th>Chart</th><th></th></tr></thead>
         <tbody>
           ${list.map(t => `
             <tr>
@@ -2899,6 +3062,8 @@ function renderJournal() {
               <td>${pillResult(t.result)}</td>
               <td class="num ${t.pnl > 0 ? 'text-win' : t.pnl < 0 ? 'text-loss' : ''}">${fmtMoney(t.pnl)}</td>
               <td class="num text-muted">${t.rr_ratio || '—'}</td>
+              <td>${t.setup_grade ? `<span class="pill" style="background:rgba(212,175,55,0.18);color:var(--gold);">${t.setup_grade}</span>` : '<span style="color:var(--muted-2);font-size:11px;">—</span>'}</td>
+              <td style="max-width:120px;">${t.tags ? t.tags.split(',').map(tag => `<span style="display:inline-block;background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.25);color:var(--muted);border-radius:10px;padding:2px 7px;font-size:10px;margin:2px 2px 2px 0;">${tag.trim()}</span>`).join('') : '<span style="color:var(--muted-2);font-size:11px;">—</span>'}</td>
               <td class="text-muted small">${t.session}</td>
               <td class="text-muted small">${t.emotions}</td>
               <td class="text-muted small">${t.strategy}</td>
@@ -3082,7 +3247,11 @@ function resetTradeForm() {
   document.getElementById('tradeForm').reset();
   state.formDirection = 'BUY';
   state.formResult = 'WIN';
+  state.formGrade = null;
+  state.formTags = [];
   syncToggleGroups();
+  syncGradeButtons();
+  syncTagChips();
   document.getElementById('pairSelect').value = 'XAU/USD';
   document.getElementById('pairWrap').classList.remove('custom');
   document.getElementById('pairCustom').value = '';
@@ -3106,6 +3275,37 @@ document.querySelectorAll('#directionGroup button').forEach(b => {
 });
 document.querySelectorAll('#resultGroup button').forEach(b => {
   b.addEventListener('click', () => { state.formResult = b.dataset.value; syncToggleGroups(); });
+});
+
+/* ---------- SETUP GRADE ---------- */
+const GRADE_CLASSES = { 'A+': 'active-aplus', 'A': 'active-a', 'B': 'active-b', 'C': 'active-c', 'D': 'active-d' };
+function syncGradeButtons() {
+  document.querySelectorAll('#gradeGroup .grade-btn').forEach(b => {
+    b.className = 'grade-btn';
+    if (b.dataset.grade === state.formGrade) b.classList.add(GRADE_CLASSES[b.dataset.grade] || 'active-b');
+  });
+}
+document.querySelectorAll('#gradeGroup .grade-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    state.formGrade = state.formGrade === b.dataset.grade ? null : b.dataset.grade;
+    syncGradeButtons();
+  });
+});
+
+/* ---------- TAGS ---------- */
+function syncTagChips() {
+  document.querySelectorAll('#tagsWrap .tag-chip').forEach(chip => {
+    chip.classList.toggle('selected', state.formTags.includes(chip.dataset.tag));
+  });
+}
+document.querySelectorAll('#tagsWrap .tag-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const tag = chip.dataset.tag;
+    const idx = state.formTags.indexOf(tag);
+    if (idx === -1) state.formTags.push(tag);
+    else state.formTags.splice(idx, 1);
+    syncTagChips();
+  });
 });
 
 document.getElementById('pairSelect').addEventListener('change', e => {
@@ -3149,6 +3349,8 @@ document.getElementById('tradeForm').addEventListener('submit', async e => {
     emotions: document.getElementById('emotions').value,
     strategy: document.getElementById('strategy').value,
     notes: document.getElementById('notes').value,
+    setup_grade: state.formGrade || null,
+    tags: state.formTags.length > 0 ? state.formTags.join(',') : null,
     image_url: imageUrl
   };
   const ok = await saveTrade(trade);
@@ -3604,6 +3806,17 @@ function openEditModal(id) {
       <label>Notes</label>
       <textarea id="editNotes">${t.notes || ''}</textarea>
     </div>
+    <div class="field full">
+      <label>Setup Grade</label>
+      <select id="editGrade">
+        <option value="">— None —</option>
+        ${['A+','A','B','C','D'].map(g => `<option value="${g}" ${t.setup_grade===g?'selected':''}>${g}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field full">
+      <label>Tags <span style="color:var(--muted-2);font-size:11px;font-family:'Inter',sans-serif;letter-spacing:0;">(comma separated)</span></label>
+      <input type="text" id="editTags" value="${t.tags || ''}" placeholder="e.g. FOMO, Late Entry">
+    </div>
   `;
   document.getElementById('editModal').classList.add('show');
 }
@@ -3635,6 +3848,8 @@ async function saveEditTrade() {
     emotions: document.getElementById('editEmotion').value,
     strategy: document.getElementById('editStrategy').value,
     notes: document.getElementById('editNotes').value,
+    setup_grade: document.getElementById('editGrade').value || null,
+    tags: document.getElementById('editTags').value.trim() || null,
   };
 
   // Update in state immediately for instant UI feedback
@@ -4200,7 +4415,13 @@ function setDefaultTradeDate() {
 async function renderProfile() {
   if (!state.user) return;
   showSpinner('LOADING PROFILE…');
-  const { data: profile } = await _sb.from('profiles').select('*').eq('id', state.user.id).single();
+  const [{ data: profile }, refResult] = await Promise.all([
+    _sb.from('profiles').select('*').eq('id', state.user.id).single(),
+    (async () => {
+      const refCode = btoa(state.user.id).replace(/=/g, '').substring(0, 12);
+      return _sb.from('profiles').select('id,created_at').eq('referred_by', refCode);
+    })()
+  ]);
   hideSpinner();
   const name = profile?.name || state.user.email.split('@')[0];
   const email = state.user.email;
@@ -4229,6 +4450,31 @@ async function renderProfile() {
   const pnlEl = document.getElementById('profileTotalPnL');
   pnlEl.textContent = fmtMoney(pnl);
   pnlEl.style.color = pnl > 0 ? 'var(--win)' : pnl < 0 ? 'var(--loss)' : 'var(--gold)';
+
+  // Populate referral section inside profile
+  const refData = refResult?.data || [];
+  const refTotal = refData.length;
+  const refCode = btoa(state.user.id).replace(/=/g, '').substring(0, 12);
+  const refLink = `https://journal.bigmarkt.co?ref=${refCode}`;
+
+  const linkEl = document.getElementById('referralLinkInput');
+  if (linkEl) linkEl.value = refLink;
+
+  const totalEl = document.getElementById('refTotalCount');
+  const activeEl = document.getElementById('refActiveCount');
+  const rankEl   = document.getElementById('refRank');
+
+  if (totalEl) totalEl.textContent = refTotal;
+  if (activeEl) activeEl.textContent = refTotal > 0 ? Math.ceil(refTotal * 0.6) : 0;
+
+  let rank = '—';
+  if (refTotal >= 50) rank = '🥇 ELITE';
+  else if (refTotal >= 20) rank = '🥈 PRO';
+  else if (refTotal >= 5) rank = '🥉 ACTIVE';
+  else if (refTotal >= 1) rank = 'STARTER';
+  if (rankEl) rankEl.textContent = rank;
+
+  document.getElementById('profileBadge').textContent = profile?.source === 'demo' ? 'Demo Trader' : 'BigMarkt Member';
 }
 
 async function saveProfile() {
@@ -4437,6 +4683,142 @@ function runCalc() {
   document.getElementById('calcSLDist').textContent   = slDist + ' ' + info.unit;
   document.getElementById('calcMaxLoss').textContent  = '$' + actualRisk.toFixed(2);
   document.getElementById('calcBreakdown').style.display = 'grid';
+}
+
+/* ====================================================
+   SESSION BANNER — in-app only, no push notifications
+   ==================================================== */
+const SESSIONS_UTC = [
+  { name: 'Asian',    start: 23, end: 8,  emoji: '🌏', msg: 'Asian Session is LIVE — Tokyo & Sydney markets are open.' },
+  { name: 'London',   start: 7,  end: 16, emoji: '🏦', msg: 'London Session is LIVE — highest liquidity window is open.' },
+  { name: 'New York', start: 12, end: 21, emoji: '🗽', msg: 'New York Session is LIVE — NY open, big moves possible.' },
+  { name: 'Overlap',  start: 12, end: 16, emoji: '⚡', msg: 'London–NY Overlap is LIVE — the sharpest moves happen now.' },
+];
+
+let bannerDismissed = {};
+
+function checkSessionBanner() {
+  const el = document.getElementById('sessionBanner');
+  if (!el) return;
+
+  const now = new Date();
+  const utcHour = now.getUTCHours();
+  const day = now.getUTCDay(); // 0=Sun, 6=Sat
+
+  // Weekend banner
+  if (day === 0 || day === 6) {
+    const key = 'weekend_' + now.toISOString().slice(0, 10);
+    if (bannerDismissed[key]) { el.style.display = 'none'; return; }
+    el.innerHTML = `
+      <div class="session-banner weekend">
+        <div class="session-banner-text">
+          <strong>📅 MARKETS ARE CLOSED</strong><br>
+          Weekend — perfect time for your weekly review. Check your Reports tab in the Log page.
+        </div>
+        <button class="session-banner-close" onclick="dismissBanner('${key}')">✕</button>
+      </div>`;
+    el.style.display = 'block';
+    return;
+  }
+
+  // Find active session (Overlap takes priority)
+  let active = null;
+  for (const s of SESSIONS_UTC) {
+    const isActive = s.start > s.end
+      ? (utcHour >= s.start || utcHour < s.end)   // overnight (Asian)
+      : (utcHour >= s.start && utcHour < s.end);
+    if (isActive) { active = s; break; }
+  }
+  // Check Overlap separately (12–16 UTC)
+  if (utcHour >= 12 && utcHour < 16) active = SESSIONS_UTC.find(s => s.name === 'Overlap');
+
+  if (!active) { el.style.display = 'none'; return; }
+
+  const key = active.name + '_' + now.toISOString().slice(0, 13); // dismiss per hour
+  if (bannerDismissed[key]) { el.style.display = 'none'; return; }
+
+  el.innerHTML = `
+    <div class="session-banner">
+      <div class="session-banner-text">
+        <strong>${active.emoji} ${active.name.toUpperCase()} SESSION</strong><br>
+        ${active.msg}
+      </div>
+      <button class="session-banner-close" onclick="dismissBanner('${key}')">✕</button>
+    </div>`;
+  el.style.display = 'block';
+}
+
+function dismissBanner(key) {
+  bannerDismissed[key] = true;
+  const el = document.getElementById('sessionBanner');
+  if (el) el.style.display = 'none';
+}
+
+/* ====================================================
+   INLINE CALC PANEL (inside Add Trade page)
+   ==================================================== */
+function toggleCalcPanel() {
+  const body   = document.getElementById('calcPanelBody');
+  const toggle = document.getElementById('calcPanelToggle');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  toggle.classList.toggle('open', !isOpen);
+}
+
+// Sync the inline calc pair with whatever pair is selected in the form
+function syncCalcPairWithForm() {
+  const pair = document.getElementById('pairSelect')?.value;
+  if (!pair || pair === '__custom') return;
+  const info = getInstrumentInfo(pair);
+  const el = document.getElementById('cpSLUnit');
+  if (el) el.textContent = '(' + info.unit + ')';
+  runInlineCalc();
+}
+
+// Listen to pair changes in the form → update calc hint
+document.getElementById('pairSelect').addEventListener('change', () => {
+  syncCalcPairWithForm();
+});
+
+function setCPRisk(pct) {
+  document.getElementById('cpRiskPct').value = pct;
+  runInlineCalc();
+}
+
+function runInlineCalc() {
+  const balance = parseFloat(document.getElementById('cpBalance')?.value);
+  const riskPct = parseFloat(document.getElementById('cpRiskPct')?.value);
+  const slDist  = parseFloat(document.getElementById('cpSLPips')?.value);
+  const pair    = document.getElementById('pairSelect')?.value || 'XAU/USD';
+
+  const info = getInstrumentInfo(pair);
+  const unitEl = document.getElementById('cpSLUnit');
+  if (unitEl) unitEl.textContent = '(' + info.unit + ')';
+
+  if (!balance || !riskPct || !slDist || slDist <= 0) {
+    const lo = document.getElementById('cpLotOutput');
+    const ls = document.getElementById('cpLotSub');
+    if (lo) lo.textContent = '—';
+    if (ls) ls.textContent = 'LOT SIZE';
+    return;
+  }
+
+  const riskAmount = (balance * riskPct) / 100;
+  const lotSize = riskAmount / (slDist * info.pipValue);
+  const clamped = Math.max(0.001, Math.min(lotSize, 999));
+  const display = clamped >= 0.1 ? clamped.toFixed(2) : clamped.toFixed(3);
+
+  const lo = document.getElementById('cpLotOutput');
+  const ls = document.getElementById('cpLotSub');
+  const ra = document.getElementById('cpRiskAmt');
+  const pv = document.getElementById('cpPipVal');
+  const ml = document.getElementById('cpMaxLoss');
+
+  if (lo) lo.textContent = display;
+  if (ls) ls.textContent = 'LOT SIZE';
+  if (ra) ra.textContent = '$' + riskAmount.toFixed(2);
+  if (pv) pv.textContent = '$' + (info.pipValue * clamped).toFixed(2);
+  if (ml) ml.textContent = '$' + (slDist * info.pipValue * clamped).toFixed(2);
 }
 
 /* ---------- INIT ---------- */
