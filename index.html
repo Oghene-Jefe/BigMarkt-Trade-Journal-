@@ -3603,7 +3603,7 @@ function closeCalPopup() {
 
 document.addEventListener('click', e => {
   const popup = document.getElementById('calPopup');
-  if (popup.classList.contains('show') && !popup.contains(e.target) && !e.target.closest('.cal-cell')) {
+  if (popup && popup.classList.contains('show') && !popup.contains(e.target) && !e.target.closest('.cal-cell')) {
     popup.classList.remove('show');
   }
 });
