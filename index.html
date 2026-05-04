@@ -5091,38 +5091,41 @@ function setAuthMode(mode) {
 }
 
 /* ---------- LOGIN / SIGNUP HANDLER ---------- */
-document.getElementById('loginForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-  const pwd = document.getElementById('loginPassword').value;
-  const name = document.getElementById('loginName').value.trim();
-  if (!email || !pwd) return;
+document.addEventListener('DOMContentLoaded', () => {
+  const loginForm = document.getElementById('loginForm');
+  if (loginForm) {
+    loginForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+      const pwd   = document.getElementById('loginPassword').value;
+      const name  = document.getElementById('loginName').value.trim();
+      if (!email || !pwd) return;
 
-  if (authMode === 'signup') {
-    if (!name) { toast('Enter your name.', 'error'); return; }
-    showSpinner('CREATING ACCOUNT…');
-    const { data, error } = await _sb.auth.signUp({ email, password: pwd, options: { data: { name } } });
-    hideSpinner();
-    if (error) { toast(error.message, 'error'); return; }
-    if (data.user) {
-      // Save profile
-      await _sb.from('profiles').upsert({ id: data.user.id, email, name, source: 'signup', referred_by: localStorage.getItem('bm_ref') || null });
-      localStorage.removeItem('bm_ref');
-      // Show verification message instead of entering app
-      document.getElementById('loginForm').innerHTML = `
-        <div style="text-align:center; padding: 20px 0;">
-          <div style="font-size:48px; margin-bottom:16px;">📧</div>
-          <div style="font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--gold); margin-bottom:10px;">CHECK YOUR EMAIL</div>
-          <div style="color:var(--muted); font-size:14px; line-height:1.6;">
-            We sent a verification link to<br>
-            <strong style="color:var(--text);">${email}</strong><br><br>
-            Click the link in the email to activate your account, then come back to log in.
-          </div>
-          <button class="btn btn-ghost" style="margin-top:20px;" onclick="location.reload()">BACK TO LOGIN</button>
-        </div>`;
-    }
-  } else {
-    await login(email, pwd);
+      if (authMode === 'signup') {
+        if (!name) { toast('Enter your name.', 'error'); return; }
+        showSpinner('CREATING ACCOUNT…');
+        const { data, error } = await _sb.auth.signUp({ email, password: pwd, options: { data: { name } } });
+        hideSpinner();
+        if (error) { toast(error.message, 'error'); return; }
+        if (data.user) {
+          await _sb.from('profiles').upsert({ id: data.user.id, email, name, source: 'signup', referred_by: localStorage.getItem('bm_ref') || null });
+          localStorage.removeItem('bm_ref');
+          document.getElementById('loginForm').innerHTML = `
+            <div style="text-align:center; padding: 20px 0;">
+              <div style="font-size:48px; margin-bottom:16px;">📧</div>
+              <div style="font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--gold); margin-bottom:10px;">CHECK YOUR EMAIL</div>
+              <div style="color:var(--muted); font-size:14px; line-height:1.6;">
+                We sent a verification link to<br>
+                <strong style="color:var(--text);">${email}</strong><br><br>
+                Click the link in the email to activate your account, then come back to log in.
+              </div>
+              <button class="btn btn-ghost" style="margin-top:20px;" onclick="location.reload()">BACK TO LOGIN</button>
+            </div>`;
+        }
+      } else {
+        await login(email, pwd);
+      }
+    });
   }
 });
 
