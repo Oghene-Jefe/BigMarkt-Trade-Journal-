@@ -1890,14 +1890,14 @@
       <div class="field">
         <label for="loginPassword">Password</label>
         <div class="field-pw">
-          <input type="password" id="loginPassword" placeholder="••••••••" required minlength="6">
+          <input type="password" id="loginPassword" placeholder="••••••••" required minlength="6" onkeydown="if(event.key==='Enter') handleLoginSubmit()">
           <button type="button" class="pw-eye" onclick="togglePw('loginPassword', this)">👁</button>
         </div>
         <div style="text-align:right; margin-top:6px;">
           <span style="font-size:12px; color:var(--gold); cursor:pointer;" onclick="showForgotPassword()">Forgot password?</span>
         </div>
       </div>
-      <button type="submit" class="btn btn-primary" id="authSubmitBtn">ENTER THE MARKET</button>
+      <button type="button" class="btn btn-primary" id="authSubmitBtn" onclick="handleLoginSubmit()">ENTER THE MARKET</button>
     </form>
 
     <div class="divider">OR</div>
@@ -3636,6 +3636,12 @@ function syncToggleGroups() {
   });
 }
 
+/* ====================================================
+   DOM READY — attach all event listeners once DOM is ready
+   ==================================================== */
+document.addEventListener('DOMContentLoaded', () => {
+
+/* ---------- direction + result toggles ---------- */
 document.querySelectorAll('#directionGroup button').forEach(b => {
   b.addEventListener('click', () => { state.formDirection = b.dataset.value; syncToggleGroups(); });
 });
@@ -3643,14 +3649,7 @@ document.querySelectorAll('#resultGroup button').forEach(b => {
   b.addEventListener('click', () => { state.formResult = b.dataset.value; syncToggleGroups(); });
 });
 
-/* ---------- SETUP GRADE ---------- */
-const GRADE_CLASSES = { 'A+': 'active-aplus', 'A': 'active-a', 'B': 'active-b', 'C': 'active-c', 'D': 'active-d' };
-function syncGradeButtons() {
-  document.querySelectorAll('#gradeGroup .grade-btn').forEach(b => {
-    b.className = 'grade-btn';
-    if (b.dataset.grade === state.formGrade) b.classList.add(GRADE_CLASSES[b.dataset.grade] || 'active-b');
-  });
-}
+/* ---------- grade buttons ---------- */
 document.querySelectorAll('#gradeGroup .grade-btn').forEach(b => {
   b.addEventListener('click', () => {
     state.formGrade = state.formGrade === b.dataset.grade ? null : b.dataset.grade;
@@ -3658,12 +3657,7 @@ document.querySelectorAll('#gradeGroup .grade-btn').forEach(b => {
   });
 });
 
-/* ---------- TAGS ---------- */
-function syncTagChips() {
-  document.querySelectorAll('#tagsWrap .tag-chip').forEach(chip => {
-    chip.classList.toggle('selected', state.formTags.includes(chip.dataset.tag));
-  });
-}
+/* ---------- tag chips ---------- */
 document.querySelectorAll('#tagsWrap .tag-chip').forEach(chip => {
   chip.addEventListener('click', () => {
     const tag = chip.dataset.tag;
@@ -3674,12 +3668,14 @@ document.querySelectorAll('#tagsWrap .tag-chip').forEach(chip => {
   });
 });
 
+/* ---------- pair selector ---------- */
 document.getElementById('pairSelect').addEventListener('change', e => {
   const wrap = document.getElementById('pairWrap');
   if (e.target.value === '__custom') { wrap.classList.add('custom'); document.getElementById('pairCustom').focus(); }
   else wrap.classList.remove('custom');
 });
 
+/* ---------- trade form submit ---------- */
 document.getElementById('tradeForm').addEventListener('submit', async e => {
   e.preventDefault();
   let pair = document.getElementById('pairSelect').value;
@@ -3725,6 +3721,40 @@ document.getElementById('tradeForm').addEventListener('submit', async e => {
     navigate('dashboard');
   }
 });
+
+}); /* ── END DOMContentLoaded ── */
+
+async function handleLoginSubmit() {
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pwd   = document.getElementById('loginPassword').value;
+  const name  = document.getElementById('loginName').value.trim();
+  if (!email || !pwd) { toast('Enter email and password.', 'error'); return; }
+
+  if (authMode === 'signup') {
+    if (!name) { toast('Enter your name.', 'error'); return; }
+    showSpinner('CREATING ACCOUNT…');
+    const { data, error } = await _sb.auth.signUp({ email, password: pwd, options: { data: { name } } });
+    hideSpinner();
+    if (error) { toast(error.message, 'error'); return; }
+    if (data.user) {
+      await _sb.from('profiles').upsert({ id: data.user.id, email, name, source: 'signup', referred_by: localStorage.getItem('bm_ref') || null });
+      localStorage.removeItem('bm_ref');
+      document.getElementById('loginForm').innerHTML = `
+        <div style="text-align:center; padding: 20px 0;">
+          <div style="font-size:48px; margin-bottom:16px;">📧</div>
+          <div style="font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--gold); margin-bottom:10px;">CHECK YOUR EMAIL</div>
+          <div style="color:var(--muted); font-size:14px; line-height:1.6;">
+            We sent a verification link to<br>
+            <strong style="color:var(--text);">${email}</strong><br><br>
+            Click the link in the email to activate your account, then come back to log in.
+          </div>
+          <button class="btn btn-ghost" style="margin-top:20px;" onclick="location.reload()">BACK TO LOGIN</button>
+        </div>`;
+    }
+  } else {
+    await login(email, pwd);
+  }
+}
 
 /* ---------- ANALYTICS ---------- */
 function renderAnalytics() {
@@ -5089,45 +5119,6 @@ function setAuthMode(mode) {
   document.getElementById('modeLogin').classList.toggle('active', mode === 'login');
   document.getElementById('modeSignup').classList.toggle('active', mode === 'signup');
 }
-
-/* ---------- LOGIN / SIGNUP HANDLER ---------- */
-document.addEventListener('DOMContentLoaded', () => {
-  const loginForm = document.getElementById('loginForm');
-  if (loginForm) {
-    loginForm.addEventListener('submit', async e => {
-      e.preventDefault();
-      const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-      const pwd   = document.getElementById('loginPassword').value;
-      const name  = document.getElementById('loginName').value.trim();
-      if (!email || !pwd) return;
-
-      if (authMode === 'signup') {
-        if (!name) { toast('Enter your name.', 'error'); return; }
-        showSpinner('CREATING ACCOUNT…');
-        const { data, error } = await _sb.auth.signUp({ email, password: pwd, options: { data: { name } } });
-        hideSpinner();
-        if (error) { toast(error.message, 'error'); return; }
-        if (data.user) {
-          await _sb.from('profiles').upsert({ id: data.user.id, email, name, source: 'signup', referred_by: localStorage.getItem('bm_ref') || null });
-          localStorage.removeItem('bm_ref');
-          document.getElementById('loginForm').innerHTML = `
-            <div style="text-align:center; padding: 20px 0;">
-              <div style="font-size:48px; margin-bottom:16px;">📧</div>
-              <div style="font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--gold); margin-bottom:10px;">CHECK YOUR EMAIL</div>
-              <div style="color:var(--muted); font-size:14px; line-height:1.6;">
-                We sent a verification link to<br>
-                <strong style="color:var(--text);">${email}</strong><br><br>
-                Click the link in the email to activate your account, then come back to log in.
-              </div>
-              <button class="btn btn-ghost" style="margin-top:20px;" onclick="location.reload()">BACK TO LOGIN</button>
-            </div>`;
-        }
-      } else {
-        await login(email, pwd);
-      }
-    });
-  }
-});
 
 /* ====================================================
    RISK / LOT SIZE CALCULATOR
