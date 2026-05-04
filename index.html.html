@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0A0A0A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>BigMarkt Trade Journal</title>
+  <link rel="manifest" href="/manifest.json">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js + Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+
+<div class="toast" id="toast"></div>
+
+<!-- FORGOT PASSWORD MODAL -->
+<div class="modal-overlay" id="forgotModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="hideForgotPassword()">✕</button>
+    <div class="modal-title">RESET PASSWORD</div>
+    <div class="modal-sub">Enter your email and we'll send you a reset link.</div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="forgotEmail" placeholder="trader@bigmarkt.com">
+    </div>
+    <button class="btn btn-primary" onclick="sendResetEmail()" style="margin-top:8px;">SEND RESET LINK</button>
+  </div>
+</div>
+
+<!-- EDIT TRADE MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box" style="max-width:560px;">
+    <button class="modal-close" onclick="hideEditModal()">✕</button>
+    <div class="modal-title">EDIT TRADE</div>
+    <div class="edit-modal-grid" id="editModalBody"></div>
+    <div style="display:flex; gap:10px; margin-top:16px;">
+      <button class="btn btn-secondary" onclick="hideEditModal()" style="flex:1;">CANCEL</button>
+      <button class="btn btn-primary" onclick="saveEditTrade()" style="flex:1;">SAVE CHANGES</button>
+    </div>
+  </div>
+</div>
+<div class="cal-popup" id="calPopup">
+  <button class="cal-popup-close" onclick="closeCalPopup()">✕</button>
+  <div class="cal-popup-date" id="calPopupDate"></div>
+  <div id="calPopupBody"></div>
+</div>
+
+<!-- ============================================================
+     LOGIN
+     ============================================================ -->
+<div class="login-wrap" id="loginScreen">
+  <div class="login-card">
+    <div class="brand-stack">
+      <div class="brand-mark">
+        <!-- BigMarkt Logo — CSS approach, no SVG font issues -->
+      <div class="bm-wordmark">
+        <span class="bm-big">Big</span><span class="bm-m">M</span><span class="bm-a-wrap"><span class="bm-a-tri"></span></span><span class="bm-rkt">rkt</span>
+      </div>
+      </div>
+      <div class="login-tag">FTS Trade Journal</div>
+      <div class="login-headline">LOG <em>EVERY</em><br>TRADE.</div>
+      <div class="login-sub">Master your edge. Built for the FTS community.</div>
+    </div>
+
+    <form id="loginForm" autocomplete="off">
+      <!-- Mode toggle -->
+      <div class="toggle-group" style="margin-bottom:16px; grid-template-columns:1fr 1fr;">
+        <button type="button" id="modeLogin" class="active buy" onclick="setAuthMode('login')">LOGIN</button>
+        <button type="button" id="modeSignup" class="sell" onclick="setAuthMode('signup')">SIGN UP</button>
+      </div>
+
+      <div class="field" id="fieldName" style="display:none;">
+        <label for="loginName">Your Name</label>
+        <input type="text" id="loginName" placeholder="e.g. Emeka Trader">
+      </div>
+      <div class="field">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" placeholder="trader@bigmarkt.com" required>
+      </div>
+      <div class="field">
+        <label for="loginPassword">Password</label>
+        <div class="field-pw">
+          <input type="password" id="loginPassword" placeholder="••••••••" required minlength="6">
+          <button type="button" class="pw-eye" onclick="togglePw('loginPassword', this)">👁</button>
+        </div>
+        <div style="text-align:right; margin-top:6px;">
+          <span style="font-size:12px; color:var(--gold); cursor:pointer;" onclick="showForgotPassword()">Forgot password?</span>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" id="authSubmitBtn">ENTER THE MARKET</button>
+    </form>
+
+    <div class="divider">OR</div>
+
+    <div id="demoGate" style="display:none; margin-top:12px;">
+      <div class="field">
+        <label for="demoName">Your Name</label>
+        <input type="text" id="demoName" placeholder="e.g. Emeka Trader" required>
+      </div>
+      <div class="field">
+        <label for="demoEmail">Your Email</label>
+        <input type="email" id="demoEmail" placeholder="you@email.com" required>
+      </div>
+      <button class="btn btn-primary" onclick="submitDemoGate()" style="margin-bottom:8px;">GET FREE ACCESS</button>
+      <button class="btn btn-ghost" onclick="hideDemoGate()">CANCEL</button>
+    </div>
+
+    <button class="btn btn-ghost" id="demoBtn" onclick="showDemoGate()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      TRY FREE — NO PASSWORD NEEDED
+    </button>
+
+    <div class="login-footer">
+      Built for traders <span>·</span> By traders <span>·</span> BigMarkt
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     APP
+     ============================================================ -->
+<div class="app" id="app">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div>
+      <!-- Topbar Logo -->
+      <div class="bm-wordmark bm-wordmark-sm">
+        <span class="bm-big">Big</span><span class="bm-m">M</span><span class="bm-a-wrap"><span class="bm-a-tri"></span></span><span class="bm-rkt">rkt</span>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode" id="themeBtn">🌙</button>
+      <button class="logout-btn" onclick="logout()">LOG OUT</button>
+    </div>
+  </header>
+
+  <!-- ============== DASHBOARD ============== -->
+  <section class="page" id="page-dashboard">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">DASH<em>BOARD</em></h1>
+        <div class="page-sub">your edge at a glance</div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Trades</div>
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-foot" id="statTotalFoot">No trades yet</div>
+      </div>
+      <div class="stat-card highlight">
+        <div class="stat-label">Win Rate</div>
+        <div class="stat-value gold" id="statWinRate">—</div>
+        <div class="stat-foot" id="statWinRateFoot">Log a trade to start</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total PnL</div>
+        <div class="stat-value" id="statPnL">$0</div>
+        <div class="stat-foot" id="statPnLFoot">Net profit / loss</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Best Pair</div>
+        <div class="stat-value" id="statBestPair">—</div>
+        <div class="stat-foot" id="statBestPairFoot">Highest PnL pair</div>
+      </div>
+    </div>
+
+    <div class="stats-grid" style="margin-bottom: 24px;">
+      <div class="stat-card">
+        <div class="stat-label">Avg RR</div>
+        <div class="stat-value" id="statAvgRR">—</div>
+        <div class="stat-foot">Risk : Reward</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Streak</div>
+        <div class="stat-value" id="statStreak">—</div>
+        <div class="stat-foot" id="statStreakFoot">Current run</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Wins</div>
+        <div class="stat-value win" id="statWins">0</div>
+        <div class="stat-foot">Closed in profit</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Losses</div>
+        <div class="stat-value loss" id="statLosses">0</div>
+        <div class="stat-foot">Closed in red</div>
+      </div>
+    </div>
+
+    <div id="psychAdvisor" style="display:none;"></div>
+
+    <!-- Session Banner (injected by JS) -->
+    <div id="sessionBanner" style="display:none;"></div>
+
+    <!-- BigMarkt Community CTA -->
+    <div class="section" style="background: linear-gradient(135deg, rgba(212,175,55,0.08), rgba(212,175,55,0.03)); border-color: rgba(212,175,55,0.25);">
+      <div class="row between" style="flex-wrap:wrap; gap:12px;">
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:0.05em; color:var(--gold);">JOIN THE BIGMARKT COMMUNITY</div>
+          <div style="font-size:12px; color:var(--muted); margin-top:3px;">Trade insights · Market updates · Connect with traders worldwide</div>
+        </div>
+        <a href="https://t.me/BigMarkt_co" target="_blank" style="text-decoration:none;">
+          <button class="btn btn-primary" style="width:auto; padding:10px 20px; font-size:14px;">JOIN TELEGRAM →</button>
+        </a>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="row between" style="margin-bottom: 14px;">
+        <div class="section-title" style="margin-bottom: 0;">RECENT TRADES</div>
+        <button class="logout-btn" onclick="navigate('journal')">VIEW ALL →</button>
+      </div>
+      <div id="recentTradesContainer"></div>
+    </div>
+  </section>
+
+  <!-- ============== JOURNAL ============== -->
+  <section class="page" id="page-journal">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">JOUR<em>NAL</em></h1>
+        <div class="page-sub">every trade. every detail.</div>
+      </div>
+    </div>
+
+    <!-- View Toggle -->
+    <div class="view-toggle">
+      <button class="view-btn active" id="btnTableView" onclick="switchJournalView('table')">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        TABLE
+      </button>
+      <button class="view-btn" id="btnCalView" onclick="switchJournalView('calendar')">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        CALENDAR
+      </button>
+      <button class="view-btn" id="btnReportView" onclick="switchJournalView('reports')">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M8 8h8M8 16h5"/></svg>
+        REPORTS
+      </button>
+    </div>
+
+    <!-- Table View -->
+    <div id="journalTableView" style="display:block;">
+      <div class="export-bar">
+        <button class="export-btn" onclick="exportCSV()">📊 CSV</button>
+        <button class="export-btn" onclick="exportPDF()">📄 PDF</button>
+      </div>
+      <div class="filters">
+        <div class="filter-field">
+          <label>Pair</label>
+          <select id="filterPair"><option value="">All Pairs</option></select>
+        </div>
+        <div class="filter-field">
+          <label>Result</label>
+          <select id="filterResult">
+            <option value="">All Results</option>
+            <option value="WIN">Win</option>
+            <option value="LOSS">Loss</option>
+            <option value="BREAKEVEN">Breakeven</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>Session</label>
+          <select id="filterSession">
+            <option value="">All Sessions</option>
+            <option>London</option>
+            <option>New York</option>
+            <option>Asian</option>
+            <option>Overlap</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>Sort</label>
+          <select id="filterSort">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="pnl_high">Highest PnL</option>
+            <option value="pnl_low">Lowest PnL</option>
+          </select>
+        </div>
+      </div>
+      <div class="section">
+        <div id="journalContainer"></div>
+      </div>
+    </div>
+
+    <!-- Calendar View -->
+    <div id="journalCalView" style="display:none;">
+      <div class="cal-wrap">
+        <div class="cal-header">
+          <div class="cal-title" id="calMonthLabel">MAY <span>2026</span></div>
+          <div class="cal-nav">
+            <button onclick="calNav(-1)">&#8592;</button>
+            <button onclick="calNav(1)">&#8594;</button>
+          </div>
+        </div>
+
+        <div class="cal-legend">
+          <div class="cal-legend-item">
+            <div class="cal-legend-dot" style="background:rgba(34,197,94,0.25)"></div> Small Win
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-dot" style="background:rgba(34,197,94,0.8)"></div> Big Win
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-dot" style="background:rgba(239,68,68,0.25)"></div> Small Loss
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-dot" style="background:rgba(239,68,68,0.8)"></div> Big Loss
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-dot" style="background:rgba(234,179,8,0.3)"></div> Breakeven
+          </div>
+          <div class="cal-legend-item">
+            <div class="cal-legend-dot" style="background:var(--black-3); border:1px solid var(--line)"></div> No Trade
+          </div>
+        </div>
+
+        <div class="cal-days-header">
+          <div class="cal-day-name">Mon</div>
+          <div class="cal-day-name">Tue</div>
+          <div class="cal-day-name">Wed</div>
+          <div class="cal-day-name">Thu</div>
+          <div class="cal-day-name">Fri</div>
+          <div class="cal-day-name">Sat</div>
+          <div class="cal-day-name">Sun</div>
+        </div>
+
+        <div class="cal-grid" id="calGrid"></div>
+
+        <div class="cal-summary">
+          <div class="cal-sum-card">
+            <div class="cal-sum-label">Month PnL</div>
+            <div class="cal-sum-value" id="calSumPnL" style="color:var(--gold)">$0</div>
+          </div>
+          <div class="cal-sum-card">
+            <div class="cal-sum-label">Win Days</div>
+            <div class="cal-sum-value" id="calSumWinDays" style="color:var(--win)">0</div>
+          </div>
+          <div class="cal-sum-card">
+            <div class="cal-sum-label">Loss Days</div>
+            <div class="cal-sum-value" id="calSumLossDays" style="color:var(--loss)">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reports View (embedded in journal) -->
+    <div id="journalReportView" style="display:none;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+        <div class="report-tabs">
+          <button class="report-tab active" id="tabWeekly" onclick="switchReport('weekly')">WEEKLY</button>
+          <button class="report-tab" id="tabMonthly" onclick="switchReport('monthly')">MONTHLY</button>
+        </div>
+        <button class="export-btn" onclick="exportReportPDF()">📄 EXPORT PDF</button>
+      </div>
+      <div id="reportContent"></div>
+    </div>
+  </section>
+
+  <!-- ============== ADD TRADE ============== -->
+  <section class="page" id="page-add">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">LOG <em>A TRADE</em></h1>
+        <div class="page-sub">under 60 seconds. no fluff.</div>
+      </div>
+    </div>
+
+    <form id="tradeForm" class="form-card">
+      <div class="form-grid">
+        <div class="form-section-label">Setup</div>
+
+        <div class="field">
+          <label>Trade Date & Time</label>
+          <input type="datetime-local" id="tradeDate">
+        </div>
+
+        <div class="field">
+          <label>Pair</label>
+          <div class="pair-input-row" id="pairWrap">
+            <select id="pairSelect">
+              <optgroup label="Metals">
+                <option value="XAU/USD">XAU/USD (Gold)</option>
+                <option value="XAG/USD">XAG/USD (Silver)</option>
+              </optgroup>
+              <optgroup label="Forex">
+                <option value="EUR/USD">EUR/USD</option>
+                <option value="GBP/USD">GBP/USD</option>
+                <option value="GBP/JPY">GBP/JPY</option>
+                <option value="USD/JPY">USD/JPY</option>
+                <option value="AUD/USD">AUD/USD</option>
+                <option value="USD/CAD">USD/CAD</option>
+                <option value="EUR/JPY">EUR/JPY</option>
+              </optgroup>
+              <optgroup label="Indices">
+                <option value="US30">US30 (Dow Jones)</option>
+                <option value="NAS100">NAS100 (Nasdaq)</option>
+                <option value="US500">US500 (S&P 500)</option>
+                <option value="JP225">JP225 (Nikkei)</option>
+                <option value="UK100">UK100 (FTSE)</option>
+                <option value="GER40">GER40 (DAX)</option>
+              </optgroup>
+              <optgroup label="Commodities">
+                <option value="USOIL">USOIL (Crude Oil)</option>
+                <option value="UKOIL">UKOIL (Brent)</option>
+              </optgroup>
+              <optgroup label="Crypto">
+                <option value="BTC/USD">BTC/USD</option>
+                <option value="ETH/USD">ETH/USD</option>
+                <option value="XRP/USD">XRP/USD</option>
+              </optgroup>
+              <optgroup label="Synthetic">
+                <option value="Boom 500">Boom 500</option>
+                <option value="Boom 1000">Boom 1000</option>
+                <option value="Crash 500">Crash 500</option>
+                <option value="Crash 1000">Crash 1000</option>
+                <option value="V75">Volatility 75</option>
+                <option value="V25">Volatility 25</option>
+              </optgroup>
+              <option value="__custom">+ Custom pair…</option>
+            </select>
+            <input type="text" id="pairCustom" placeholder="e.g. AUD/CAD" maxlength="20">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Direction</label>
+          <div class="toggle-group" id="directionGroup">
+            <button type="button" data-value="BUY" class="buy">BUY</button>
+            <button type="button" data-value="SELL" class="sell">SELL</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Lot Size</label>
+          <input type="number" step="0.01" min="0" id="lotSize" placeholder="0.10" required>
+        </div>
+
+        <div class="form-section-label">Prices</div>
+
+        <div class="field">
+          <label>Entry Price</label>
+          <input type="number" step="any" id="entryPrice" placeholder="2350.50" required>
+        </div>
+        <div class="field">
+          <label>Exit Price</label>
+          <input type="number" step="any" id="exitPrice" placeholder="2365.20" required>
+        </div>
+        <div class="field">
+          <label>Stop Loss</label>
+          <input type="number" step="any" id="stopLoss" placeholder="2345.00">
+        </div>
+        <div class="field">
+          <label>Take Profit</label>
+          <input type="number" step="any" id="takeProfit" placeholder="2370.00">
+        </div>
+
+        <div class="form-section-label">Outcome</div>
+
+        <div class="field">
+          <label>Result</label>
+          <div class="toggle-group result-group" id="resultGroup">
+            <button type="button" data-value="WIN" class="win">WIN</button>
+            <button type="button" data-value="LOSS" class="loss">LOSS</button>
+            <button type="button" data-value="BREAKEVEN" class="be">BE</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>PnL ($)</label>
+          <input type="number" step="any" id="pnl" placeholder="Auto-calculated">
+          <div class="auto-calc" id="pnlAutoCalc">⚡ Auto-calculated</div>
+        </div>
+
+        <div class="field">
+          <label>RR Ratio</label>
+          <input type="number" step="any" min="0" id="rr" placeholder="Auto-calculated">
+          <div class="auto-calc" id="rrAutoCalc">⚡ Auto-calculated</div>
+        </div>
+
+        <div class="form-section-label">Context</div>
+
+        <div class="field">
+          <label>Session</label>
+          <select id="session">
+            <option>London</option>
+            <option>New York</option>
+            <option>Asian</option>
+            <option>Overlap</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Emotion</label>
+          <select id="emotions">
+            <option>Confident</option>
+            <option>Patient</option>
+            <option>Hesitant</option>
+            <option>FOMO</option>
+            <option>Revenge</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Strategy</label>
+          <select id="strategy">
+            <option>SMC</option>
+            <option>Scalp</option>
+            <option>Swing</option>
+            <option>Breakout</option>
+            <option>Liquidity Grab</option>
+          </select>
+        </div>
+
+        <div class="field full">
+          <label>Notes</label>
+          <textarea id="notes" placeholder="What did you see? What did you feel? What would you do different?"></textarea>
+        </div>
+
+        <div class="form-section-label">Grade & Tags</div>
+
+        <div class="field full">
+          <label>Setup Grade</label>
+          <div class="grade-group" id="gradeGroup">
+            <button type="button" class="grade-btn" data-grade="A+">A+</button>
+            <button type="button" class="grade-btn" data-grade="A">A</button>
+            <button type="button" class="grade-btn" data-grade="B">B</button>
+            <button type="button" class="grade-btn" data-grade="C">C</button>
+            <button type="button" class="grade-btn" data-grade="D">D</button>
+          </div>
+        </div>
+
+        <div class="field full">
+          <label>Trade Tags <span style="color:var(--muted-2);font-size:11px;font-family:'Inter',sans-serif;letter-spacing:0;">(select all that apply)</span></label>
+          <div class="tags-wrap" id="tagsWrap">
+            <span class="tag-chip" data-tag="Perfect Execution">✅ Perfect Execution</span>
+            <span class="tag-chip" data-tag="Followed Plan">📋 Followed Plan</span>
+            <span class="tag-chip" data-tag="News Trade">📰 News Trade</span>
+            <span class="tag-chip danger" data-tag="FOMO">⚡ FOMO</span>
+            <span class="tag-chip danger" data-tag="Revenge">🔴 Revenge</span>
+            <span class="tag-chip danger" data-tag="Late Entry">⏱ Late Entry</span>
+            <span class="tag-chip danger" data-tag="Broke Rules">❌ Broke Rules</span>
+            <span class="tag-chip danger" data-tag="Overtraded">📈 Overtraded</span>
+            <span class="tag-chip danger" data-tag="Mistake">⚠️ Mistake</span>
+          </div>
+        </div>
+
+        <div class="field full">
+          <label>Chart Screenshot (optional)</label>
+          <div class="screenshot-upload" id="screenshotUploadArea" onclick="document.getElementById('screenshotInput').click()">
+            <div class="screenshot-placeholder" id="screenshotPlaceholder">
+              <div style="font-size:32px;">📸</div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.1em;margin-top:8px;">TAP TO UPLOAD CHART</div>
+              <div style="font-size:12px;color:var(--muted-2);margin-top:4px;">JPG, PNG under 5MB</div>
+            </div>
+            <img id="screenshotPreview" src="" style="display:none;width:100%;border-radius:8px;max-height:200px;object-fit:cover;">
+          </div>
+          <input type="file" id="screenshotInput" accept="image/*" style="display:none;" onchange="previewScreenshot(this)">
+          <button type="button" id="screenshotClear" style="display:none;" class="btn btn-secondary" onclick="clearScreenshot()" style="margin-top:8px;">REMOVE IMAGE</button>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="resetTradeForm()">CLEAR</button>
+        <button type="submit" class="btn btn-primary">SAVE TRADE</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ============== ANALYTICS ============== -->
+  <section class="page" id="page-analytics">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">ANA<em>LYTICS</em></h1>
+        <div class="page-sub">find your edge. fix your leaks.</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-box full">
+        <div class="section-title">PNL CURVE</div>
+        <div class="chart-canvas-wrap">
+          <canvas id="chartPnL"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-box">
+        <div class="section-title">WIN RATE BY PAIR</div>
+        <div class="chart-canvas-wrap">
+          <canvas id="chartPair"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-box">
+        <div class="section-title">SESSION BREAKDOWN</div>
+        <div id="sessionList"></div>
+      </div>
+
+      <div class="chart-box full">
+        <div class="section-title">EMOTION TRACKER</div>
+        <div class="chart-canvas-wrap">
+          <canvas id="chartEmotion"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-box">
+        <div class="section-title">WIN RATE BY SETUP GRADE</div>
+        <div id="gradeBreakdown"></div>
+      </div>
+
+      <div class="chart-box">
+        <div class="section-title">PNL IMPACT BY TAG</div>
+        <div id="tagBreakdown"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== REPORTS ============== -->
+  <!-- ============== PROFILE ============== -->
+  <section class="page" id="page-profile">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">MY <em>PROFILE</em></h1>
+        <div class="page-sub">your identity. your stats.</div>
+      </div>
+    </div>
+
+    <!-- Avatar + Info -->
+    <div class="profile-hero">
+      <div class="profile-avatar" onclick="document.getElementById('avatarInput').click()">
+        <span id="avatarInitial">J</span>
+        <img id="avatarImg" src="" style="display:none;">
+        <div class="profile-avatar-overlay">📷</div>
+      </div>
+      <input type="file" id="avatarInput" accept="image/*" style="display:none;" onchange="uploadAvatar(this)">
+      <div class="profile-info">
+        <div class="profile-name" id="profileName">Trader</div>
+        <div class="profile-email" id="profileEmail">—</div>
+        <div class="profile-badge" id="profileBadge">FTS Member</div>
+      </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="profile-stats">
+      <div class="profile-stat-card">
+        <div class="profile-stat-value" id="profileTotalTrades">0</div>
+        <div class="profile-stat-label">Total Trades</div>
+      </div>
+      <div class="profile-stat-card">
+        <div class="profile-stat-value" id="profileWinRate">—</div>
+        <div class="profile-stat-label">Win Rate</div>
+      </div>
+      <div class="profile-stat-card">
+        <div class="profile-stat-value" id="profileTotalPnL">$0</div>
+        <div class="profile-stat-label">Total PnL</div>
+      </div>
+    </div>
+
+    <!-- Edit Profile -->
+    <div class="profile-section">
+      <div class="profile-section-title">✏️ EDIT PROFILE</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Display Name</label>
+          <input type="text" id="editProfileName" placeholder="Your name">
+        </div>
+        <div class="field">
+          <label>Timezone</label>
+          <select id="editProfileTimezone">
+            <option value="UTC">UTC</option>
+            <option value="Africa/Lagos">Africa/Lagos (WAT)</option>
+            <option value="Europe/London">Europe/London (GMT)</option>
+            <option value="America/New_York">America/New York (EST)</option>
+            <option value="America/Los_Angeles">America/Los Angeles (PST)</option>
+            <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+            <option value="Asia/Singapore">Asia/Singapore (SGT)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Trading Experience</label>
+          <select id="editProfileExperience">
+            <option>Beginner (0-1 years)</option>
+            <option>Intermediate (1-3 years)</option>
+            <option>Experienced (3-5 years)</option>
+            <option>Expert (5+ years)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Preferred Pairs</label>
+          <input type="text" id="editProfilePairs" placeholder="e.g. XAU/USD, GBP/JPY">
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <button class="btn btn-primary" onclick="saveProfile()" style="max-width:200px;">SAVE PROFILE</button>
+      </div>
+    </div>
+
+    <!-- Change Password -->
+    <div class="profile-section">
+      <div class="profile-section-title">🔐 CHANGE PASSWORD</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>New Password</label>
+          <div class="field-pw">
+            <input type="password" id="profileNewPw" placeholder="Min 6 characters">
+            <button type="button" class="pw-eye" onclick="togglePw('profileNewPw', this)">👁</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Confirm Password</label>
+          <div class="field-pw">
+            <input type="password" id="profileConfirmPw" placeholder="Repeat password">
+            <button type="button" class="pw-eye" onclick="togglePw('profileConfirmPw', this)">👁</button>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <button class="btn btn-primary" onclick="changePassword()" style="max-width:200px;">UPDATE PASSWORD</button>
+      </div>
+    </div>
+
+    <!-- BigMarkt Community -->
+    <div class="profile-section" style="background: linear-gradient(135deg, rgba(212,175,55,0.08), rgba(212,175,55,0.03)); border-color: rgba(212,175,55,0.25);">
+      <div class="profile-section-title">🌍 BIGMARKT COMMUNITY</div>
+      <div style="font-size:13px; color:var(--muted); margin-bottom:14px; line-height:1.6;">
+        Join the BigMarkt Telegram — market insights, trade discussions and app updates.
+      </div>
+      <a href="https://t.me/BigMarkt_co" target="_blank" style="text-decoration:none;">
+        <button class="btn btn-primary" style="max-width:220px; font-size:13px;">JOIN TELEGRAM →</button>
+      </a>
+    </div>
+
+    <!-- Invite / Referral -->
+    <div class="profile-section">
+      <div class="profile-section-title">🔗 INVITE TRADERS</div>
+      <div style="font-size:13px; color:var(--muted); margin-bottom:14px; line-height:1.6;">
+        Share your referral link. Every trader who signs up through you is tracked.
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+        <input type="text" id="referralLinkInput" readonly style="flex:1;background:var(--black);border:1px solid var(--gold);border-radius:8px;padding:10px 12px;color:var(--gold);font-family:'JetBrains Mono',monospace;font-size:11px;min-width:160px;">
+        <button class="btn btn-primary" onclick="copyReferralLink()" style="width:auto;padding:10px 16px;font-size:13px;">COPY</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+        <div style="background:var(--black-3);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--gold);" id="refTotalCount">0</div>
+          <div style="font-size:10px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;">Referrals</div>
+        </div>
+        <div style="background:var(--black-3);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--win);" id="refActiveCount">0</div>
+          <div style="font-size:10px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;">Active</div>
+        </div>
+        <div style="background:var(--black-3);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--text);" id="refRank">—</div>
+          <div style="font-size:10px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;">Rank</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button class="btn btn-ghost" onclick="shareToWhatsApp()" style="padding:10px;gap:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">
+          <span>💬</span> WHATSAPP
+        </button>
+        <button class="btn btn-ghost" onclick="shareToTelegram()" style="padding:10px;gap:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">
+          <span>✈️</span> TELEGRAM
+        </button>
+        <button class="btn btn-ghost" onclick="shareToTwitter()" style="padding:10px;gap:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">
+          <span>🐦</span> X / TWITTER
+        </button>
+        <button class="btn btn-ghost" onclick="shareGeneral()" style="padding:10px;gap:6px;display:flex;align-items:center;justify-content:center;font-size:12px;">
+          <span>📤</span> MORE
+        </button>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="profile-section" style="border-color: rgba(239,68,68,0.2);">
+      <div class="profile-section-title" style="color:var(--loss);">⚠️ DANGER ZONE</div>
+      <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">These actions cannot be undone.</div>
+      <button class="danger-btn" onclick="deleteAllTrades()">DELETE ALL MY TRADES</button>
+      <button class="danger-btn" onclick="logout()" style="margin-top:8px; border-color:var(--muted); color:var(--muted);">LOG OUT</button>
+    </div>
+  </section>
+
+  <!-- ============== RISK CALCULATOR ============== -->
+  <section class="page" id="page-calc">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">RISK <em>CALC</em></h1>
+        <div class="page-sub">size your position. protect your capital.</div>
+      </div>
+    </div>
+
+    <!-- Result Display -->
+    <div class="calc-result-box" id="calcResultBox">
+      <div class="calc-result-label">Recommended Lot Size</div>
+      <div class="calc-result-value" id="calcLotOutput">—</div>
+      <div class="calc-result-sub" id="calcLotSub">Enter your details below to calculate</div>
+      <div class="calc-breakdown" id="calcBreakdown" style="display:none;">
+        <div class="calc-break-item">
+          <div class="calc-break-label">Risk Amount</div>
+          <div class="calc-break-value" id="calcRiskAmt">$0</div>
+        </div>
+        <div class="calc-break-item">
+          <div class="calc-break-label">Pip Value</div>
+          <div class="calc-break-value" id="calcPipVal">$0</div>
+        </div>
+        <div class="calc-break-item">
+          <div class="calc-break-label">SL Distance</div>
+          <div class="calc-break-value" id="calcSLDist">0 pts</div>
+        </div>
+        <div class="calc-break-item">
+          <div class="calc-break-label">Max Loss</div>
+          <div class="calc-break-value" id="calcMaxLoss">$0</div>
+        </div>
+      </div>
+    </div>
+    <!-- Smart feasibility warning -->
+    <div id="calcWarning" style="display:none;"></div>
+
+    <!-- Inputs -->
+    <div class="calc-card">
+      <div class="form-grid">
+        <div class="field">
+          <label>Account Balance ($)</label>
+          <input type="number" id="calcBalance" placeholder="e.g. 1000" min="1" oninput="runCalc()">
+        </div>
+        <div class="field">
+          <label>Risk Per Trade (%)</label>
+          <input type="number" id="calcRiskPct" placeholder="e.g. 1" step="0.1" min="0.1" max="100" value="1" oninput="runCalc()">
+        </div>
+        <div class="field">
+          <label>Instrument / Pair</label>
+          <select id="calcPair" onchange="runCalc()">
+            <optgroup label="Metals">
+              <option value="XAU/USD">XAU/USD (Gold)</option>
+              <option value="XAG/USD">XAG/USD (Silver)</option>
+            </optgroup>
+            <optgroup label="Forex">
+              <option value="EUR/USD">EUR/USD</option>
+              <option value="GBP/USD">GBP/USD</option>
+              <option value="GBP/JPY">GBP/JPY</option>
+              <option value="USD/JPY">USD/JPY</option>
+              <option value="AUD/USD">AUD/USD</option>
+              <option value="USD/CAD">USD/CAD</option>
+              <option value="EUR/JPY">EUR/JPY</option>
+            </optgroup>
+            <optgroup label="Indices">
+              <option value="US30">US30 (Dow Jones)</option>
+              <option value="NAS100">NAS100 (Nasdaq)</option>
+              <option value="US500">US500 (S&P 500)</option>
+              <option value="JP225">JP225 (Nikkei)</option>
+              <option value="UK100">UK100 (FTSE)</option>
+              <option value="GER40">GER40 (DAX)</option>
+            </optgroup>
+            <optgroup label="Commodities">
+              <option value="USOIL">USOIL (Crude Oil)</option>
+              <option value="UKOIL">UKOIL (Brent)</option>
+            </optgroup>
+            <optgroup label="Crypto">
+              <option value="BTC/USD">BTC/USD</option>
+              <option value="ETH/USD">ETH/USD</option>
+              <option value="XRP/USD">XRP/USD</option>
+            </optgroup>
+            <optgroup label="Synthetic">
+              <option value="Boom 500">Boom 500</option>
+              <option value="Boom 1000">Boom 1000</option>
+              <option value="Crash 500">Crash 500</option>
+              <option value="Crash 1000">Crash 1000</option>
+              <option value="V75">Volatility 75</option>
+              <option value="V25">Volatility 25</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="field">
+          <label>Stop Loss Distance <span id="calcSLUnit" style="color:var(--gold);font-size:10px;">(pips)</span></label>
+          <input type="number" id="calcSLPips" placeholder="e.g. 20" step="any" min="0.1" oninput="runCalc()">
+        </div>
+      </div>
+
+      <!-- Quick Risk Presets -->
+      <div style="margin-top:16px;">
+        <div style="font-size:10px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;font-weight:600;">Quick Risk Preset</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="setRiskPreset(0.5)" class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:13px;">0.5%</button>
+          <button onclick="setRiskPreset(1)" class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:13px;">1%</button>
+          <button onclick="setRiskPreset(1.5)" class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:13px;">1.5%</button>
+          <button onclick="setRiskPreset(2)" class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:13px;">2%</button>
+          <button onclick="setRiskPreset(3)" class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:13px;">3%</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SL Unit hint card -->
+    <div class="calc-card" id="calcHintCard">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.05em;margin-bottom:10px;display:flex;align-items:center;gap:10px;">
+        <span style="color:var(--gold);">◆</span> WHAT TO ENTER FOR SL DISTANCE
+      </div>
+      <div id="calcHintText" style="font-size:13px;color:var(--muted);line-height:1.7;">
+        Select a pair to see guidance on how to measure your stop loss distance.
+      </div>
+    </div>
+
+    <!-- Pip Value Reference Table -->
+    <div class="section">
+      <div class="section-title">PIP VALUE REFERENCE (per standard lot)</div>
+      <div class="table-wrap">
+        <table class="pip-ref-table">
+          <thead>
+            <tr>
+              <td style="color:var(--gold);font-weight:700;">Instrument</td>
+              <td style="color:var(--gold);font-weight:700;">1 pip =</td>
+              <td style="color:var(--gold);font-weight:700;">$/pip (1.00 lot)</td>
+              <td style="color:var(--gold);font-weight:700;">$/pip (0.01 lot)</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>XAU/USD</td><td>$0.01 price move</td><td>$1.00</td><td>$0.01</td></tr>
+            <tr><td>XAG/USD</td><td>$0.001 price move</td><td>$5.00</td><td>$0.05</td></tr>
+            <tr><td>EUR/USD</td><td>0.0001 price move</td><td>$10.00</td><td>$0.10</td></tr>
+            <tr><td>GBP/USD</td><td>0.0001 price move</td><td>$10.00</td><td>$0.10</td></tr>
+            <tr><td>USD/JPY</td><td>0.01 price move</td><td>~$6.80</td><td>~$0.07</td></tr>
+            <tr><td>GBP/JPY</td><td>0.01 price move</td><td>~$6.80</td><td>~$0.07</td></tr>
+            <tr><td>US30</td><td>1 index point</td><td>$1.00</td><td>$0.01</td></tr>
+            <tr><td>NAS100</td><td>1 index point</td><td>$1.00</td><td>$0.01</td></tr>
+            <tr><td>USOIL</td><td>$0.01 price move</td><td>$1.00</td><td>$0.01</td></tr>
+            <tr><td>BTC/USD</td><td>$1.00 price move</td><td>$1.00</td><td>$0.01</td></tr>
+            <tr><td>V75 / V25</td><td>1 chart point</td><td>$0.01</td><td>$0.0001</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Risk Management Tips -->
+    <div class="section" style="background:linear-gradient(135deg,rgba(212,175,55,0.06),rgba(212,175,55,0.02));border-color:rgba(212,175,55,0.2);">
+      <div class="section-title">RISK RULES — BIGMARKT STANDARD</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <span style="color:var(--gold);font-size:18px;line-height:1;">◆</span>
+          <div style="font-size:13px;color:var(--muted);line-height:1.6;">Never risk more than <strong style="color:var(--text);">1–2% per trade</strong>. A 10-trade losing streak at 2% = 20% drawdown. Manageable. At 10% = wipeout.</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <span style="color:var(--gold);font-size:18px;line-height:1;">◆</span>
+          <div style="font-size:13px;color:var(--muted);line-height:1.6;">Set your <strong style="color:var(--text);">stop loss first</strong>, then calculate lot size. Never set lot size first.</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <span style="color:var(--gold);font-size:18px;line-height:1;">◆</span>
+          <div style="font-size:13px;color:var(--muted);line-height:1.6;">If daily loss hits <strong style="color:var(--text);">3%</strong>, stop trading for the day. Protect the account.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+<!-- FLOATING RISK CALCULATOR BUTTON -->
+<button class="calc-fab" id="calcFab" onclick="openCalcDrawer()" title="Risk Calculator" style="display:none;">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <rect x="4" y="2" width="16" height="20" rx="2"/>
+    <path d="M8 6h8M8 10h8M8 14h4"/>
+    <circle cx="16" cy="16" r="2.5" fill="currentColor" stroke="none"/>
+  </svg>
+  <span>CALC</span>
+</button>
+
+<!-- CALC DRAWER BACKDROP -->
+<div class="calc-drawer-backdrop" id="calcDrawerBackdrop" onclick="closeCalcDrawer()"></div>
+
+<!-- CALC DRAWER -->
+<div class="calc-drawer" id="calcDrawer">
+  <div class="calc-drawer-header">
+    <div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.08em;color:var(--gold);">⚖️ RISK CALCULATOR</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">Size your position. Protect your capital.</div>
+    </div>
+    <button class="calc-drawer-close" onclick="closeCalcDrawer()">✕</button>
+  </div>
+
+  <div class="calc-drawer-body">
+
+    <!-- Big lot output -->
+    <div class="calc-drawer-result">
+      <div style="font-size:10px;letter-spacing:0.3em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;font-weight:600;">Recommended Lot Size</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:64px;color:var(--gold);line-height:1;letter-spacing:0.02em;" id="drawerLotOutput">—</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);margin-top:6px;" id="drawerLotSub">Enter your details below</div>
+    </div>
+
+    <!-- Breakdown row -->
+    <div class="calc-drawer-breakdown" id="drawerBreakdown" style="display:none;">
+      <div class="calc-drawer-bd-item">
+        <div class="calc-drawer-bd-label">Risk $</div>
+        <div class="calc-drawer-bd-val" id="drawerRiskAmt">—</div>
+      </div>
+      <div class="calc-drawer-bd-item">
+        <div class="calc-drawer-bd-label">Pip Value</div>
+        <div class="calc-drawer-bd-val" id="drawerPipVal">—</div>
+      </div>
+      <div class="calc-drawer-bd-item">
+        <div class="calc-drawer-bd-label">SL Distance</div>
+        <div class="calc-drawer-bd-val" id="drawerSLDist">—</div>
+      </div>
+      <div class="calc-drawer-bd-item">
+        <div class="calc-drawer-bd-label">Max Loss</div>
+        <div class="calc-drawer-bd-val" style="color:var(--loss);" id="drawerMaxLoss">—</div>
+      </div>
+    </div>
+
+    <!-- Smart warning — shows when position is not feasible -->
+    <div id="drawerWarning" style="display:none;"></div>
+
+    <!-- Inputs -->
+    <div class="calc-drawer-inputs">
+      <div class="field" style="margin-bottom:0;">
+        <label>Account Balance ($)</label>
+        <input type="number" id="drawerBalance" placeholder="e.g. 1000" min="1" oninput="runDrawerCalc()">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Risk Per Trade %</label>
+        <input type="number" id="drawerRiskPct" placeholder="1" step="0.1" value="1" min="0.1" max="100" oninput="runDrawerCalc()">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Instrument / Pair</label>
+        <select id="drawerPair" onchange="runDrawerCalc()">
+          <optgroup label="Metals">
+            <option value="XAU/USD">XAU/USD (Gold)</option>
+            <option value="XAG/USD">XAG/USD (Silver)</option>
+          </optgroup>
+          <optgroup label="Forex">
+            <option value="EUR/USD">EUR/USD</option>
+            <option value="GBP/USD">GBP/USD</option>
+            <option value="GBP/JPY">GBP/JPY</option>
+            <option value="USD/JPY">USD/JPY</option>
+            <option value="AUD/USD">AUD/USD</option>
+            <option value="USD/CAD">USD/CAD</option>
+            <option value="EUR/JPY">EUR/JPY</option>
+          </optgroup>
+          <optgroup label="Indices">
+            <option value="US30">US30 (Dow Jones)</option>
+            <option value="NAS100">NAS100 (Nasdaq)</option>
+            <option value="US500">US500 (S&P 500)</option>
+            <option value="UK100">UK100 (FTSE)</option>
+            <option value="GER40">GER40 (DAX)</option>
+          </optgroup>
+          <optgroup label="Commodities">
+            <option value="USOIL">USOIL (Crude Oil)</option>
+            <option value="UKOIL">UKOIL (Brent)</option>
+          </optgroup>
+          <optgroup label="Crypto">
+            <option value="BTC/USD">BTC/USD</option>
+            <option value="ETH/USD">ETH/USD</option>
+            <option value="XRP/USD">XRP/USD</option>
+          </optgroup>
+          <optgroup label="Synthetic">
+            <option value="Boom 500">Boom 500</option>
+            <option value="Boom 1000">Boom 1000</option>
+            <option value="Crash 500">Crash 500</option>
+            <option value="Crash 1000">Crash 1000</option>
+            <option value="V75">Volatility 75</option>
+            <option value="V25">Volatility 25</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>SL Distance <span id="drawerSLUnit" style="color:var(--gold);font-size:10px;">(pips)</span></label>
+        <input type="number" id="drawerSLPips" placeholder="e.g. 20" step="any" min="0.01" oninput="runDrawerCalc()">
+      </div>
+    </div>
+
+    <!-- Quick presets -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <span style="font-size:10px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;align-self:center;font-weight:600;">Quick:</span>
+      <button type="button" onclick="setDrawerRisk(0.5)" class="btn btn-ghost" style="width:auto;padding:7px 12px;font-size:12px;">0.5%</button>
+      <button type="button" onclick="setDrawerRisk(1)"   class="btn btn-ghost" style="width:auto;padding:7px 12px;font-size:12px;">1%</button>
+      <button type="button" onclick="setDrawerRisk(1.5)" class="btn btn-ghost" style="width:auto;padding:7px 12px;font-size:12px;">1.5%</button>
+      <button type="button" onclick="setDrawerRisk(2)"   class="btn btn-ghost" style="width:auto;padding:7px 12px;font-size:12px;">2%</button>
+      <button type="button" onclick="setDrawerRisk(3)"   class="btn btn-ghost" style="width:auto;padding:7px 12px;font-size:12px;">3%</button>
+    </div>
+
+    <!-- SL hint -->
+    <div id="drawerHintText" style="font-size:12px;color:var(--muted);background:var(--black-3);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:16px;line-height:1.7;min-height:44px;"></div>
+
+    <!-- Account size risk table -->
+    <div style="margin-bottom:16px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.08em;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+        <span style="color:var(--gold);">◆</span> ACCOUNT SIZE vs RISK REFERENCE
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:340px;">
+          <thead>
+            <tr style="border-bottom:1px solid var(--line);">
+              <th style="text-align:left;padding:7px 8px;font-size:9px;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase;font-weight:600;">Balance</th>
+              <th style="text-align:right;padding:7px 8px;font-size:9px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;">0.5%</th>
+              <th style="text-align:right;padding:7px 8px;font-size:9px;letter-spacing:0.2em;color:var(--text);text-transform:uppercase;font-weight:600;">1%</th>
+              <th style="text-align:right;padding:7px 8px;font-size:9px;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase;font-weight:600;">2%</th>
+              <th style="text-align:right;padding:7px 8px;font-size:9px;letter-spacing:0.2em;color:var(--loss);text-transform:uppercase;font-weight:600;">5%</th>
+            </tr>
+          </thead>
+          <tbody id="drawerRiskTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pip reference -->
+    <div style="margin-bottom:16px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.08em;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+        <span style="color:var(--gold);">◆</span> PIP VALUE REFERENCE (per standard lot)
+      </div>
+      <table class="pip-ref-table">
+        <thead>
+          <tr>
+            <td style="color:var(--gold);font-weight:700;">Instrument</td>
+            <td style="color:var(--gold);font-weight:700;">1 pip =</td>
+            <td style="color:var(--gold);font-weight:700;">$/pip (1 lot)</td>
+            <td style="color:var(--gold);font-weight:700;">$/pip (0.01 lot)</td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>XAU/USD</td><td>$0.01 move</td><td>$1.00</td><td>$0.01</td></tr>
+          <tr><td>XAG/USD</td><td>$0.001 move</td><td>$5.00</td><td>$0.05</td></tr>
+          <tr><td>EUR/USD</td><td>0.0001 move</td><td>$10.00</td><td>$0.10</td></tr>
+          <tr><td>GBP/USD</td><td>0.0001 move</td><td>$10.00</td><td>$0.10</td></tr>
+          <tr><td>USD/JPY</td><td>0.01 move</td><td>~$6.80</td><td>~$0.07</td></tr>
+          <tr><td>GBP/JPY</td><td>0.01 move</td><td>~$6.80</td><td>~$0.07</td></tr>
+          <tr><td>US30</td><td>1 point</td><td>$1.00</td><td>$0.01</td></tr>
+          <tr><td>NAS100</td><td>1 point</td><td>$1.00</td><td>$0.01</td></tr>
+          <tr><td>USOIL</td><td>$0.01 move</td><td>$1.00</td><td>$0.01</td></tr>
+          <tr><td>BTC/USD</td><td>$1.00 move</td><td>$1.00</td><td>$0.01</td></tr>
+          <tr><td>V75/V25</td><td>1 point</td><td>$0.01</td><td>$0.0001</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Risk psychology -->
+    <div style="background:linear-gradient(135deg,rgba(212,175,55,0.07),rgba(212,175,55,0.02));border:1px solid rgba(212,175,55,0.2);border-radius:12px;padding:16px;margin-bottom:20px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.08em;color:var(--gold);margin-bottom:12px;">🧠 RISK PSYCHOLOGY — KNOW THIS</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;display:flex;gap:10px;">
+          <span style="color:var(--gold);flex-shrink:0;">◆</span>
+          <span>Risk <strong style="color:var(--text);">1% per trade max</strong> when starting. At 1%, you can lose 20 in a row and still have 82% left. At 5%, 20 losses = 36% left. The math is unforgiving.</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;display:flex;gap:10px;">
+          <span style="color:var(--gold);flex-shrink:0;">◆</span>
+          <span><strong style="color:var(--text);">Set your stop loss first.</strong> Lot size is a calculation, not a decision. Never enter a trade and figure out risk afterward.</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;display:flex;gap:10px;">
+          <span style="color:var(--gold);flex-shrink:0;">◆</span>
+          <span>After <strong style="color:var(--text);">3 consecutive losses</strong>, drop to 0.5% for the next trade. Losing streaks are real. Protect the account, not your ego.</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;display:flex;gap:10px;">
+          <span style="color:var(--win);flex-shrink:0;">◆</span>
+          <span>A <strong style="color:var(--text);">1:2 RR at 50% win rate</strong> is profitable. You don't need to be right 70% of the time — cut losses fast and let winners run.</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;display:flex;gap:10px;">
+          <span style="color:var(--loss);flex-shrink:0;">◆</span>
+          <span>Daily loss limit = <strong style="color:var(--text);">3% of account max</strong>. Hit it → close the platform. No revenge trades. No recovery attempts. Tomorrow is a new session.</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.7;display:flex;gap:10px;">
+          <span style="color:var(--loss);flex-shrink:0;">◆</span>
+          <span>Increasing lot size after a loss to "make it back" is <strong style="color:var(--loss);">how accounts blow up</strong>. Same size, every trade, every day.</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /calc-drawer-body -->
+</div><!-- /calc-drawer -->
+
+<!-- SPINNER OVERLAY -->
+<div class="spinner-overlay" id="spinnerOverlay">
+  <div class="spinner-ring"></div>
+  <div class="spinner-label" id="spinnerLabel">LOADING…</div>
+</div>
+
+<nav class="bottom-nav" id="bottomNav" style="display:none;">
+  <button class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+    <svg viewBox="0 0 24 24"><path d="M3 12 L12 4 L21 12"/><path d="M5 10 V20 H19 V10"/></svg>
+    HOME
+  </button>
+  <button class="nav-item" data-page="journal" onclick="navigate('journal')">
+    <svg viewBox="0 0 24 24"><path d="M4 4 H20 V20 H4 Z"/><path d="M4 9 H20"/><path d="M9 4 V20"/></svg>
+    LOG
+  </button>
+  <button class="nav-item nav-add" data-page="add" onclick="navigate('add')">
+    <div class="nav-add-button">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 5 V19" stroke-linecap="round"/><path d="M5 12 H19" stroke-linecap="round"/></svg>
+    </div>
+    ADD
+  </button>
+  <button class="nav-item" data-page="analytics" onclick="navigate('analytics')">
+    <svg viewBox="0 0 24 24"><path d="M4 20 V10"/><path d="M10 20 V4"/><path d="M16 20 V14"/><path d="M22 20 V8"/></svg>
+    STATS
+  </button>
+  <button class="nav-item" data-page="profile" onclick="navigate('profile')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20 C4 16 8 13 12 13 C16 13 20 16 20 20"/></svg>
+    PROFILE
+  </button>
+</nav>
+
+
+
+  <!-- ============================================================
+       SCRIPTS — load order matters:
+       supabase → state → helpers → auth → trades →
+       dashboard → journal → analytics → calculator → profile → app
+       ============================================================ -->
+  <script src="js/supabase.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/trades.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/journal.js"></script>
+  <script src="js/analytics.js"></script>
+  <script src="js/calculator.js"></script>
+  <script src="js/profile.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
