@@ -14,8 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
   :root {
     --gold: #D4AF37;
@@ -303,6 +302,20 @@
     text-transform: uppercase;
   }
   .login-footer span { color: var(--gold); }
+
+  /* Login desktop improvements */
+  @media (min-width: 768px) {
+    .login-wrap { background:
+      radial-gradient(circle at 20% 20%, rgba(212,175,55,0.1), transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(212,175,55,0.06), transparent 45%),
+      var(--black);
+    }
+    .login-card {
+      padding: 48px 40px;
+      box-shadow: 0 20px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,175,55,0.15);
+    }
+    .login-headline { font-size: 48px; }
+  }
 
   /* ====================================================
      APP SHELL
@@ -1885,7 +1898,7 @@
       </div>
       <div class="field">
         <label for="loginEmail">Email</label>
-        <input type="email" id="loginEmail" placeholder="trader@bigmarkt.com" required>
+        <input type="email" id="loginEmail" placeholder="trader@bigmarkt.com" required onkeydown="if(event.key==='Enter') document.getElementById('loginPassword').focus()">
       </div>
       <div class="field">
         <label for="loginPassword">Password</label>
@@ -1901,6 +1914,12 @@
     </form>
 
     <div class="divider">OR</div>
+
+    <!-- Google Sign In -->
+    <button class="btn btn-ghost" id="googleBtn" onclick="loginWithGoogle()" style="margin-bottom:10px; gap:12px;">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      CONTINUE WITH GOOGLE
+    </button>
 
     <div id="demoGate" style="display:none; margin-top:12px;">
       <div class="field">
@@ -3005,6 +3024,10 @@
   </button>
 </nav>
 
+<!-- ═══ CDN LIBRARIES — loaded here (after HTML) to guarantee availability ═══ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 /* =================================================================
    BIGMARKT FTS TRADE JOURNAL
@@ -3013,6 +3036,13 @@
 // ── SUPABASE INIT ──────────────────────────────────────────────
 const SUPABASE_URL = 'https://awvrylniqppybwaiwzse.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_5OJ_zt_xFWKjwle4ic4uNg_81LRjONO';
+
+// Guard: if CDN didn't load (network error, ad blocker, etc.) show friendly error
+if (typeof supabase === 'undefined') {
+  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0A0A0A;color:#D4AF37;font-family:sans-serif;text-align:center;padding:24px;"><div><div style="font-size:48px;margin-bottom:16px;">⚠️</div><div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;margin-bottom:10px;">LOADING FAILED</div><div style="color:#888;font-size:14px;margin-bottom:20px;">Check your internet connection or disable any ad blockers, then refresh.</div><button onclick="location.reload()" style="background:#D4AF37;color:#000;border:none;padding:12px 28px;border-radius:8px;font-size:16px;font-family:\'Bebas Neue\',sans-serif;letter-spacing:0.1em;cursor:pointer;">REFRESH</button></div></div>';
+  throw new Error('Supabase CDN failed to load');
+}
+
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let state = {
@@ -3114,26 +3144,47 @@ async function submitDemoGate() {
 /* ---------- AUTH ---------- */
 async function login(email, password) {
   showSpinner('SIGNING IN…');
-  const { error } = await _sb.auth.signInWithPassword({ email, password });
-  if (error) {
-    hideSpinner();
-    // Try sign up if not found
-    if (error.message.includes('Invalid login')) {
-      toast('Wrong password.', 'error'); return;
-    }
-    showSpinner('CREATING ACCOUNT…');
-    const { error: signUpError } = await _sb.auth.signUp({ email, password });
-    if (signUpError) { hideSpinner(); toast(signUpError.message, 'error'); return; }
-    await _sb.auth.signInWithPassword({ email, password });
-  }
-  const { data: { user } } = await _sb.auth.getUser();
+  const { data, error } = await _sb.auth.signInWithPassword({ email, password });
   hideSpinner();
-  if (!user) { toast('Login failed.', 'error'); return; }
+
+  if (error) {
+    const msg = error.message || '';
+    // Supabase v2 returns 'Invalid login credentials' for wrong email/password
+    if (msg.includes('Invalid login credentials') || msg.includes('invalid_credentials') ||
+        msg.includes('Invalid login') || msg.includes('wrong password')) {
+      toast('Wrong email or password. Try again.', 'error'); return;
+    }
+    if (msg.includes('Email not confirmed') || msg.includes('email_not_confirmed')) {
+      toast('Verify your email first - check your inbox.', 'error'); return;
+    }
+    if (msg.includes('Too many requests') || msg.includes('rate_limit')) {
+      toast('Too many attempts - wait 60 seconds and try again.', 'error'); return;
+    }
+    // Any other error: show it clearly, do NOT auto-attempt signup
+    toast(msg || 'Login failed. Try again.', 'error'); return;
+  }
+
+  const user = data?.user;
+  if (!user) { toast('Login failed - please try again.', 'error'); return; }
   state.user = user;
-  await _sb.from('profiles').upsert({ id: user.id, email, source: 'signup' });
+  await _sb.from('profiles').upsert({ id: user.id, email, source: 'login' });
   await loadTrades();
   enterApp();
   toast('Welcome back, trader.');
+}
+
+async function loginWithGoogle() {
+  showSpinner('REDIRECTING TO GOOGLE…');
+  const { error } = await _sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin + window.location.pathname,
+      queryParams: { access_type: 'offline', prompt: 'consent' }
+    }
+  });
+  hideSpinner();
+  if (error) { toast('Google sign-in failed: ' + error.message, 'error'); }
+  // Supabase handles the redirect automatically
 }
 
 function enterApp() {
@@ -3157,6 +3208,34 @@ async function logout() {
 
 async function checkSession() {
   showSpinner('LOADING…');
+
+  // Handle OAuth redirect (Google sign-in returns tokens in URL hash)
+  const hash = window.location.hash;
+  if (hash && hash.includes('access_token') && !hash.includes('type=recovery')) {
+    // Let Supabase parse the OAuth tokens from the URL
+    const { data: { session }, error } = await _sb.auth.getSession();
+    if (session) {
+      // Clean URL hash
+      history.replaceState(null, '', window.location.pathname);
+      state.user = session.user;
+      // Upsert profile with Google name/email
+      const meta = session.user.user_metadata || {};
+      const name = meta.full_name || meta.name || session.user.email.split('@')[0];
+      await _sb.from('profiles').upsert({
+        id: session.user.id,
+        email: session.user.email,
+        name,
+        source: 'google'
+      });
+      await loadTrades();
+      hideSpinner();
+      enterApp();
+      toast('Welcome, ' + name + '. You are in. Lets trade.');
+      return;
+    }
+  }
+
+  // Standard session check (email/password login)
   const { data: { session } } = await _sb.auth.getSession();
   if (session) {
     state.user = session.user;
@@ -3726,9 +3805,11 @@ document.getElementById('tradeForm').addEventListener('submit', async e => {
 
 async function handleLoginSubmit() {
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-  const pwd   = document.getElementById('loginPassword').value;
+  const pwd   = document.getElementById('loginPassword').value.trim();
   const name  = document.getElementById('loginName').value.trim();
-  if (!email || !pwd) { toast('Enter email and password.', 'error'); return; }
+  if (!email) { toast('Enter your email address.', 'error'); document.getElementById('loginEmail').focus(); return; }
+  if (!pwd) { toast('Enter your password.', 'error'); document.getElementById('loginPassword').focus(); return; }
+  if (pwd.length < 6) { toast('Password must be at least 6 characters.', 'error'); return; }
 
   if (authMode === 'signup') {
     if (!name) { toast('Enter your name.', 'error'); return; }
@@ -5520,11 +5601,21 @@ function dismissBanner(key) {
 }
 
 /* ---------- INIT ---------- */
-loadTheme();
-checkReferralCode();
-checkPasswordReset().then(isReset => {
-  if (!isReset) checkSession();
-});
+// readyState guard — since CDNs + script are now at bottom of body,
+// DOM is already ready. This handles any edge case where it isn't.
+function _initApp() {
+  loadTheme();
+  checkReferralCode();
+  checkPasswordReset().then(isReset => {
+    if (!isReset) checkSession();
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initApp);
+} else {
+  _initApp();
+}
 </script>
 </body>
 </html>
