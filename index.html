@@ -2855,103 +2855,121 @@
       <button onclick="renderAdmin()" style="background:transparent;border:1px solid var(--gold-dim);color:var(--gold);padding:7px 14px;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:0.12em;cursor:pointer;">↻ REFRESH</button>
     </div>
 
-    <!-- OVERVIEW STATS -->
-    <div class="section-title">OVERVIEW</div>
-    <div class="stats-grid" style="margin-bottom:12px;">
-      <div class="stat-card highlight">
-        <div class="stat-label">Total Users</div>
-        <div class="stat-value gold" id="adm-totalUsers">—</div>
-        <div class="stat-foot" id="adm-totalUsersFoot">registered accounts</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Total Trades</div>
-        <div class="stat-value" id="adm-totalTrades">—</div>
-        <div class="stat-foot">across all users</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Total PnL</div>
-        <div class="stat-value" id="adm-totalPnL">—</div>
-        <div class="stat-foot">sum of all logged PnL</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">App Win Rate</div>
-        <div class="stat-value gold" id="adm-winRate">—</div>
-        <div class="stat-foot">wins ÷ closed trades</div>
-      </div>
-    </div>
-    <div class="stats-grid" style="margin-bottom:24px;">
-      <div class="stat-card">
-        <div class="stat-label">New This Week</div>
-        <div class="stat-value win" id="adm-newWeek">—</div>
-        <div class="stat-foot">last 7 days</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">New This Month</div>
-        <div class="stat-value win" id="adm-newMonth">—</div>
-        <div class="stat-foot">this calendar month</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Most Traded Pair</div>
-        <div class="stat-value" id="adm-topPair">—</div>
-        <div class="stat-foot" id="adm-topPairFoot">by trade count</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Avg Trades/User</div>
-        <div class="stat-value" id="adm-avgTrades">—</div>
-        <div class="stat-foot">engagement metric</div>
-      </div>
+    <!-- TAB BAR -->
+    <div class="report-tabs" style="flex-wrap:wrap;">
+      <button class="report-tab active" id="adm-tab-btn-overview"    onclick="switchAdminTab('overview')">OVERVIEW</button>
+      <button class="report-tab"        id="adm-tab-btn-users"       onclick="switchAdminTab('users')">USERS</button>
+      <button class="report-tab"        id="adm-tab-btn-leaderboard" onclick="switchAdminTab('leaderboard')">LEADERBOARD</button>
+      <button class="report-tab"        id="adm-tab-btn-activity"    onclick="switchAdminTab('activity')">ACTIVITY</button>
+      <button class="report-tab"        id="adm-tab-btn-stats"       onclick="switchAdminTab('stats')">SYSTEM STATS</button>
     </div>
 
-    <!-- USERS TABLE -->
-    <div class="section">
-      <div class="section-title">USERS</div>
-      <div id="adm-usersTable">
-        <div class="empty-state"><div class="empty-state-icon">◆</div><div class="empty-state-title">LOADING…</div></div>
-      </div>
-    </div>
-
-    <!-- REFERRAL LEADERBOARD -->
-    <div class="section">
-      <div class="section-title">REFERRAL LEADERBOARD</div>
-      <div id="adm-referralBoard">
-        <div class="empty-state"><div class="empty-state-icon">◆</div><div class="empty-state-title">LOADING…</div></div>
-      </div>
-    </div>
-
-    <!-- RECENT ACTIVITY -->
-    <div class="section">
-      <div class="section-title">RECENT ACTIVITY</div>
-      <div class="admin-two-col">
-        <div>
-          <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:10px;">Last 10 Signups</div>
-          <div id="adm-recentSignups"><div style="color:var(--muted-2);font-size:13px;">Loading…</div></div>
+    <!-- TAB: OVERVIEW -->
+    <div id="adm-tab-overview">
+      <div class="stats-grid" style="margin-bottom:12px;">
+        <div class="stat-card highlight">
+          <div class="stat-label">Total Users</div>
+          <div class="stat-value gold" id="adm-totalUsers">—</div>
+          <div class="stat-foot" id="adm-totalUsersFoot">registered accounts</div>
         </div>
-        <div>
-          <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:10px;">Last 10 Trades</div>
-          <div id="adm-recentTrades"><div style="color:var(--muted-2);font-size:13px;">Loading…</div></div>
+        <div class="stat-card">
+          <div class="stat-label">Total Trades</div>
+          <div class="stat-value" id="adm-totalTrades">—</div>
+          <div class="stat-foot">across all users</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total PnL</div>
+          <div class="stat-value" id="adm-totalPnL">—</div>
+          <div class="stat-foot">sum of all logged PnL</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">App Win Rate</div>
+          <div class="stat-value gold" id="adm-winRate">—</div>
+          <div class="stat-foot">wins ÷ closed trades</div>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">New This Week</div>
+          <div class="stat-value win" id="adm-newWeek">—</div>
+          <div class="stat-foot">last 7 days</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">New This Month</div>
+          <div class="stat-value win" id="adm-newMonth">—</div>
+          <div class="stat-foot">this calendar month</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Most Traded Pair</div>
+          <div class="stat-value" id="adm-topPair">—</div>
+          <div class="stat-foot" id="adm-topPairFoot">by trade count</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Trades/User</div>
+          <div class="stat-value" id="adm-avgTrades">—</div>
+          <div class="stat-foot">engagement metric</div>
         </div>
       </div>
     </div>
 
-    <!-- SYSTEM STATS -->
-    <div class="section">
-      <div class="section-title">SYSTEM STATS</div>
-      <div class="admin-two-col" style="gap:24px;">
-        <div>
-          <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:12px;">Top Pairs</div>
-          <div id="adm-statPairs"></div>
+    <!-- TAB: USERS -->
+    <div id="adm-tab-users" style="display:none;">
+      <div class="section">
+        <div class="section-title">USERS</div>
+        <div id="adm-usersTable">
+          <div class="empty-state"><div class="empty-state-icon">◆</div><div class="empty-state-title">LOADING…</div></div>
         </div>
-        <div>
-          <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:12px;">Top Emotions</div>
-          <div id="adm-statEmotions"></div>
+      </div>
+    </div>
+
+    <!-- TAB: LEADERBOARD -->
+    <div id="adm-tab-leaderboard" style="display:none;">
+      <div class="section">
+        <div class="section-title">REFERRAL LEADERBOARD</div>
+        <div id="adm-referralBoard">
+          <div class="empty-state"><div class="empty-state-icon">◆</div><div class="empty-state-title">LOADING…</div></div>
         </div>
-        <div>
-          <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:12px;">Top Sessions</div>
-          <div id="adm-statSessions"></div>
+      </div>
+    </div>
+
+    <!-- TAB: ACTIVITY -->
+    <div id="adm-tab-activity" style="display:none;">
+      <div class="section">
+        <div class="section-title">RECENT ACTIVITY</div>
+        <div class="admin-two-col">
+          <div>
+            <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:10px;">Last 10 Signups</div>
+            <div id="adm-recentSignups"><div style="color:var(--muted-2);font-size:13px;">Loading…</div></div>
+          </div>
+          <div>
+            <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:10px;">Last 10 Trades</div>
+            <div id="adm-recentTrades"><div style="color:var(--muted-2);font-size:13px;">Loading…</div></div>
+          </div>
         </div>
-        <div>
-          <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:12px;">Sources</div>
-          <div id="adm-statSources"></div>
+      </div>
+    </div>
+
+    <!-- TAB: SYSTEM STATS -->
+    <div id="adm-tab-stats" style="display:none;">
+      <div class="section">
+        <div class="section-title">SYSTEM STATS</div>
+        <div class="admin-two-col" style="gap:24px;">
+          <div>
+            <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:12px;">Top Pairs</div>
+            <div id="adm-statPairs"></div>
+          </div>
+          <div>
+            <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:12px;">Top Emotions</div>
+            <div id="adm-statEmotions"></div>
+          </div>
+          <div>
+            <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:12px;">Top Sessions</div>
+            <div id="adm-statSessions"></div>
+          </div>
+          <div>
+            <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:12px;">Sources</div>
+            <div id="adm-statSources"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -5724,6 +5742,16 @@ function dismissBanner(key) {
    ==================================================== */
 const ADMIN_EMAILS = ['sylvesterejemah@gmail.com', 'support@bigmarkt.co'];
 function isAdmin() { return !!(state.user && ADMIN_EMAILS.includes(state.user.email)); }
+
+function switchAdminTab(tab) {
+  const tabs = ['overview', 'users', 'leaderboard', 'activity', 'stats'];
+  tabs.forEach(t => {
+    const panel = document.getElementById('adm-tab-' + t);
+    const btn   = document.getElementById('adm-tab-btn-' + t);
+    if (panel) panel.style.display = t === tab ? '' : 'none';
+    if (btn)   btn.classList.toggle('active', t === tab);
+  });
+}
 
 async function renderAdmin() {
   if (!isAdmin()) return;
