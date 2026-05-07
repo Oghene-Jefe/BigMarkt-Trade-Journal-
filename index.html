@@ -3059,8 +3059,15 @@ function hideSpinner() {
 /* ---------- AUTH ---------- */
 async function login(email, password) {
   showSpinner('SIGNING IN…');
-  const { data, error } = await _sb.auth.signInWithPassword({ email, password });
-  hideSpinner();
+  let data, error;
+  try {
+    ({ data, error } = await _sb.auth.signInWithPassword({ email, password }));
+  } catch (e) {
+    toast('Network error — check your connection and try again.', 'error');
+    return;
+  } finally {
+    hideSpinner();
+  }
 
   if (error) {
     const msg = error.message || '';
@@ -3075,7 +3082,6 @@ async function login(email, password) {
     if (msg.includes('Too many requests') || msg.includes('rate_limit')) {
       toast('Too many attempts - wait 60 seconds and try again.', 'error'); return;
     }
-    // Any other error: show it clearly, do NOT auto-attempt signup
     toast(msg || 'Login failed. Try again.', 'error'); return;
   }
 
