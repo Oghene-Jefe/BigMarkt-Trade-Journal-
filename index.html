@@ -6182,26 +6182,27 @@ function _buildTradeCard(trade) {
   _crr(ctx, 9, 9, W - 18, H - 18, 7);
   ctx.stroke();
 
-  // ── Gold triangle logo mark ──
-  ctx.fillStyle = GOLD;
-  ctx.beginPath();
-  ctx.moveTo(P + 9,  48);   // apex
-  ctx.lineTo(P,      64);   // bottom-left
-  ctx.lineTo(P + 18, 64);   // bottom-right
-  ctx.closePath();
-  ctx.fill();
-
-  // BIGMARKT text
-  ctx.fillStyle = GOLD;
-  ctx.font = '700 21px "Bebas Neue", Impact, sans-serif';
+  // ── BigM▲rkt wordmark ──
+  const logoY = 62;
+  ctx.font = '800 21px "Inter", system-ui, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText('BIGMARKT', P + 24, 62);
+
+  ctx.fillStyle = TEXT;
+  ctx.fillText('BigM', P, logoY);
+  const bigMW = ctx.measureText('BigM').width;
+
+  ctx.fillStyle = GOLD;
+  ctx.fillText('▲', P + bigMW, logoY);
+  const triW = ctx.measureText('▲').width;
+
+  ctx.fillStyle = TEXT;
+  ctx.fillText('rkt', P + bigMW + triW, logoY);
 
   // Subtitle
   ctx.fillStyle = GOLD_DIM;
-  ctx.font = '400 9.5px Inter, system-ui, sans-serif';
-  ctx.fillText('FTS TRADE JOURNAL', P + 24, 74);
+  ctx.font = '600 9px "Inter", system-ui, sans-serif';
+  ctx.fillText('FTS TRADE JOURNAL', P, logoY + 13);
 
   // Date (top-right)
   ctx.fillStyle = MUTED;
