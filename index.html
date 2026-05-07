@@ -3090,10 +3090,12 @@ async function login(email, password) {
   const user = data?.user;
   if (!user) { toast('Login failed - please try again.', 'error'); return; }
   state.user = user;
+  const confirmedAt = user.email_confirmed_at ? new Date(user.email_confirmed_at).getTime() : 0;
+  const justVerified = confirmedAt > 0 && (Date.now() - confirmedAt) < 60000;
   await _sb.from('profiles').upsert({ id: user.id, email });
   await loadTrades();
   enterApp();
-  toast('Welcome back, trader.');
+  toast(justVerified ? 'Email verified! Welcome to BigMarkt.' : 'Welcome back, trader.');
 }
 
 
@@ -3709,7 +3711,14 @@ async function handleLoginSubmit() {
     showSpinner('CREATING ACCOUNT…');
     const { data, error } = await _sb.auth.signUp({ email, password: pwd, options: { data: { name } } });
     hideSpinner();
-    if (error) { toast(error.message, 'error'); return; }
+    if (error) {
+      const msg = error.message || '';
+      if (msg.includes('User already registered') || msg.includes('already been registered')) {
+        toast('This email already has an account — switch to LOGIN and sign in instead.', 'error');
+        return;
+      }
+      toast(msg || 'Signup failed. Try again.', 'error'); return;
+    }
     if (data.user) {
       await _sb.from('profiles').upsert({ id: data.user.id, email, name, source: 'signup', referred_by: localStorage.getItem('bm_ref') || null });
       localStorage.removeItem('bm_ref');
