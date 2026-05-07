@@ -1921,24 +1921,6 @@
       CONTINUE WITH GOOGLE
     </button>
 
-    <div id="demoGate" style="display:none; margin-top:12px;">
-      <div class="field">
-        <label for="demoName">Your Name</label>
-        <input type="text" id="demoName" placeholder="e.g. Emeka Trader" required>
-      </div>
-      <div class="field">
-        <label for="demoEmail">Your Email</label>
-        <input type="email" id="demoEmail" placeholder="you@email.com" required>
-      </div>
-      <button class="btn btn-primary" onclick="submitDemoGate()" style="margin-bottom:8px;">GET FREE ACCESS</button>
-      <button class="btn btn-ghost" onclick="hideDemoGate()">CANCEL</button>
-    </div>
-
-    <button class="btn btn-ghost" id="demoBtn" onclick="showDemoGate()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-      TRY FREE — NO PASSWORD NEEDED
-    </button>
-
     <div class="login-footer">
       Built for traders <span>·</span> By traders <span>·</span> BigMarkt
     </div>
@@ -3080,67 +3062,7 @@ function hideSpinner() {
   document.getElementById('spinnerOverlay').classList.remove('show');
 }
 
-/* ---------- DEMO GATE ---------- */
-function showDemoGate() {
-  document.getElementById('demoGate').style.display = 'block';
-  document.getElementById('demoBtn').style.display = 'none';
-}
-function hideDemoGate() {
-  document.getElementById('demoGate').style.display = 'none';
-  document.getElementById('demoBtn').style.display = 'flex';
-}
-async function submitDemoGate() {
-  const name = document.getElementById('demoName').value.trim();
-  const email = document.getElementById('demoEmail').value.trim().toLowerCase();
-  if (!name) { toast('Enter your name.', 'error'); return; }
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Enter a valid email.', 'error'); return; }
 
-  showSpinner('SETTING UP YOUR ACCOUNT…');
-  // Save lead to Supabase leads table
-  await _sb.from('leads').upsert({ name, email, source: 'demo' }, { onConflict: 'email' });
-
-  // Sign them up / sign them in with a fixed demo password
-  const demoPassword = 'BigMarktDemo2026!';
-  let { error } = await _sb.auth.signInWithPassword({ email, password: demoPassword });
-  if (error) {
-    // Account doesn't exist yet — create it
-    const { data: signUpData, error: signUpError } = await _sb.auth.signUp({ email, password: demoPassword, options: { data: { name } } });
-    if (signUpError) { hideSpinner(); toast('Error: ' + signUpError.message, 'error'); return; }
-
-    // Save lead + profile
-    await _sb.from('leads').upsert({ name, email, source: 'demo' }, { onConflict: 'email' });
-    if (signUpData.user) {
-      await _sb.from('profiles').upsert({ id: signUpData.user.id, email, name, source: 'demo' });
-    }
-    hideSpinner();
-
-    // Show verification message
-    document.getElementById('demoGate').innerHTML = `
-      <div style="text-align:center; padding:10px 0;">
-        <div style="font-size:40px; margin-bottom:12px;">📧</div>
-        <div style="font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--gold); margin-bottom:8px;">VERIFY YOUR EMAIL</div>
-        <div style="color:var(--muted); font-size:13px; line-height:1.6;">
-          We sent a link to <strong id="demoConfirmEmail" style="color:var(--text);"></strong><br>
-          Click it to activate, then log in.
-        </div>
-        <button class="btn btn-ghost" style="margin-top:16px;" onclick="location.reload()">BACK TO LOGIN</button>
-      </div>`;
-    document.getElementById('demoConfirmEmail').textContent = email;
-    return;
-  }
-
-  const { data: { user } } = await _sb.auth.getUser();
-  if (!user) { hideSpinner(); toast('Something went wrong. Try again.', 'error'); return; }
-  state.user = user;
-
-  // Save profile
-  await _sb.from('profiles').upsert({ id: user.id, email, name, source: 'demo' });
-
-  await loadTrades();
-  hideSpinner();
-  enterApp();
-  toast('Welcome, ' + name + '. Log your first trade! 🔥');
-}
 
 /* ---------- AUTH ---------- */
 async function login(email, password) {
