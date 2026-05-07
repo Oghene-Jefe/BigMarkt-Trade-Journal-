@@ -6254,16 +6254,16 @@ function _buildTradeCard(trade) {
   ctx.font = '700 42px "Bebas Neue", Impact, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(pnlStr, W / 2, 214);
+  ctx.fillText(pnlStr, W / 2, 207);
 
-  // ── Stats row ──
+  // ── Stats row (RR / Session / Strategy / Grade) ──
   const stats = [{ label: 'RR', value: trade.rr_ratio ? '1:' + Number(trade.rr_ratio).toFixed(1) : '—' }];
-  if (trade.session)  stats.push({ label: 'SESSION',  value: trade.session });
-  if (trade.strategy) stats.push({ label: 'STRATEGY', value: trade.strategy.length > 13 ? trade.strategy.slice(0, 12) + '…' : trade.strategy });
-  if (trade.setup_grade) stats.push({ label: 'GRADE', value: trade.setup_grade });
-  if (stats.length < 2) stats.push({ label: 'DIRECTION', value: trade.direction || '—' });
+  if (trade.session)     stats.push({ label: 'SESSION',  value: trade.session });
+  if (trade.strategy)    stats.push({ label: 'STRATEGY', value: trade.strategy.length > 13 ? trade.strategy.slice(0, 12) + '…' : trade.strategy });
+  if (trade.setup_grade) stats.push({ label: 'GRADE',    value: trade.setup_grade });
+  if (stats.length < 2)  stats.push({ label: 'DIRECTION', value: trade.direction || '—' });
 
-  const statsY = 258;
+  const statsY = 246;
   const colW = (W - P * 2) / stats.length;
   stats.forEach((s, i) => {
     const cx = P + colW * i + colW / 2;
@@ -6285,17 +6285,39 @@ function _buildTradeCard(trade) {
     ctx.fillText(s.value, cx, statsY + 10);
   });
 
+  // ── Entry / Exit / Lots row ──
+  const entryVal = trade.entry_price != null ? String(Number(trade.entry_price)) : '—';
+  const exitVal  = trade.exit_price  != null ? String(Number(trade.exit_price))  : '—';
+  const lotVal   = trade.lot_size    != null ? Number(trade.lot_size).toFixed(2)  : '—';
+  const SEP      = '  ·  ';
+  const infoY    = 269;
+  ctx.font = '500 10.5px "JetBrains Mono", monospace';
+  ctx.textBaseline = 'middle';
+  const fullInfo  = 'Entry: ' + entryVal + SEP + 'Exit: ' + exitVal + SEP + 'Lots: ' + lotVal;
+  let ix = W / 2 - ctx.measureText(fullInfo).width / 2;
+  const _seg = (text, color) => {
+    ctx.fillStyle = color;
+    ctx.textAlign = 'left';
+    ctx.fillText(text, ix, infoY);
+    ix += ctx.measureText(text).width;
+  };
+  _seg('Entry: ', GOLD_DIM); _seg(entryVal, TEXT);
+  _seg(SEP, MUTED);
+  _seg('Exit: ',  GOLD_DIM); _seg(exitVal,  TEXT);
+  _seg(SEP, MUTED);
+  _seg('Lots: ',  GOLD_DIM); _seg(lotVal,   TEXT);
+
   // ── Footer divider ──
   ctx.strokeStyle = 'rgba(212,175,55,0.28)';
   ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(P, 286); ctx.lineTo(W - P, 286); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(P, 285); ctx.lineTo(W - P, 285); ctx.stroke();
 
   // Footer URL
   ctx.fillStyle = GOLD_DIM;
   ctx.font = '400 9.5px Inter, system-ui, sans-serif';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('Track every trade at journal.bigmarkt.co', P, 317);
+  ctx.fillText('Track every trade at journal.bigmarkt.co', P, 316);
 
   // ── Gold triangle watermark (bottom-right) ──
   ctx.globalAlpha = 0.18;
