@@ -1832,6 +1832,94 @@
   .profile-section-title { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.05em; color: var(--gold); margin-bottom: 14px; }
   .danger-btn { background: transparent; border: 1px solid var(--loss); color: var(--loss); padding: 10px 20px; border-radius: 8px; font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 0.12em; cursor: pointer; transition: all 0.15s; width: 100%; margin-top: 8px; }
   .danger-btn:hover { background: rgba(239,68,68,0.1); }
+
+  /* ====================================================
+     ADMIN PANEL
+     ==================================================== */
+  .admin-delete-btn {
+    background: transparent;
+    border: 1px solid var(--loss);
+    color: var(--loss);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .admin-delete-btn:hover { background: rgba(239,68,68,0.15); }
+
+  .admin-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .admin-bar-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    width: 110px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .admin-bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .admin-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+    border-radius: 4px;
+    transition: width 0.4s;
+  }
+  .admin-bar-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .admin-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .admin-badge-starter  { background: rgba(136,136,136,0.15); color: var(--muted); }
+  .admin-badge-active   { background: rgba(34,197,94,0.15);   color: var(--win); }
+  .admin-badge-pro      { background: rgba(212,175,55,0.18);  color: var(--gold); }
+  .admin-badge-elite    { background: rgba(212,175,55,0.35);  color: var(--gold-bright); border: 1px solid rgba(212,175,55,0.5); }
+
+  .admin-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 640px) { .admin-two-col { grid-template-columns: 1fr; } }
+
+  .admin-activity-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .admin-activity-row:last-child { border-bottom: none; }
+  .admin-activity-time { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-2); width: 80px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -2757,6 +2845,119 @@
     </div>
   </section>
 
+  <!-- ============== ADMIN ============== -->
+  <section class="page" id="page-admin">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">ADMIN <em>PANEL</em></h1>
+        <div class="page-sub">restricted — system overview</div>
+      </div>
+      <button onclick="renderAdmin()" style="background:transparent;border:1px solid var(--gold-dim);color:var(--gold);padding:7px 14px;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:0.12em;cursor:pointer;">↻ REFRESH</button>
+    </div>
+
+    <!-- OVERVIEW STATS -->
+    <div class="section-title">OVERVIEW</div>
+    <div class="stats-grid" style="margin-bottom:12px;">
+      <div class="stat-card highlight">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-value gold" id="adm-totalUsers">—</div>
+        <div class="stat-foot" id="adm-totalUsersFoot">registered accounts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Trades</div>
+        <div class="stat-value" id="adm-totalTrades">—</div>
+        <div class="stat-foot">across all users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total PnL</div>
+        <div class="stat-value" id="adm-totalPnL">—</div>
+        <div class="stat-foot">sum of all logged PnL</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">App Win Rate</div>
+        <div class="stat-value gold" id="adm-winRate">—</div>
+        <div class="stat-foot">wins ÷ closed trades</div>
+      </div>
+    </div>
+    <div class="stats-grid" style="margin-bottom:24px;">
+      <div class="stat-card">
+        <div class="stat-label">New This Week</div>
+        <div class="stat-value win" id="adm-newWeek">—</div>
+        <div class="stat-foot">last 7 days</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">New This Month</div>
+        <div class="stat-value win" id="adm-newMonth">—</div>
+        <div class="stat-foot">this calendar month</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Most Traded Pair</div>
+        <div class="stat-value" id="adm-topPair">—</div>
+        <div class="stat-foot" id="adm-topPairFoot">by trade count</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Trades/User</div>
+        <div class="stat-value" id="adm-avgTrades">—</div>
+        <div class="stat-foot">engagement metric</div>
+      </div>
+    </div>
+
+    <!-- USERS TABLE -->
+    <div class="section">
+      <div class="section-title">USERS</div>
+      <div id="adm-usersTable">
+        <div class="empty-state"><div class="empty-state-icon">◆</div><div class="empty-state-title">LOADING…</div></div>
+      </div>
+    </div>
+
+    <!-- REFERRAL LEADERBOARD -->
+    <div class="section">
+      <div class="section-title">REFERRAL LEADERBOARD</div>
+      <div id="adm-referralBoard">
+        <div class="empty-state"><div class="empty-state-icon">◆</div><div class="empty-state-title">LOADING…</div></div>
+      </div>
+    </div>
+
+    <!-- RECENT ACTIVITY -->
+    <div class="section">
+      <div class="section-title">RECENT ACTIVITY</div>
+      <div class="admin-two-col">
+        <div>
+          <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:10px;">Last 10 Signups</div>
+          <div id="adm-recentSignups"><div style="color:var(--muted-2);font-size:13px;">Loading…</div></div>
+        </div>
+        <div>
+          <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:10px;">Last 10 Trades</div>
+          <div id="adm-recentTrades"><div style="color:var(--muted-2);font-size:13px;">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYSTEM STATS -->
+    <div class="section">
+      <div class="section-title">SYSTEM STATS</div>
+      <div class="admin-two-col" style="gap:24px;">
+        <div>
+          <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:12px;">Top Pairs</div>
+          <div id="adm-statPairs"></div>
+        </div>
+        <div>
+          <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:12px;">Top Emotions</div>
+          <div id="adm-statEmotions"></div>
+        </div>
+        <div>
+          <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:12px;">Top Sessions</div>
+          <div id="adm-statSessions"></div>
+        </div>
+        <div>
+          <div style="font-size:11px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;font-weight:600;margin-bottom:12px;">Sources</div>
+          <div id="adm-statSources"></div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
 </div>
 <!-- FLOATING RISK CALCULATOR BUTTON -->
 <button class="calc-fab" id="calcFab" onclick="openCalcDrawer()" title="Risk Calculator" style="display:none;">
@@ -2998,6 +3199,10 @@
     <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20 C4 16 8 13 12 13 C16 13 20 16 20 20"/></svg>
     PROFILE
   </button>
+  <button class="nav-item" data-page="admin" id="adminNavBtn" onclick="navigate('admin')" style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    ADMIN
+  </button>
 </nav>
 
 <!-- ═══ CDN LIBRARIES — loaded here (after HTML) to guarantee availability ═══ -->
@@ -3104,6 +3309,7 @@ function enterApp() {
   document.getElementById('app').classList.add('active');
   document.getElementById('bottomNav').style.display = 'flex';
   document.getElementById('calcFab').style.display = 'flex';
+  document.getElementById('adminNavBtn').style.display = isAdmin() ? '' : 'none';
   navigate('dashboard');
 }
 
@@ -3122,6 +3328,7 @@ async function logout() {
   document.getElementById('app').classList.remove('active');
   document.getElementById('bottomNav').style.display = 'none';
   document.getElementById('calcFab').style.display = 'none';
+  document.getElementById('adminNavBtn').style.display = 'none';
   closeCalcDrawer();
   document.getElementById('loginScreen').style.display = 'flex';
 }
@@ -3201,6 +3408,7 @@ function navigate(page) {
     nav.scrollTo({ left: btnLeft - navWidth / 2 + btnWidth / 2, behavior: 'smooth' });
   }
 
+  if (page === 'admin') { if (!isAdmin()) { navigate('dashboard'); return; } renderAdmin(); }
   if (page === 'dashboard') { renderDashboard(); checkSessionBanner(); }
   if (page === 'journal') {
     // Always reset to table view on navigation
@@ -5509,6 +5717,222 @@ function dismissBanner(key) {
   bannerDismissed[key] = true;
   const el = document.getElementById('sessionBanner');
   if (el) el.style.display = 'none';
+}
+
+/* ====================================================
+   ADMIN PANEL
+   ==================================================== */
+const ADMIN_EMAILS = ['sylvesterejemah@gmail.com', 'support@bigmarkt.co'];
+function isAdmin() { return !!(state.user && ADMIN_EMAILS.includes(state.user.email)); }
+
+async function renderAdmin() {
+  if (!isAdmin()) return;
+  showSpinner('LOADING ADMIN DATA…');
+  const [{ data: profiles }, { data: allTrades }] = await Promise.all([
+    _sb.from('profiles').select('*').order('created_at', { ascending: false }),
+    _sb.from('trades').select('*').order('created_at', { ascending: false })
+  ]);
+  hideSpinner();
+  const p = profiles || [];
+  const t = allTrades || [];
+  _renderAdminOverview(p, t);
+  _renderAdminUsers(p, t);
+  _renderAdminReferrals(p);
+  _renderAdminActivity(p, t);
+  _renderAdminSystemStats(t, p);
+}
+
+function _renderAdminOverview(profiles, trades) {
+  const now = Date.now();
+  const weekAgo = now - 7 * 86400000;
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+
+  const totalUsers  = profiles.length;
+  const newWeek     = profiles.filter(p => new Date(p.created_at).getTime() >= weekAgo).length;
+  const newMonth    = profiles.filter(p => new Date(p.created_at).getTime() >= monthStart).length;
+  const totalPnL    = trades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
+  const wins        = trades.filter(t => t.result === 'WIN').length;
+  const losses      = trades.filter(t => t.result === 'LOSS').length;
+  const closed      = wins + losses;
+  const winRate     = closed > 0 ? Math.round((wins / closed) * 100) : null;
+  const avgTrades   = totalUsers > 0 ? (trades.length / totalUsers).toFixed(1) : '—';
+
+  const pairCounts = {};
+  trades.forEach(t => { if (t.pair) pairCounts[t.pair] = (pairCounts[t.pair] || 0) + 1; });
+  const topPair = Object.entries(pairCounts).sort((a, b) => b[1] - a[1])[0];
+
+  document.getElementById('adm-totalUsers').textContent    = totalUsers;
+  document.getElementById('adm-totalUsersFoot').textContent = totalUsers === 1 ? '1 registered account' : totalUsers + ' registered accounts';
+  document.getElementById('adm-totalTrades').textContent   = trades.length;
+  const pnlEl = document.getElementById('adm-totalPnL');
+  pnlEl.textContent = fmtMoney(totalPnL);
+  pnlEl.classList.remove('win','loss');
+  if (totalPnL > 0) pnlEl.classList.add('win');
+  else if (totalPnL < 0) pnlEl.classList.add('loss');
+  document.getElementById('adm-winRate').textContent  = winRate === null ? '—' : winRate + '%';
+  document.getElementById('adm-newWeek').textContent  = newWeek;
+  document.getElementById('adm-newMonth').textContent = newMonth;
+  document.getElementById('adm-topPair').textContent  = topPair ? topPair[0] : '—';
+  document.getElementById('adm-topPairFoot').textContent = topPair ? topPair[1] + ' trades' : 'no trades yet';
+  document.getElementById('adm-avgTrades').textContent = avgTrades;
+}
+
+function _renderAdminUsers(profiles, trades) {
+  const el = document.getElementById('adm-usersTable');
+  if (profiles.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">◆</div><div class="empty-state-title">NO USERS YET</div></div>';
+    return;
+  }
+  const tradeCounts = {};
+  const lastTradeDates = {};
+  trades.forEach(t => {
+    if (!t.user_id) return;
+    tradeCounts[t.user_id] = (tradeCounts[t.user_id] || 0) + 1;
+    const ts = new Date(t.created_at).getTime();
+    if (!lastTradeDates[t.user_id] || ts > lastTradeDates[t.user_id]) lastTradeDates[t.user_id] = ts;
+  });
+  const rows = profiles.map(p => {
+    const count = tradeCounts[p.id] || 0;
+    const lastTs = lastTradeDates[p.id];
+    const lastDate = lastTs ? fmtDate(lastTs) : '—';
+    const joined = p.created_at ? fmtDate(new Date(p.created_at).getTime()) : '—';
+    const srcPill = p.source ? `<span class="pill ${p.source === 'signup' ? 'pill-win' : p.source === 'google' ? 'pill-buy' : 'pill-be'}">${p.source}</span>` : '—';
+    return `<tr>
+      <td>${p.name ? escHtml(p.name) : '<span style="color:var(--muted-2)">—</span>'}</td>
+      <td class="num" style="font-size:12px;">${p.email ? escHtml(p.email) : '—'}</td>
+      <td>${srcPill}</td>
+      <td class="num text-muted" style="font-size:12px;">${joined}</td>
+      <td class="num" style="text-align:center;">${count}</td>
+      <td class="num text-muted" style="font-size:12px;">${lastDate}</td>
+      <td><button class="admin-delete-btn" onclick="adminDeleteUser('${p.id}','${escHtml(p.name || p.email || p.id)}')">DELETE</button></td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Name</th><th>Email</th><th>Source</th><th>Joined</th><th style="text-align:center;">Trades</th><th>Last Trade</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function _renderAdminReferrals(profiles) {
+  const el = document.getElementById('adm-referralBoard');
+  if (profiles.length === 0) {
+    el.innerHTML = '<div style="color:var(--muted-2);font-size:13px;">No data yet.</div>';
+    return;
+  }
+  const refCodeMap = {};
+  profiles.forEach(p => {
+    const code = btoa(p.id).replace(/=/g, '').substring(0, 12);
+    refCodeMap[code] = p;
+  });
+  const refCounts = {};
+  profiles.forEach(p => {
+    if (p.referred_by) refCounts[p.referred_by] = (refCounts[p.referred_by] || 0) + 1;
+  });
+  const top = Object.entries(refCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([code, count]) => ({ profile: refCodeMap[code], count }))
+    .filter(x => x.profile);
+
+  if (top.length === 0) {
+    el.innerHTML = '<div style="color:var(--muted-2);font-size:13px;">No referrals recorded yet.</div>';
+    return;
+  }
+  function rankBadge(n) {
+    if (n >= 50) return '<span class="admin-badge admin-badge-elite">Elite</span>';
+    if (n >= 20) return '<span class="admin-badge admin-badge-pro">Pro</span>';
+    if (n >= 5)  return '<span class="admin-badge admin-badge-active">Active</span>';
+    return '<span class="admin-badge admin-badge-starter">Starter</span>';
+  }
+  const rows = top.map((item, i) => `<tr>
+    <td class="num" style="color:var(--gold);font-size:13px;">#${i + 1}</td>
+    <td>${item.profile.name ? escHtml(item.profile.name) : '—'}</td>
+    <td class="num" style="font-size:12px;">${item.profile.email ? escHtml(item.profile.email) : '—'}</td>
+    <td style="text-align:center;" class="num">${item.count}</td>
+    <td>${rankBadge(item.count)}</td>
+  </tr>`).join('');
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Name</th><th>Email</th><th style="text-align:center;">Referrals</th><th>Rank</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function _renderAdminActivity(profiles, trades) {
+  const signupEl = document.getElementById('adm-recentSignups');
+  const tradeEl  = document.getElementById('adm-recentTrades');
+
+  const recentSignups = [...profiles].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10);
+  if (recentSignups.length === 0) {
+    signupEl.innerHTML = '<div style="color:var(--muted-2);font-size:13px;">None yet.</div>';
+  } else {
+    signupEl.innerHTML = recentSignups.map(p => `
+      <div class="admin-activity-row">
+        <span class="admin-activity-time">${fmtDate(new Date(p.created_at).getTime())}</span>
+        <span style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.email ? escHtml(p.email) : '—'}</span>
+        <span class="pill ${p.source === 'signup' ? 'pill-win' : p.source === 'google' ? 'pill-buy' : 'pill-be'}" style="font-size:10px;">${p.source || '—'}</span>
+      </div>`).join('');
+  }
+
+  const recentTrades = [...trades].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10);
+  if (recentTrades.length === 0) {
+    tradeEl.innerHTML = '<div style="color:var(--muted-2);font-size:13px;">None yet.</div>';
+  } else {
+    tradeEl.innerHTML = recentTrades.map(t => `
+      <div class="admin-activity-row">
+        <span class="admin-activity-time">${fmtDate(new Date(t.created_at).getTime())}</span>
+        <span class="pair-cell" style="font-size:12px;width:68px;flex-shrink:0;">${t.pair || '—'}</span>
+        ${pillDir(t.direction || 'BUY')}
+        ${pillResult(t.result || 'WIN')}
+        <span class="num" style="font-size:12px;color:${(Number(t.pnl)||0)>=0?'var(--win)':'var(--loss)'};">${fmtMoney(Number(t.pnl)||0)}</span>
+      </div>`).join('');
+  }
+}
+
+function _renderAdminSystemStats(trades, profiles) {
+  function barList(containerId, counts, topN = 7) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const sorted = Object.entries(counts).filter(([k]) => k && k !== 'null' && k !== 'undefined').sort((a, b) => b[1] - a[1]).slice(0, topN);
+    if (sorted.length === 0) { el.innerHTML = '<div style="color:var(--muted-2);font-size:13px;">No data.</div>'; return; }
+    const max = sorted[0][1];
+    el.innerHTML = sorted.map(([label, count]) => `
+      <div class="admin-bar-row">
+        <span class="admin-bar-label">${escHtml(label)}</span>
+        <div class="admin-bar-track"><div class="admin-bar-fill" style="width:${Math.round((count/max)*100)}%"></div></div>
+        <span class="admin-bar-count">${count}</span>
+      </div>`).join('');
+  }
+
+  const pairCounts = {}, emotionCounts = {}, sessionCounts = {}, sourceCounts = {};
+  trades.forEach(t => {
+    if (t.pair)    pairCounts[t.pair]       = (pairCounts[t.pair]       || 0) + 1;
+    if (t.emotions) emotionCounts[t.emotions] = (emotionCounts[t.emotions] || 0) + 1;
+    if (t.session)  sessionCounts[t.session]  = (sessionCounts[t.session]  || 0) + 1;
+  });
+  profiles.forEach(p => {
+    const s = p.source || 'unknown';
+    sourceCounts[s] = (sourceCounts[s] || 0) + 1;
+  });
+
+  barList('adm-statPairs',    pairCounts);
+  barList('adm-statEmotions', emotionCounts);
+  barList('adm-statSessions', sessionCounts);
+  barList('adm-statSources',  sourceCounts);
+}
+
+async function adminDeleteUser(userId, displayName) {
+  if (!isAdmin()) return;
+  if (!confirm('Delete "' + displayName + '" and ALL their trades?\n\nThis cannot be undone.')) return;
+  showSpinner('DELETING USER…');
+  await _sb.from('trades').delete().eq('user_id', userId);
+  await _sb.from('profiles').delete().eq('id', userId);
+  hideSpinner();
+  toast('User deleted.');
+  renderAdmin();
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 /* ---------- INIT ---------- */
