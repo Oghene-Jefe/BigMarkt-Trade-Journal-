@@ -1577,6 +1577,49 @@
   .modal-close:hover { color: var(--text); }
 
   /* ====================================================
+     ACCOUNT TRACKER
+     ==================================================== */
+  .acct-tracker-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  @media (max-width: 480px) {
+    .acct-tracker-cards { grid-template-columns: repeat(2, 1fr); }
+  }
+  .daily-loss-alert {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid var(--loss);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--loss);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    text-align: center;
+  }
+
+  /* ====================================================
+     ONBOARDING MODAL
+     ==================================================== */
+  .ob-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 24px; }
+  .ob-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--gold-dim);
+    transition: background 0.25s;
+  }
+  .ob-dot.active { background: var(--gold); }
+  .ob-step-label {
+    font-size: 11px;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 0.12em;
+    color: var(--gold-dim);
+    margin-bottom: 4px;
+  }
+
+  /* ====================================================
      EDIT TRADE MODAL
      ==================================================== */
   .edit-modal-grid {
@@ -2038,6 +2081,9 @@
         <div class="page-sub">your edge at a glance</div>
       </div>
     </div>
+
+    <!-- ACCOUNT TRACKER (rendered by JS) -->
+    <div id="accountTracker"></div>
 
     <div class="stats-grid">
       <div class="stat-card">
@@ -2587,6 +2633,14 @@
         <div class="field">
           <label>Preferred Pairs</label>
           <input type="text" id="editProfilePairs" placeholder="e.g. XAU/USD, GBP/JPY">
+        </div>
+        <div class="field">
+          <label>Starting Balance ($)</label>
+          <input type="number" id="editStartingBalance" placeholder="e.g. 5000" min="0" step="0.01">
+        </div>
+        <div class="field">
+          <label>Daily Loss Limit (%)</label>
+          <input type="number" id="editDailyLossLimit" placeholder="3" min="0.1" max="100" step="0.1" value="3">
         </div>
       </div>
       <div style="margin-top:16px;">
@@ -3248,6 +3302,7 @@ const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let state = {
   user: null,
+  profile: null,
   trades: [],
   currentPage: 'dashboard',
   formDirection: 'BUY',
@@ -3318,9 +3373,10 @@ async function login(email, password) {
   const confirmedAt = user.email_confirmed_at ? new Date(user.email_confirmed_at).getTime() : 0;
   const justVerified = confirmedAt > 0 && (Date.now() - confirmedAt) < 60000;
   await _sb.from('profiles').upsert({ id: user.id, email });
-  await loadTrades();
+  await Promise.all([loadTrades(), loadProfile()]);
   enterApp();
   toast(justVerified ? 'Email verified! Welcome to BigMarkt.' : 'Welcome back, trader.');
+  maybeShowOnboarding();
 }
 
 
@@ -3336,6 +3392,7 @@ function enterApp() {
 async function logout() {
   await _sb.auth.signOut();
   state.user = null;
+  state.profile = null;
   state.trades = [];
   state.currentPage = 'dashboard';
   state.formDirection = 'BUY';
@@ -3361,9 +3418,10 @@ async function checkSession() {
   if (sessionError) { hideSpinner(); return; }
   if (session) {
     state.user = session.user;
-    await loadTrades();
+    await Promise.all([loadTrades(), loadProfile()]);
     hideSpinner();
     enterApp();
+    maybeShowOnboarding();
   } else {
     hideSpinner();
   }
@@ -3386,6 +3444,12 @@ async function loadTrades() {
     pnl: Number(t.pnl) || 0,
     rr_ratio: Number(t.rr_ratio) || 0
   }));
+}
+
+async function loadProfile() {
+  if (!state.user) return;
+  const { data } = await _sb.from('profiles').select('*').eq('id', state.user.id).single();
+  state.profile = data || null;
 }
 
 async function saveTrade(trade) {
@@ -3476,6 +3540,7 @@ function pillDir(d) {
 
 /* ---------- DASHBOARD ---------- */
 function renderDashboard() {
+  renderAccountTracker();
   const t = state.trades;
   const total = t.length;
   const wins = t.filter(x => x.result === 'WIN').length;
@@ -3553,6 +3618,73 @@ function renderDashboard() {
             </tr>`).join('')}
         </tbody>
       </table>
+    </div>`;
+}
+
+function renderAccountTracker() {
+  const el = document.getElementById('accountTracker');
+  if (!el) return;
+
+  const profile = state.profile;
+  const startBal = (profile?.starting_balance != null && profile.starting_balance !== '') ? Number(profile.starting_balance) : null;
+  const dailyLossLimit = (profile?.daily_loss_limit != null && profile.daily_loss_limit !== '') ? Number(profile.daily_loss_limit) : 3;
+  const totalPnL = state.trades.reduce((s, x) => s + (Number(x.pnl) || 0), 0);
+
+  if (!startBal) {
+    el.innerHTML = `
+      <div class="section" style="border-color:rgba(212,175,55,0.25); margin-bottom:16px;">
+        <div class="section-title" style="margin-bottom:8px;">ACCOUNT TRACKER</div>
+        <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">Set your starting balance to track account growth and daily risk.</div>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <input type="number" id="quickStartBalance" placeholder="Starting balance ($)" min="0" step="0.01"
+            style="flex:1; min-width:160px; background:var(--black-3); border:1px solid var(--gold-dim); color:var(--text); border-radius:8px; padding:10px 12px; font-size:14px; outline:none;">
+          <button class="btn btn-primary" onclick="saveStartingBalance()" style="width:auto; padding:10px 20px; font-size:13px;">SAVE</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const currentBal = startBal + totalPnL;
+  const growthPct = (totalPnL / startBal) * 100;
+
+  const today = new Date().toDateString();
+  const todayPnL = state.trades
+    .filter(x => new Date(x.created_at).toDateString() === today)
+    .reduce((s, x) => s + (Number(x.pnl) || 0), 0);
+
+  const dailyLossThreshold = -(startBal * (dailyLossLimit / 100));
+  const limitHit = todayPnL <= dailyLossThreshold && todayPnL < 0;
+
+  const alertHtml = limitHit
+    ? `<div class="daily-loss-alert">&#x26D4; DAILY LOSS LIMIT HIT — Stop trading for today</div>`
+    : (todayPnL < 0 && todayPnL > dailyLossThreshold)
+      ? `<div style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--muted);">Today P&amp;L: <span style="color:var(--loss);">${fmtMoney(todayPnL)}</span> &nbsp;&middot;&nbsp; Daily limit: <span style="color:var(--loss);">${fmtMoney(dailyLossThreshold)}</span></div>`
+      : '';
+
+  el.innerHTML = `
+    <div class="section" style="border-color:rgba(212,175,55,0.25); margin-bottom:16px;">
+      <div class="row between" style="margin-bottom:12px; align-items:center;">
+        <div class="section-title" style="margin-bottom:0;">ACCOUNT TRACKER</div>
+        <span style="font-size:11px; color:var(--muted); font-family:'Bebas Neue',sans-serif; letter-spacing:0.08em;">Daily limit: ${dailyLossLimit}%</span>
+      </div>
+      <div class="acct-tracker-cards">
+        <div class="stat-card">
+          <div class="stat-label">Starting Balance</div>
+          <div class="stat-value" style="font-size:18px;">${fmtMoney(startBal)}</div>
+          <div class="stat-foot">Base capital</div>
+        </div>
+        <div class="stat-card${currentBal >= startBal ? ' highlight' : ''}">
+          <div class="stat-label">Current Balance</div>
+          <div class="stat-value ${currentBal >= startBal ? 'gold' : 'loss'}" style="font-size:18px;">${fmtMoney(currentBal)}</div>
+          <div class="stat-foot">Start + All PnL</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Growth</div>
+          <div class="stat-value ${growthPct >= 0 ? 'win' : 'loss'}" style="font-size:18px;">${growthPct >= 0 ? '+' : ''}${growthPct.toFixed(2)}%</div>
+          <div class="stat-foot">Since starting balance</div>
+        </div>
+      </div>
+      ${alertHtml}
     </div>`;
 }
 
@@ -3952,9 +4084,10 @@ async function handleLoginSubmit() {
       localStorage.removeItem('bm_ref');
       if (data.session) {
         state.user = data.user;
-        await loadTrades();
+        await Promise.all([loadTrades(), loadProfile()]);
         enterApp();
         toast('Welcome, ' + name + '. Log your first trade!');
+        maybeShowOnboarding();
         return;
       }
       document.getElementById('loginForm').innerHTML = `
@@ -5232,6 +5365,9 @@ async function renderProfile() {
   if (profile?.timezone) document.getElementById('editProfileTimezone').value = profile.timezone;
   if (profile?.experience) document.getElementById('editProfileExperience').value = profile.experience;
   if (profile?.preferred_pairs) document.getElementById('editProfilePairs').value = profile.preferred_pairs;
+  if (profile?.starting_balance != null) document.getElementById('editStartingBalance').value = profile.starting_balance;
+  if (profile?.daily_loss_limit != null) document.getElementById('editDailyLossLimit').value = profile.daily_loss_limit;
+  else document.getElementById('editDailyLossLimit').value = 3;
   const trades = state.trades;
   const wins = trades.filter(t => t.result === 'WIN').length;
   const losses = trades.filter(t => t.result === 'LOSS').length;
@@ -5275,14 +5411,24 @@ async function saveProfile() {
   const timezone = document.getElementById('editProfileTimezone').value;
   const experience = document.getElementById('editProfileExperience').value;
   const preferred_pairs = document.getElementById('editProfilePairs').value.trim();
+  const sbVal = document.getElementById('editStartingBalance').value;
+  const dllVal = document.getElementById('editDailyLossLimit').value;
+  const starting_balance = sbVal !== '' ? Number(sbVal) : null;
+  const daily_loss_limit = dllVal !== '' ? Number(dllVal) : 3;
   if (!name) { toast('Enter your name.', 'error'); return; }
   showSpinner('SAVING PROFILE…');
-  const { error } = await _sb.from('profiles').upsert({ id: state.user.id, email: state.user.email, name, timezone, experience, preferred_pairs });
+  const { error } = await _sb.from('profiles').upsert({
+    id: state.user.id, email: state.user.email,
+    name, timezone, experience, preferred_pairs,
+    starting_balance, daily_loss_limit
+  });
   hideSpinner();
   if (error) { toast('Error saving profile.', 'error'); return; }
+  state.profile = { ...state.profile, name, timezone, experience, preferred_pairs, starting_balance, daily_loss_limit };
   document.getElementById('profileName').textContent = name;
   document.getElementById('avatarInitial').textContent = name.charAt(0).toUpperCase();
   toast('Profile saved ✅');
+  renderDashboard();
 }
 
 async function changePassword() {
@@ -5740,6 +5886,68 @@ function dismissBanner(key) {
 }
 
 /* ====================================================
+   ONBOARDING
+   ==================================================== */
+function maybeShowOnboarding() {
+  if (!state.user) return;
+  const skippedKey = 'bm_ob_done_' + state.user.id;
+  if (localStorage.getItem(skippedKey)) return;
+  if (state.profile?.starting_balance) { localStorage.setItem(skippedKey, '1'); return; }
+  showOnboarding();
+}
+
+function showOnboarding() {
+  const name = state.profile?.name || state.user?.email?.split('@')[0] || 'Trader';
+  document.getElementById('ob-welcome-msg').textContent =
+    'Welcome to BigMarkt Trade Journal, ' + name + '. Let\'s set up your account in 2 quick steps.';
+  switchOnboardingStep(0);
+  document.getElementById('onboardingOverlay').classList.add('show');
+}
+
+function switchOnboardingStep(step) {
+  [0, 1, 2].forEach(i => {
+    document.getElementById('ob-step-' + i).style.display = i === step ? '' : 'none';
+    document.getElementById('ob-dot-' + i).classList.toggle('active', i === step);
+  });
+}
+
+async function finishOnboarding() {
+  const balVal  = document.getElementById('obBalance').value;
+  const pairsVal = document.getElementById('obPairs').value.trim();
+  const starting_balance = balVal !== '' && !isNaN(Number(balVal)) && Number(balVal) > 0 ? Number(balVal) : null;
+  const update = { id: state.user.id, email: state.user.email };
+  if (starting_balance) update.starting_balance = starting_balance;
+  if (pairsVal) update.preferred_pairs = pairsVal;
+  if (starting_balance || pairsVal) {
+    showSpinner('SAVING…');
+    await _sb.from('profiles').upsert(update);
+    hideSpinner();
+    state.profile = { ...state.profile, ...update };
+  }
+  localStorage.setItem('bm_ob_done_' + state.user.id, '1');
+  document.getElementById('onboardingOverlay').classList.remove('show');
+  if (starting_balance) toast('Account set up. Start logging your trades!');
+  renderDashboard();
+}
+
+function skipOnboarding() {
+  localStorage.setItem('bm_ob_done_' + state.user.id, '1');
+  document.getElementById('onboardingOverlay').classList.remove('show');
+}
+
+async function saveStartingBalance() {
+  const val = document.getElementById('quickStartBalance')?.value;
+  if (!val || isNaN(Number(val)) || Number(val) <= 0) { toast('Enter a valid balance amount.', 'error'); return; }
+  showSpinner('SAVING…');
+  const { error } = await _sb.from('profiles').upsert({ id: state.user.id, email: state.user.email, starting_balance: Number(val) });
+  hideSpinner();
+  if (error) { toast('Error saving balance.', 'error'); return; }
+  state.profile = { ...state.profile, starting_balance: Number(val) };
+  toast('Starting balance saved ✅');
+  renderDashboard();
+}
+
+/* ====================================================
    ADMIN PANEL
    ==================================================== */
 const ADMIN_EMAILS = ['sylvesterejemah@gmail.com', 'support@bigmarkt.co'];
@@ -5982,5 +6190,60 @@ if (document.readyState === 'loading') {
   _initApp();
 }
 </script>
+
+<!-- ============== ONBOARDING MODAL ============== -->
+<div id="onboardingOverlay" class="modal-overlay" style="z-index:600;">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="ob-dots">
+      <div class="ob-dot active" id="ob-dot-0"></div>
+      <div class="ob-dot" id="ob-dot-1"></div>
+      <div class="ob-dot" id="ob-dot-2"></div>
+    </div>
+
+    <!-- Step 0: Welcome -->
+    <div id="ob-step-0">
+      <div class="ob-step-label">STEP 1 OF 3</div>
+      <div class="modal-title">WELCOME TO BIGMARKT</div>
+      <div class="modal-sub" id="ob-welcome-msg">Let's set up your account.</div>
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="skipOnboarding()">SKIP SETUP</button>
+        <button class="btn btn-primary" style="flex:2;" onclick="switchOnboardingStep(1)">NEXT →</button>
+      </div>
+    </div>
+
+    <!-- Step 1: Starting Balance -->
+    <div id="ob-step-1" style="display:none;">
+      <div class="ob-step-label">STEP 2 OF 3</div>
+      <div class="modal-title">STARTING BALANCE</div>
+      <div class="modal-sub">What is your current account balance? This lets us track your growth over time.</div>
+      <div class="field">
+        <label>Balance ($)</label>
+        <input type="number" id="obBalance" placeholder="e.g. 5000" min="0" step="0.01"
+          style="background:var(--black-2); border:1px solid var(--gold-dim); color:var(--text); border-radius:8px; padding:12px; font-size:15px; width:100%;">
+      </div>
+      <div style="display:flex; gap:10px; margin-top:16px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="skipOnboarding()">SKIP SETUP</button>
+        <button class="btn btn-primary" style="flex:2;" onclick="switchOnboardingStep(2)">NEXT →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Main Pairs -->
+    <div id="ob-step-2" style="display:none;">
+      <div class="ob-step-label">STEP 3 OF 3</div>
+      <div class="modal-title">YOUR MAIN PAIRS</div>
+      <div class="modal-sub">What pairs do you mainly trade? This helps personalise your journal.</div>
+      <div class="field">
+        <label>Pairs</label>
+        <input type="text" id="obPairs" placeholder="e.g. XAU/USD, GBP/JPY, US30"
+          style="background:var(--black-2); border:1px solid var(--gold-dim); color:var(--text); border-radius:8px; padding:12px; font-size:15px; width:100%;">
+      </div>
+      <div style="display:flex; gap:10px; margin-top:16px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="skipOnboarding()">SKIP SETUP</button>
+        <button class="btn btn-primary" style="flex:2;" onclick="finishOnboarding()">FINISH →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
