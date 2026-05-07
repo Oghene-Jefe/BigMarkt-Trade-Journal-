@@ -3093,7 +3093,7 @@ async function submitDemoGate() {
   const name = document.getElementById('demoName').value.trim();
   const email = document.getElementById('demoEmail').value.trim().toLowerCase();
   if (!name) { toast('Enter your name.', 'error'); return; }
-  if (!email || !email.includes('@')) { toast('Enter a valid email.', 'error'); return; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Enter a valid email.', 'error'); return; }
 
   showSpinner('SETTING UP YOUR ACCOUNT…');
   // Save lead to Supabase leads table
@@ -3120,11 +3120,12 @@ async function submitDemoGate() {
         <div style="font-size:40px; margin-bottom:12px;">📧</div>
         <div style="font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--gold); margin-bottom:8px;">VERIFY YOUR EMAIL</div>
         <div style="color:var(--muted); font-size:13px; line-height:1.6;">
-          We sent a link to <strong style="color:var(--text);">${email}</strong><br>
+          We sent a link to <strong id="demoConfirmEmail" style="color:var(--text);"></strong><br>
           Click it to activate, then log in.
         </div>
         <button class="btn btn-ghost" style="margin-top:16px;" onclick="location.reload()">BACK TO LOGIN</button>
       </div>`;
+    document.getElementById('demoConfirmEmail').textContent = email;
     return;
   }
 
@@ -3167,7 +3168,7 @@ async function login(email, password) {
   const user = data?.user;
   if (!user) { toast('Login failed - please try again.', 'error'); return; }
   state.user = user;
-  await _sb.from('profiles').upsert({ id: user.id, email, source: 'login' });
+  await _sb.from('profiles').upsert({ id: user.id, email });
   await loadTrades();
   enterApp();
   toast('Welcome back, trader.');
@@ -3199,6 +3200,14 @@ async function logout() {
   await _sb.auth.signOut();
   state.user = null;
   state.trades = [];
+  state.currentPage = 'dashboard';
+  state.formDirection = 'BUY';
+  state.formResult = 'WIN';
+  state.formGrade = null;
+  state.formTags = [];
+  state.calYear = new Date().getFullYear();
+  state.calMonth = new Date().getMonth();
+  state.journalView = 'table';
   document.getElementById('app').classList.remove('active');
   document.getElementById('bottomNav').style.display = 'none';
   document.getElementById('calcFab').style.display = 'none';
@@ -3230,13 +3239,14 @@ async function checkSession() {
       await loadTrades();
       hideSpinner();
       enterApp();
-      toast('Welcome, ' + name + '. You are in. Lets trade.');
+      toast('Welcome, ' + name + ". You are in. Let's trade.");
       return;
     }
   }
 
   // Standard session check (email/password login)
-  const { data: { session } } = await _sb.auth.getSession();
+  const { data: { session }, error: sessionError } = await _sb.auth.getSession();
+  if (sessionError) { hideSpinner(); return; }
   if (session) {
     state.user = session.user;
     await loadTrades();
@@ -3805,7 +3815,7 @@ document.getElementById('tradeForm').addEventListener('submit', async e => {
 
 async function handleLoginSubmit() {
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-  const pwd   = document.getElementById('loginPassword').value.trim();
+  const pwd   = document.getElementById('loginPassword').value;
   const name  = document.getElementById('loginName').value.trim();
   if (!email) { toast('Enter your email address.', 'error'); document.getElementById('loginEmail').focus(); return; }
   if (!pwd) { toast('Enter your password.', 'error'); document.getElementById('loginPassword').focus(); return; }
@@ -3820,17 +3830,25 @@ async function handleLoginSubmit() {
     if (data.user) {
       await _sb.from('profiles').upsert({ id: data.user.id, email, name, source: 'signup', referred_by: localStorage.getItem('bm_ref') || null });
       localStorage.removeItem('bm_ref');
+      if (data.session) {
+        state.user = data.user;
+        await loadTrades();
+        enterApp();
+        toast('Welcome, ' + name + '. Log your first trade!');
+        return;
+      }
       document.getElementById('loginForm').innerHTML = `
         <div style="text-align:center; padding: 20px 0;">
           <div style="font-size:48px; margin-bottom:16px;">📧</div>
           <div style="font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--gold); margin-bottom:10px;">CHECK YOUR EMAIL</div>
           <div style="color:var(--muted); font-size:14px; line-height:1.6;">
             We sent a verification link to<br>
-            <strong style="color:var(--text);">${email}</strong><br><br>
+            <strong id="confirmEmailAddr" style="color:var(--text);"></strong><br><br>
             Click the link in the email to activate your account, then come back to log in.
           </div>
           <button class="btn btn-ghost" style="margin-top:20px;" onclick="location.reload()">BACK TO LOGIN</button>
         </div>`;
+      document.getElementById('confirmEmailAddr').textContent = email;
     }
   } else {
     await login(email, pwd);
@@ -4045,7 +4063,8 @@ async function checkPasswordReset() {
 
   if (type === 'recovery' && accessToken) {
     // Set the session from the reset link tokens
-    await _sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+    const { error: sessionErr } = await _sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+    if (sessionErr) { toast('Reset link expired or invalid. Request a new one.', 'error'); return false; }
 
     // Hide login, show reset form
     document.getElementById('loginScreen').style.display = 'flex';
@@ -4154,7 +4173,7 @@ async function sendResetEmail() {
   if (!email) { toast('Enter your email.', 'error'); return; }
   showSpinner('SENDING RESET EMAIL…');
   const { error } = await _sb.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://journal.bigmarkt.co'
+    redirectTo: window.location.origin + window.location.pathname
   });
   hideSpinner();
   if (error) { toast(error.message, 'error'); return; }
