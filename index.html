@@ -1993,6 +1993,90 @@
   }
   .admin-activity-row:last-child { border-bottom: none; }
   .admin-activity-time { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-2); width: 80px; flex-shrink: 0; }
+
+  /* ====================================================
+     LEADERBOARD PAGE
+     ==================================================== */
+  .lb-toggle-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .lb-toggle-btn {
+    flex: 1;
+    padding: 10px;
+    background: var(--black-3);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .lb-toggle-btn.active {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(212,175,55,0.07);
+  }
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--black-3);
+    border: 1px solid var(--line);
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+  }
+  .lb-row:first-child { border-color: rgba(212,175,55,0.4); }
+  .lb-rank {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: var(--gold);
+    width: 32px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+  .lb-info { flex: 1; min-width: 0; }
+  .lb-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lb-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .lb-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: var(--gold);
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .lb-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+  .lb-badge {
+    font-size: 13px;
+    line-height: 1;
+    cursor: default;
+  }
+
+  /* ====================================================
+     BALANCE RESET MODAL
+     ==================================================== */
+  .reset-modal-warning {
+    background: rgba(239,68,68,0.07);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
 </style>
 </head>
 <body>
@@ -2671,8 +2755,9 @@
           <input type="number" id="editDailyLossLimit" placeholder="3" min="0.1" max="100" step="0.1" value="3">
         </div>
       </div>
-      <div style="margin-top:16px;">
+      <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="saveProfile()" style="max-width:200px;">SAVE PROFILE</button>
+        <button class="btn btn-ghost" onclick="openResetModal()" style="max-width:200px; border-color:rgba(239,68,68,0.35); color:#ef4444;">RESET BALANCE</button>
       </div>
     </div>
 
@@ -3015,7 +3100,13 @@
         </div>
       </div>
       <div class="section" style="margin-top:16px;">
-        <div class="section-title">TOP TRADERS BY PNL</div>
+        <div class="row between" style="margin-bottom:12px;align-items:center;">
+          <div class="section-title" style="margin-bottom:0;">TOP TRADERS</div>
+          <div style="display:flex;gap:6px;">
+            <button id="adm-lb-btn-quality" class="logout-btn" style="font-size:10px;padding:3px 8px;color:var(--gold);border-color:rgba(212,175,55,0.4);" onclick="setAdminLbMode('quality')">TOP GROWERS</button>
+            <button id="adm-lb-btn-earners" class="logout-btn" style="font-size:10px;padding:3px 8px;" onclick="setAdminLbMode('earners')">TOP EARNERS</button>
+          </div>
+        </div>
         <div id="adm-topTraders">
           <div class="empty-state"><div class="empty-state-icon">◆</div><div class="empty-state-title">LOADING…</div></div>
         </div>
@@ -3284,6 +3375,23 @@
   <div class="spinner-label" id="spinnerLabel">LOADING…</div>
 </div>
 
+<!-- ============== LEADERBOARD PAGE ============== -->
+<section class="page" id="page-leaderboard">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">TRADER <em>RANK</em></h1>
+      <div class="page-sub">quality score = growth × win rate</div>
+    </div>
+  </div>
+  <div class="lb-toggle-row">
+    <button class="lb-toggle-btn active" id="lb-btn-quality" onclick="setLbMode('quality')">🏆 TOP GROWERS</button>
+    <button class="lb-toggle-btn" id="lb-btn-earners" onclick="setLbMode('earners')">💰 TOP EARNERS</button>
+  </div>
+  <div id="lbContent">
+    <div class="empty-state"><div class="empty-state-icon">◆</div><div class="empty-state-title">LOADING…</div></div>
+  </div>
+</section>
+
 <nav class="bottom-nav" id="bottomNav" style="display:none;">
   <button class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
     <svg viewBox="0 0 24 24"><path d="M3 12 L12 4 L21 12"/><path d="M5 10 V20 H19 V10"/></svg>
@@ -3302,6 +3410,10 @@
   <button class="nav-item" data-page="analytics" onclick="navigate('analytics')">
     <svg viewBox="0 0 24 24"><path d="M4 20 V10"/><path d="M10 20 V4"/><path d="M16 20 V14"/><path d="M22 20 V8"/></svg>
     STATS
+  </button>
+  <button class="nav-item" id="lbNavBtn" data-page="leaderboard" onclick="navigate('leaderboard')" style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 4.9 5.6.8-4 3.9.9 5.4-5-2.6-5 2.6.9-5.4-4-3.9 5.6-.8z"/></svg>
+    RANK
   </button>
   <button class="nav-item" data-page="profile" onclick="navigate('profile')">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20 C4 16 8 13 12 13 C16 13 20 16 20 20"/></svg>
@@ -3345,7 +3457,12 @@ let state = {
   formTags: [],
   calYear: new Date().getFullYear(),
   calMonth: new Date().getMonth(),
-  journalView: 'table'
+  journalView: 'table',
+  resets: [],
+  _lbData: null,
+  _lbMode: 'quality',
+  _admLbData: null,
+  _admLbMode: 'quality'
 };
 
 let charts = { pnl: null, pair: null, emotion: null };
@@ -3407,7 +3524,7 @@ async function login(email, password) {
   const confirmedAt = user.email_confirmed_at ? new Date(user.email_confirmed_at).getTime() : 0;
   const justVerified = confirmedAt > 0 && (Date.now() - confirmedAt) < 60000;
   await _sb.from('profiles').upsert({ id: user.id, email });
-  await Promise.all([loadTrades(), loadProfile()]);
+  await Promise.all([loadTrades(), loadProfile(), loadResets()]);
   enterApp();
   toast(justVerified ? 'Email verified! Welcome to BigMarkt.' : 'Welcome back, trader.');
   maybeShowOnboarding();
@@ -3420,6 +3537,7 @@ function enterApp() {
   document.getElementById('bottomNav').style.display = 'flex';
   document.getElementById('calcFab').style.display = 'flex';
   document.getElementById('adminNavBtn').style.display = isAdmin() ? '' : 'none';
+  document.getElementById('lbNavBtn').style.display = '';
   navigate('dashboard');
 }
 
@@ -3428,6 +3546,11 @@ async function logout() {
   state.user = null;
   state.profile = null;
   state.trades = [];
+  state.resets = [];
+  state._lbData = null;
+  state._lbMode = 'quality';
+  state._admLbData = null;
+  state._admLbMode = 'quality';
   state.currentPage = 'dashboard';
   state.formDirection = 'BUY';
   state.formResult = 'WIN';
@@ -3440,6 +3563,7 @@ async function logout() {
   document.getElementById('bottomNav').style.display = 'none';
   document.getElementById('calcFab').style.display = 'none';
   document.getElementById('adminNavBtn').style.display = 'none';
+  document.getElementById('lbNavBtn').style.display = 'none';
   closeCalcDrawer();
   document.getElementById('loginScreen').style.display = 'flex';
 }
@@ -3452,7 +3576,7 @@ async function checkSession() {
   if (sessionError) { hideSpinner(); return; }
   if (session) {
     state.user = session.user;
-    await Promise.all([loadTrades(), loadProfile()]);
+    await Promise.all([loadTrades(), loadProfile(), loadResets()]);
     hideSpinner();
     enterApp();
     maybeShowOnboarding();
@@ -3540,6 +3664,7 @@ function navigate(page) {
     renderJournal();
   }
   if (page === 'analytics') renderAnalytics();
+  if (page === 'leaderboard') renderLeaderboard();
   if (page === 'add') { resetTradeForm(); setDefaultTradeDate(); }
   if (page === 'profile') renderProfile();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3695,11 +3820,25 @@ function renderAccountTracker() {
       ? `<div style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--muted);">Today P&amp;L: <span style="color:var(--loss);">${fmtMoney(todayPnL)}</span> &nbsp;&middot;&nbsp; Daily limit: <span style="color:var(--loss);">${fmtMoney(dailyLossThreshold)}</span></div>`
       : '';
 
+  const resetHistHtml = state.resets.length > 0 ? `
+    <div id="resetHistSection" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">
+      <div style="font-size:11px; letter-spacing:0.15em; color:var(--muted); text-transform:uppercase; margin-bottom:8px;">Reset History</div>
+      ${state.resets.map(r => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:12px;">
+          <span style="color:var(--muted);">${fmtDate(new Date(r.created_at).getTime())}</span>
+          <span>${fmtMoney(r.new_balance)}</span>
+          ${r.note ? `<span style="color:var(--muted-2); font-size:11px; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(r.note)}</span>` : ''}
+        </div>`).join('')}
+    </div>` : '';
+
   el.innerHTML = `
     <div class="section" style="border-color:rgba(212,175,55,0.25); margin-bottom:16px;">
       <div class="row between" style="margin-bottom:12px; align-items:center;">
         <div class="section-title" style="margin-bottom:0;">ACCOUNT TRACKER</div>
-        <span style="font-size:11px; color:var(--muted); font-family:'Bebas Neue',sans-serif; letter-spacing:0.08em;">Daily limit: ${dailyLossLimit}%</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span style="font-size:11px; color:var(--muted); font-family:'Bebas Neue',sans-serif; letter-spacing:0.08em;">Daily limit: ${dailyLossLimit}%</span>
+          <button class="logout-btn" style="font-size:10px; padding:3px 8px; color:var(--gold); border-color:rgba(212,175,55,0.4);" onclick="openResetModal()">RESET</button>
+        </div>
       </div>
       <div class="acct-tracker-cards">
         <div class="stat-card">
@@ -3719,6 +3858,8 @@ function renderAccountTracker() {
         </div>
       </div>
       ${alertHtml}
+      ${resetHistHtml}
+      ${state.resets.length > 0 ? `<button onclick="toggleResetHistory()" style="background:none;border:none;color:var(--muted);font-size:11px;letter-spacing:0.1em;cursor:pointer;padding:8px 0 0;text-transform:uppercase;">&#9658; Reset History (${state.resets.length})</button>` : ''}
     </div>`;
 }
 
@@ -4119,7 +4260,7 @@ async function handleLoginSubmit() {
       localStorage.removeItem('bm_ref');
       if (data.session) {
         state.user = data.user;
-        await Promise.all([loadTrades(), loadProfile()]);
+        await Promise.all([loadTrades(), loadProfile(), loadResets()]);
         enterApp();
         toast('Welcome, ' + name + '. Log your first trade!');
         maybeShowOnboarding();
@@ -6238,6 +6379,255 @@ function _buildShareText(trade) {
 }
 
 /* ====================================================
+   LEADERBOARD
+   ==================================================== */
+function computeLeaderboardData(profiles, trades) {
+  const profileMap = {};
+  profiles.forEach(p => { profileMap[p.id] = p; });
+
+  const userStats = {};
+  trades.forEach(t => {
+    if (!t.user_id) return;
+    if (!userStats[t.user_id]) userStats[t.user_id] = { pnl: 0, wins: 0, losses: 0, total: 0, dates: [] };
+    userStats[t.user_id].pnl += (Number(t.pnl) || 0);
+    userStats[t.user_id].total++;
+    if (t.result === 'WIN') userStats[t.user_id].wins++;
+    else if (t.result === 'LOSS') userStats[t.user_id].losses++;
+    if (t.created_at) userStats[t.user_id].dates.push(new Date(t.created_at));
+  });
+
+  const now = Date.now();
+
+  const entries = Object.entries(userStats)
+    .filter(([uid]) => profileMap[uid])
+    .map(([uid, s]) => {
+      const p = profileMap[uid];
+      const startBal = p.starting_balance ? Number(p.starting_balance) : null;
+      const closed = s.wins + s.losses;
+      const winRate = closed > 0 ? (s.wins / closed) * 100 : 0;
+      const growthPct = startBal ? (s.pnl / startBal) * 100 : null;
+      const qualityScore = (growthPct != null && s.total >= 10 && startBal)
+        ? parseFloat((growthPct * (winRate / 100)).toFixed(2))
+        : null;
+
+      // Badges
+      const badges = [];
+      if (winRate >= 60 && s.total >= 20) badges.push('💎');
+      // streak badge: count consecutive wins from most recent
+      let streak = 0;
+      const sorted = [...(trades.filter(t => t.user_id === uid))].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      for (const t of sorted) {
+        if (t.result === 'WIN') streak++; else break;
+      }
+      if (streak >= 5) badges.push('⚡');
+      // avg RR badge
+      const rrTrades = trades.filter(t => t.user_id === uid && t.rr_ratio);
+      const avgRR = rrTrades.length > 0 ? rrTrades.reduce((s, t) => s + Number(t.rr_ratio), 0) / rrTrades.length : 0;
+      if (avgRR >= 2.0) badges.push('🎯');
+      // active every week for 4 weeks badge
+      if (s.dates.length > 0) {
+        let activeWeeks = 0;
+        for (let w = 0; w < 4; w++) {
+          const wEnd = now - w * 7 * 86400000;
+          const wStart = wEnd - 7 * 86400000;
+          if (s.dates.some(d => d.getTime() >= wStart && d.getTime() < wEnd)) activeWeeks++;
+        }
+        if (activeWeeks >= 4) badges.push('🔥');
+      }
+      // warning badge: single loss > 5% of starting balance
+      if (startBal) {
+        const bigLoss = trades.some(t => t.user_id === uid && t.result === 'LOSS' && Math.abs(Number(t.pnl)) > startBal * 0.05);
+        if (bigLoss) badges.push('⚠️');
+      }
+
+      return { uid, p, s, startBal, winRate, growthPct, qualityScore, badges, closed };
+    });
+
+  return entries;
+}
+
+function _badgeTitle(badge) {
+  const map = { '💎': 'Elite Win Rate (60%+ over 20 trades)', '⚡': 'Hot Streak (5+ wins in a row)', '🎯': 'Sharp RR (avg 2.0+)', '🔥': 'Consistent (active 4 weeks straight)', '⚠️': 'Risk Warning (single loss >5% of balance)' };
+  return map[badge] || '';
+}
+
+function renderLeaderboard() {
+  const el = document.getElementById('lbContent');
+  if (!el) return;
+  if (state._lbData) { _renderPublicLbTable(state._lbData, state._lbMode); return; }
+
+  el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">◆</div><div class="empty-state-title">LOADING…</div></div>';
+
+  Promise.all([
+    _sb.from('profiles').select('id,name,starting_balance').order('created_at', { ascending: false }),
+    _sb.from('trades').select('user_id,pnl,result,rr_ratio,created_at').order('created_at', { ascending: false })
+  ]).then(([{ data: profiles }, { data: trades }]) => {
+    const p = profiles || [];
+    const t = trades || [];
+    if (p.length === 0 && t.length === 0) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏆</div><div class="empty-state-title">NO DATA YET</div><div class="empty-state-sub">Be the first to make the leaderboard</div></div>';
+      return;
+    }
+    state._lbData = computeLeaderboardData(p, t);
+    _renderPublicLbTable(state._lbData, state._lbMode);
+  });
+}
+
+function setLbMode(mode) {
+  state._lbMode = mode;
+  document.getElementById('lb-btn-quality')?.classList.toggle('active', mode === 'quality');
+  document.getElementById('lb-btn-earners')?.classList.toggle('active', mode === 'earners');
+  if (state._lbData) _renderPublicLbTable(state._lbData, mode);
+}
+
+function _renderPublicLbTable(entries, mode) {
+  const el = document.getElementById('lbContent');
+  if (!el) return;
+
+  let sorted;
+  if (mode === 'earners') {
+    sorted = [...entries].filter(e => e.s.total >= 5).sort((a, b) => b.s.pnl - a.s.pnl).slice(0, 20);
+  } else {
+    sorted = [...entries].filter(e => e.qualityScore != null).sort((a, b) => b.qualityScore - a.qualityScore).slice(0, 20);
+  }
+
+  if (sorted.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🏆</div><div class="empty-state-title">NOT ENOUGH DATA</div><div class="empty-state-sub">Traders need min 10 trades + starting balance set</div></div>';
+    return;
+  }
+
+  const firstName = name => name ? name.split(' ')[0] : 'Trader';
+  const rankIcon = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+
+  el.innerHTML = sorted.map((e, i) => {
+    const scoreDisplay = mode === 'earners'
+      ? `<div class="lb-score" style="color:${e.s.pnl >= 0 ? 'var(--win)' : 'var(--loss)'};">${fmtMoney(e.s.pnl)}</div>`
+      : `<div class="lb-score">${e.qualityScore > 0 ? '+' : ''}${e.qualityScore}</div>`;
+    const metaLine = mode === 'earners'
+      ? `${e.s.total} trades &middot; ${Math.round(e.winRate)}% WR`
+      : `${e.growthPct != null ? (e.growthPct >= 0 ? '+' : '') + e.growthPct.toFixed(1) + '% growth' : ''} &middot; ${Math.round(e.winRate)}% WR`;
+    return `<div class="lb-row">
+      <div class="lb-rank">${rankIcon(i)}</div>
+      <div class="lb-info">
+        <div class="lb-name">${firstName(e.p.name)}</div>
+        <div class="lb-meta">${metaLine}</div>
+        <div class="lb-badges">${e.badges.map(b => `<span class="lb-badge" title="${_badgeTitle(b)}">${b}</span>`).join('')}</div>
+      </div>
+      ${scoreDisplay}
+    </div>`;
+  }).join('');
+}
+
+function _renderAdminLbTable(entries, mode) {
+  const el = document.getElementById('adm-topTraders');
+  if (!el) return;
+
+  // Update button states
+  const qBtn = document.getElementById('adm-lb-btn-quality');
+  const eBtn = document.getElementById('adm-lb-btn-earners');
+  if (qBtn) { qBtn.style.color = mode === 'quality' ? 'var(--gold)' : ''; qBtn.style.borderColor = mode === 'quality' ? 'rgba(212,175,55,0.4)' : ''; }
+  if (eBtn) { eBtn.style.color = mode === 'earners' ? 'var(--gold)' : ''; eBtn.style.borderColor = mode === 'earners' ? 'rgba(212,175,55,0.4)' : ''; }
+
+  let sorted;
+  if (mode === 'earners') {
+    sorted = [...entries].filter(e => e.s.total >= 5).sort((a, b) => b.s.pnl - a.s.pnl).slice(0, 15);
+  } else {
+    sorted = [...entries].filter(e => e.qualityScore != null).sort((a, b) => b.qualityScore - a.qualityScore).slice(0, 15);
+  }
+
+  if (sorted.length === 0) {
+    el.innerHTML = '<div style="color:var(--muted-2);font-size:13px;">No qualifying traders yet.</div>';
+    return;
+  }
+
+  const rankIcon = i => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+
+  const rows = sorted.map((e, i) => {
+    const growthCell = e.growthPct != null
+      ? `<span style="color:${e.growthPct >= 0 ? 'var(--win)' : 'var(--loss)'}">${e.growthPct >= 0 ? '+' : ''}${e.growthPct.toFixed(1)}%</span>`
+      : '<span style="color:var(--muted-2)">—</span>';
+    const scoreCell = mode === 'earners'
+      ? `<span style="color:${e.s.pnl >= 0 ? 'var(--win)' : 'var(--loss)'};">${fmtMoney(e.s.pnl)}</span>`
+      : `<span style="color:var(--gold);">${e.qualityScore != null ? e.qualityScore : '—'}</span>`;
+    return `<tr>
+      <td class="num" style="color:var(--gold);font-size:13px;">${rankIcon(i)}</td>
+      <td>${e.p.name ? escHtml(e.p.name) : '<span style="color:var(--muted-2)">—</span>'}</td>
+      <td class="num" style="font-size:12px;">${e.p.email ? escHtml(e.p.email) : '—'}</td>
+      <td class="num">${e.s.total}</td>
+      <td class="num">${Math.round(e.winRate)}%</td>
+      <td class="num">${growthCell}</td>
+      <td class="num">${scoreCell}</td>
+      <td style="font-size:14px;">${e.badges.join(' ')}</td>
+    </tr>`;
+  }).join('');
+
+  const scoreHeader = mode === 'earners' ? 'Total PnL' : 'Q-Score';
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Trades</th><th>Win Rate</th><th>Growth</th><th>${scoreHeader}</th><th>Badges</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function setAdminLbMode(mode) {
+  state._admLbMode = mode;
+  if (state._admLbData) _renderAdminLbTable(state._admLbData, mode);
+}
+
+/* ====================================================
+   BALANCE RESET
+   ==================================================== */
+async function loadResets() {
+  if (!state.user) return;
+  const { data } = await _sb.from('balance_resets')
+    .select('*').eq('user_id', state.user.id)
+    .order('created_at', { ascending: false }).limit(10);
+  state.resets = data || [];
+}
+
+function openResetModal() {
+  const modal = document.getElementById('resetModal');
+  if (!modal) return;
+  document.getElementById('resetNewBalance').value = '';
+  document.getElementById('resetNote').value = '';
+  modal.classList.add('show');
+}
+
+function closeResetModal() {
+  document.getElementById('resetModal')?.classList.remove('show');
+}
+
+async function confirmBalanceReset() {
+  const val = document.getElementById('resetNewBalance')?.value;
+  const note = document.getElementById('resetNote')?.value?.trim() || null;
+  if (!val || isNaN(Number(val)) || Number(val) <= 0) { toast('Enter a valid balance amount.', 'error'); return; }
+  const newBalance = Number(val);
+  showSpinner('RESETTING BALANCE…');
+  const oldBalance = state.profile?.starting_balance || null;
+  const [profileRes, resetRes] = await Promise.all([
+    _sb.from('profiles').upsert({ id: state.user.id, email: state.user.email, starting_balance: newBalance }),
+    _sb.from('balance_resets').insert({ user_id: state.user.id, old_balance: oldBalance, new_balance: newBalance, note })
+  ]);
+  hideSpinner();
+  if (profileRes.error) { toast('Error saving balance.', 'error'); return; }
+  state.profile = { ...state.profile, starting_balance: newBalance };
+  if (!resetRes.error) {
+    state.resets = [{ created_at: new Date().toISOString(), old_balance: oldBalance, new_balance: newBalance, note }, ...state.resets].slice(0, 10);
+  }
+  closeResetModal();
+  toast('Balance reset to ' + fmtMoney(newBalance) + ' ✅');
+  renderDashboard();
+}
+
+function toggleResetHistory() {
+  const section = document.getElementById('resetHistSection');
+  if (!section) return;
+  const isHidden = section.style.display === 'none';
+  section.style.display = isHidden ? '' : 'none';
+  const btn = section.previousElementSibling;
+  if (btn) btn.textContent = (isHidden ? '▾' : '▸') + ' Reset History (' + state.resets.length + ')';
+}
+
+/* ====================================================
    ONBOARDING
    ==================================================== */
 function maybeShowOnboarding() {
@@ -6322,15 +6712,17 @@ function switchAdminTab(tab) {
 async function renderAdmin() {
   if (!isAdmin()) return;
   showSpinner('LOADING ADMIN DATA…');
-  const [{ data: profiles }, { data: allTrades }] = await Promise.all([
+  const [{ data: profiles }, { data: allTrades }, { data: allResets }] = await Promise.all([
     _sb.from('profiles').select('*').order('created_at', { ascending: false }),
-    _sb.from('trades').select('*').order('created_at', { ascending: false })
+    _sb.from('trades').select('*').order('created_at', { ascending: false }),
+    _sb.from('balance_resets').select('user_id').order('created_at', { ascending: false })
   ]);
   hideSpinner();
   const p = profiles || [];
   const t = allTrades || [];
+  const r = allResets || [];
   _renderAdminOverview(p, t);
-  _renderAdminUsers(p, t);
+  _renderAdminUsers(p, t, r);
   _renderAdminReferrals(p, t);
   _renderAdminActivity(p, t);
   _renderAdminSystemStats(t, p);
@@ -6371,7 +6763,7 @@ function _renderAdminOverview(profiles, trades) {
   document.getElementById('adm-avgTrades').textContent = avgTrades;
 }
 
-function _renderAdminUsers(profiles, trades) {
+function _renderAdminUsers(profiles, trades, resets) {
   const el = document.getElementById('adm-usersTable');
   if (profiles.length === 0) {
     el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">◆</div><div class="empty-state-title">NO USERS YET</div></div>';
@@ -6387,6 +6779,8 @@ function _renderAdminUsers(profiles, trades) {
     const ts = new Date(t.created_at).getTime();
     if (!lastTradeDates[t.user_id] || ts > lastTradeDates[t.user_id]) lastTradeDates[t.user_id] = ts;
   });
+  const resetCounts = {};
+  (resets || []).forEach(r => { if (r.user_id) resetCounts[r.user_id] = (resetCounts[r.user_id] || 0) + 1; });
   const rows = profiles.map(p => {
     const count = tradeCounts[p.id] || 0;
     const lastTs = lastTradeDates[p.id];
@@ -6400,6 +6794,8 @@ function _renderAdminUsers(profiles, trades) {
     const growthCell = growthPct != null
       ? `<span style="color:${growthPct >= 0 ? 'var(--win)' : 'var(--loss)'}">${growthPct >= 0 ? '+' : ''}${growthPct.toFixed(1)}%</span>`
       : '<span style="color:var(--muted-2)">—</span>';
+    const rCount = resetCounts[p.id] || 0;
+    const resetsCell = rCount > 0 ? `<span style="color:var(--muted);">${rCount}</span>` : '<span style="color:var(--muted-2)">—</span>';
     return `<tr>
       <td>${p.name ? escHtml(p.name) : '<span style="color:var(--muted-2)">—</span>'}</td>
       <td class="num" style="font-size:12px;">${p.email ? escHtml(p.email) : '—'}</td>
@@ -6409,11 +6805,12 @@ function _renderAdminUsers(profiles, trades) {
       <td class="num text-muted" style="font-size:12px;">${lastDate}</td>
       <td class="num" style="font-size:12px;">${startBalCell}</td>
       <td class="num" style="font-size:12px;">${growthCell}</td>
+      <td class="num" style="text-align:center;">${resetsCell}</td>
       <td><button class="admin-delete-btn" onclick="adminDeleteUser('${p.id}','${escHtml(p.name || p.email || p.id)}')">DELETE</button></td>
     </tr>`;
   }).join('');
   el.innerHTML = `<div class="table-wrap"><table>
-    <thead><tr><th>Name</th><th>Email</th><th>Source</th><th>Joined</th><th style="text-align:center;">Trades</th><th>Last Trade</th><th>Start Bal</th><th>Growth</th><th></th></tr></thead>
+    <thead><tr><th>Name</th><th>Email</th><th>Source</th><th>Joined</th><th style="text-align:center;">Trades</th><th>Last Trade</th><th>Start Bal</th><th>Growth</th><th style="text-align:center;">Resets</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
 }
@@ -6462,57 +6859,10 @@ function _renderAdminReferrals(profiles, trades) {
     }
   }
 
-  // ── Top Traders by PnL ──
-  const ttEl = document.getElementById('adm-topTraders');
-  if (!ttEl) return;
-
-  if (!trades || trades.length === 0) {
-    ttEl.innerHTML = '<div style="color:var(--muted-2);font-size:13px;">No trades recorded yet.</div>';
-    return;
-  }
-
-  const profileMap = {};
-  profiles.forEach(p => { profileMap[p.id] = p; });
-
-  const userStats = {};
-  trades.forEach(t => {
-    if (!t.user_id) return;
-    if (!userStats[t.user_id]) userStats[t.user_id] = { pnl: 0, wins: 0, losses: 0, total: 0 };
-    userStats[t.user_id].pnl += (Number(t.pnl) || 0);
-    userStats[t.user_id].total++;
-    if (t.result === 'WIN') userStats[t.user_id].wins++;
-    else if (t.result === 'LOSS') userStats[t.user_id].losses++;
-  });
-
-  const topTraders = Object.entries(userStats)
-    .sort((a, b) => b[1].pnl - a[1].pnl)
-    .slice(0, 10);
-
-  if (topTraders.length === 0) {
-    ttEl.innerHTML = '<div style="color:var(--muted-2);font-size:13px;">No trade data yet.</div>';
-    return;
-  }
-
-  const ttRows = topTraders.map(([uid, s], i) => {
-    const p = profileMap[uid] || {};
-    const closed = s.wins + s.losses;
-    const wr = closed > 0 ? Math.round(s.wins / closed * 100) + '%' : '—';
-    const pnlColor = s.pnl >= 0 ? 'var(--win)' : 'var(--loss)';
-    const rankNum = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
-    return `<tr>
-      <td class="num" style="color:var(--gold);font-size:13px;">${rankNum}</td>
-      <td>${p.name ? escHtml(p.name) : '<span style="color:var(--muted-2)">—</span>'}</td>
-      <td class="num" style="font-size:12px;">${p.email ? escHtml(p.email) : '—'}</td>
-      <td class="num" style="color:${pnlColor};font-weight:700;">${fmtMoney(s.pnl)}</td>
-      <td class="num" style="text-align:center;">${s.total}</td>
-      <td class="num" style="color:${wr !== '—' && parseInt(wr) >= 50 ? 'var(--win)' : 'var(--muted)'};">${wr}</td>
-    </tr>`;
-  }).join('');
-
-  ttEl.innerHTML = `<div class="table-wrap"><table>
-    <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Total PnL</th><th style="text-align:center;">Trades</th><th>Win Rate</th></tr></thead>
-    <tbody>${ttRows}</tbody>
-  </table></div>`;
+  // ── Top Traders (quality score / earners) ──
+  const lbData = computeLeaderboardData(profiles, trades);
+  state._admLbData = lbData;
+  _renderAdminLbTable(lbData, state._admLbMode || 'quality');
 }
 
 function _renderAdminActivity(profiles, trades) {
@@ -6636,6 +6986,32 @@ if (document.readyState === 'loading') {
       <button class="btn btn-ghost share-app-btn" onclick="shareToTelegram()">
         <span style="font-size:16px;line-height:1;">✈</span> TELEGRAM
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============== BALANCE RESET MODAL ============== -->
+<div id="resetModal" class="modal-overlay" style="z-index:650;">
+  <div class="modal-box" style="max-width:420px;">
+    <button class="modal-close" onclick="closeResetModal()">✕</button>
+    <div class="modal-title">RESET BALANCE</div>
+    <div class="modal-sub">Start a new growth cycle from a fresh balance.</div>
+    <div class="reset-modal-warning">
+      This sets a new starting balance. Your trade history is <strong style="color:var(--text);">kept</strong> but growth % restarts from zero. The reset is logged for your records.
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>New Starting Balance ($)</label>
+      <input type="number" id="resetNewBalance" placeholder="e.g. 5000" min="0" step="0.01"
+        style="background:var(--black-2);border:1px solid var(--gold-dim);color:var(--text);border-radius:8px;padding:12px;font-size:15px;width:100%;">
+    </div>
+    <div class="field" style="margin-bottom:16px;">
+      <label>Note (optional)</label>
+      <input type="text" id="resetNote" placeholder="e.g. Funded account, broker switch…"
+        style="background:var(--black-2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:12px;font-size:14px;width:100%;">
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="closeResetModal()">CANCEL</button>
+      <button class="btn btn-primary" style="flex:2;background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.4);color:#ef4444;" onclick="confirmBalanceReset()">CONFIRM RESET</button>
     </div>
   </div>
 </div>
