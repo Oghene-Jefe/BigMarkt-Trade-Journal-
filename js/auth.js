@@ -100,13 +100,6 @@ async function checkSession() {
 }
 
 async function handleLoginSubmit() {
-  // Honeypot check — bots fill hidden fields, humans don't
-  const hp = document.getElementById('website');
-  if (hp && hp.value) {
-    console.log('Bot detected, signup blocked');
-    return;
-  }
-
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pwd   = document.getElementById('loginPassword').value;
   const name  = document.getElementById('loginName').value.trim();
@@ -115,6 +108,9 @@ async function handleLoginSubmit() {
   if (pwd.length < 6) { toast('Password must be at least 6 characters.', 'error'); return; }
 
   if (authMode === 'signup') {
+    // Honeypot check — only relevant on signup; bots fill hidden fields, humans don't
+    const hp = document.getElementById('website');
+    if (hp && hp.value) { console.log('Bot detected, signup blocked'); return; }
     if (!name) { toast('Enter your name.', 'error'); return; }
     showSpinner('CREATING ACCOUNT…');
     const { data, error } = await _sb.auth.signUp({ email, password: pwd, options: { data: { name } } });
