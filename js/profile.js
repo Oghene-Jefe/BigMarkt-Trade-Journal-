@@ -18,12 +18,7 @@ async function renderProfile() {
   document.getElementById('profileName').textContent = name;
   document.getElementById('profileEmail').textContent = email;
   document.getElementById('profileBadge').textContent = profile?.source === 'demo' ? 'Demo Trader' : 'FTS Member';
-  const savedAvatar = localStorage.getItem('bm_avatar_' + state.user.id);
-  if (savedAvatar) {
-    document.getElementById('avatarImg').src = savedAvatar;
-    document.getElementById('avatarImg').style.display = 'block';
-    document.getElementById('avatarInitial').style.display = 'none';
-  }
+  setNavAvatar(profile?.avatar_url || null);
   document.getElementById('editProfileName').value = name;
   if (profile?.timezone) document.getElementById('editProfileTimezone').value = profile.timezone;
   if (profile?.experience) document.getElementById('editProfileExperience').value = profile.experience;
@@ -108,20 +103,117 @@ async function changePassword() {
   toast('Password updated ✅');
 }
 
-function uploadAvatar(input) {
+/* ====================================================
+   IMAGE COMPRESSION
+   Downscales to max 200×200 and re-encodes as JPEG 0.82.
+   Files already under 50 KB are returned unchanged.
+   ==================================================== */
+function _compressAvatar(file) {
+  return new Promise((resolve) => {
+    if (file.size < 50 * 1024) { resolve(file); return; }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 200;
+      let w = img.width, h = img.height;
+      if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+      else       { w = Math.round(w * MAX / h); h = MAX; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', 0.82);
+    };
+    // On any error fall back to original file
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+/* ====================================================
+   setNavAvatar(url)
+   Single call to update every avatar element in the UI:
+   profile page circle + nav profile button thumbnail.
+   Pass null/undefined to revert to the initial letter.
+   ==================================================== */
+function setNavAvatar(url) {
+  const img    = document.getElementById('avatarImg');
+  const init   = document.getElementById('avatarInitial');
+  const navImg = document.getElementById('navAvatarImg');
+  const navSvg = document.getElementById('navAvatarSvg');
+
+  if (url) {
+    // Attach onerror before setting src — broken URLs fall back silently
+    const fallback = () => {
+      if (img)    { img.onerror = null; img.style.display = 'none'; }
+      if (init)   init.style.display = '';
+      if (navImg) { navImg.onerror = null; navImg.style.display = 'none'; }
+      if (navSvg) navSvg.style.display = '';
+    };
+    if (img)    { img.onerror = fallback;    img.src = url;    img.style.display = 'block'; }
+    if (init)   init.style.display = 'none';
+    if (navImg) { navImg.onerror = fallback; navImg.src = url; navImg.style.display = 'block'; }
+    if (navSvg) navSvg.style.display = 'none';
+  } else {
+    if (img)    img.style.display = 'none';
+    if (init)   init.style.display = '';
+    if (navImg) navImg.style.display = 'none';
+    if (navSvg) navSvg.style.display = '';
+  }
+}
+
+/* ====================================================
+   AVATAR UPLOAD — Supabase Storage
+   Compresses → uploads to avatars/{user_id}/avatar.jpg
+   → saves public URL to profiles.avatar_url
+   ==================================================== */
+async function uploadAvatar(input) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { toast('Image must be under 2MB.', 'error'); return; }
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const dataUrl = e.target.result;
-    localStorage.setItem('bm_avatar_' + state.user.id, dataUrl);
-    document.getElementById('avatarImg').src = dataUrl;
-    document.getElementById('avatarImg').style.display = 'block';
-    document.getElementById('avatarInitial').style.display = 'none';
-    toast('Profile photo updated ✅');
-  };
-  reader.readAsDataURL(file);
+  if (file.size > 5 * 1024 * 1024) { toast('Image must be under 5MB.', 'error'); return; }
+
+  // Dim the avatar circle as an upload-in-progress indicator
+  const imgEl  = document.getElementById('avatarImg');
+  const initEl = document.getElementById('avatarInitial');
+  if (imgEl)  imgEl.style.opacity  = '0.45';
+  if (initEl) initEl.style.opacity = '0.45';
+
+  const blob = await _compressAvatar(file);
+
+  // Path is deterministic: re-uploads upsert cleanly over the previous file
+  const storagePath = state.user.id + '/avatar.jpg';
+  const { error: uploadErr } = await _sb.storage
+    .from('avatars')
+    .upload(storagePath, blob, { contentType: 'image/jpeg', upsert: true });
+
+  if (uploadErr) {
+    if (imgEl)  imgEl.style.opacity  = '1';
+    if (initEl) initEl.style.opacity = '1';
+    toast('Avatar upload failed — please try again.', 'error');
+    return;
+  }
+
+  // Get public URL — add cache-bust so browser shows new image immediately
+  const { data: urlData } = _sb.storage.from('avatars').getPublicUrl(storagePath);
+  const displayUrl = urlData.publicUrl + '?t=' + Date.now();
+
+  // Persist clean URL (no cache param) to profiles table
+  const { error: dbErr } = await _sb.from('profiles')
+    .update({ avatar_url: urlData.publicUrl })
+    .eq('id', state.user.id);
+
+  if (imgEl)  imgEl.style.opacity  = '1';
+  if (initEl) initEl.style.opacity = '1';
+
+  if (dbErr) {
+    console.error('Failed to save avatar_url to profiles:', dbErr.message);
+    toast('Avatar upload failed — please try again.', 'error');
+    return;
+  }
+
+  state.profile = { ...state.profile, avatar_url: urlData.publicUrl };
+  setNavAvatar(displayUrl); // cache-busted URL for immediate display
+  toast('Avatar updated ✅');
 }
 
 async function deleteAllTrades() {

@@ -38,6 +38,7 @@ async function login(email, password) {
   const justVerified = confirmedAt > 0 && (Date.now() - confirmedAt) < 60000;
   await _sb.from('profiles').upsert({ id: user.id, email });
   await Promise.all([loadTrades(), loadProfile(), loadResets()]);
+  setNavAvatar(state.profile?.avatar_url || null);
   enterApp();
   toast(justVerified ? 'Email verified! Welcome to BigMarkt.' : 'Welcome back, trader.');
   maybeShowOnboarding();
@@ -92,6 +93,7 @@ async function checkSession() {
     state.user = session.user;
     await Promise.all([loadTrades(), loadProfile(), loadResets()]);
     hideSpinner();
+    setNavAvatar(state.profile?.avatar_url || null);
     enterApp();
     maybeShowOnboarding();
   } else {
@@ -129,6 +131,7 @@ async function handleLoginSubmit() {
       if (data.session) {
         state.user = data.user;
         await Promise.all([loadTrades(), loadProfile(), loadResets()]);
+        setNavAvatar(state.profile?.avatar_url || null);
         enterApp();
         toast('Welcome, ' + name + '. Log your first trade!');
         maybeShowOnboarding();

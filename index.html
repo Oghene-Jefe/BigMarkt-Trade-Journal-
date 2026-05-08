@@ -1367,7 +1367,10 @@
     RANK
   </button>
   <button class="nav-item" data-page="profile" onclick="navigate('profile')">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20 C4 16 8 13 12 13 C16 13 20 16 20 20"/></svg>
+    <span class="nav-avatar-wrap">
+      <svg id="navAvatarSvg" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20 C4 16 8 13 12 13 C16 13 20 16 20 20"/></svg>
+      <img id="navAvatarImg" class="nav-avatar-img" src="" alt="" style="display:none;">
+    </span>
     PROFILE
   </button>
   <button class="nav-item" data-page="admin" id="adminNavBtn" onclick="navigate('admin')" style="display:none;">

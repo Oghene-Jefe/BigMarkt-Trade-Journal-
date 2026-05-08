@@ -960,6 +960,24 @@
   }
   /* Smaller icon size so all 7 items fit at 375px */
   .nav-item svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  /* Profile nav avatar — wraps the svg icon and the mini avatar img */
+  .nav-avatar-wrap {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    display: block;
+  }
+  .nav-avatar-img {
+    position: absolute;
+    inset: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid var(--gold);
+  }
+
   .nav-item.active { color: var(--gold); }
   .nav-item.active::before {
     content: '';
