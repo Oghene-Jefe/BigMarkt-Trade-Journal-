@@ -112,7 +112,7 @@ async function handleLoginSubmit() {
   if (authMode === 'signup') {
     // Honeypot check — only relevant on signup; bots fill hidden fields, humans don't
     const hp = document.getElementById('website');
-    if (hp && hp.value) { console.log('Bot detected, signup blocked'); return; }
+    if (hp && hp.value) { return; }
     if (!name) { toast('Enter your name.', 'error'); return; }
     showSpinner('CREATING ACCOUNT…');
     const { data, error } = await _sb.auth.signUp({ email, password: pwd, options: { data: { name } } });

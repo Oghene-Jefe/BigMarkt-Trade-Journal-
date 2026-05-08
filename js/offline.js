@@ -33,7 +33,6 @@ function initOfflineDB() {
 
     req.onsuccess = (e) => {
       _offlineDB = e.target.result;
-      console.log('Offline queue ready (IndexedDB)');
       // Restore badge if trades were queued in a previous session
       _updateOfflineBadge();
       resolve();

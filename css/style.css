@@ -1023,6 +1023,7 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.error { border-color: var(--loss); }
+  .toast.info  { background: rgba(59,130,246,0.15); border-color: #3b82f6; color: #60a5fa; }
 
   /* ====================================================
      TAGS + SETUP GRADE
@@ -2133,6 +2134,7 @@
     display: flex;
     gap: 12px;
     margin-bottom: 16px;
+    flex-wrap: wrap;
   }
   .report-share-btn {
     flex: 1;

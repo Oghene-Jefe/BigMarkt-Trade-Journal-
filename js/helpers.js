@@ -3,6 +3,7 @@ function toast(msg, type = 'success') {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.toggle('error', type === 'error');
+  el.classList.toggle('info',  type === 'info');
   el.classList.add('show');
   clearTimeout(toast._t);
   toast._t = setTimeout(() => el.classList.remove('show'), 2400);

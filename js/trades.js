@@ -16,7 +16,6 @@ const CACHE_TTL    = 60000; // 60 seconds
 function clearCache() {
   _tradesCache.data = null; _tradesCache.ts = null; _tradesCache.hasMore = false;
   _allCache.data    = null; _allCache.ts    = null;
-  console.log('Trade cache cleared');
 }
 
 // Normalize raw Supabase rows into consistent app trade objects
@@ -35,7 +34,6 @@ async function loadTrades() {
 
   // If full-dataset cache is warm, slice from it (avoids a redundant page fetch)
   if (_allCache.data && (Date.now() - _allCache.ts) < CACHE_TTL) {
-    console.log('Cache hit — skipping Supabase fetch');
     state.trades    = _allCache.data.slice(0, 50);
     state.tradePage = 0;
     state.hasMore   = _allCache.data.length > 50;
@@ -44,14 +42,12 @@ async function loadTrades() {
 
   // First-page cache check
   if (_tradesCache.data && (Date.now() - _tradesCache.ts) < CACHE_TTL) {
-    console.log('Cache hit — skipping Supabase fetch');
     state.trades    = _tradesCache.data;
     state.tradePage = 0;
     state.hasMore   = _tradesCache.hasMore;
     return;
   }
 
-  console.log('Cache miss — fetching from Supabase');
   showSpinner('LOADING TRADES…');
   const { data, error } = await _sb.from('trades')
     .select('*')
@@ -108,7 +104,6 @@ async function loadAllTrades() {
   if (!state.user) return;
 
   if (_allCache.data && (Date.now() - _allCache.ts) < CACHE_TTL) {
-    console.log('Cache hit (all trades) — skipping Supabase fetch');
     state.trades    = _allCache.data;
     state.tradePage = 0;
     state.hasMore   = false;
@@ -530,11 +525,6 @@ async function _compressScreenshot(file) {
           [blob],
           file.name.replace(/\.[^.]+$/, '.jpg'),
           { type: 'image/jpeg' }
-        );
-        console.log(
-          'Screenshot compressed:',
-          (file.size / 1024).toFixed(0) + 'KB →',
-          (compressed.size / 1024).toFixed(0) + 'KB'
         );
         resolve(compressed);
       }, 'image/jpeg', 0.82);
