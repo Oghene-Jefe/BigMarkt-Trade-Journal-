@@ -15,9 +15,9 @@ function openShareModal(tradeId) {
   img.style.opacity = '0.3';
   document.getElementById('shareModal').classList.add('show');
 
-  document.fonts.ready.then(() => {
-    _shareCardDataUrl = _buildTradeCard(trade);
-    img.src = _shareCardDataUrl;
+  _buildTradeCard(trade).then(dataUrl => {
+    _shareCardDataUrl = dataUrl;
+    img.src = dataUrl;
     img.style.opacity = '1';
   });
 
@@ -67,8 +67,23 @@ function _pill(ctx, x, y, w, h, bg, border, text, textColor) {
   ctx.fillText(text, x + w / 2, y + h / 2);
 }
 
+/* Converts the Big M▲rkt wordmark SVG to an HTMLImageElement so canvas
+   gets pixel-perfect Inter 800 rendering with the gold triangle. */
+function _loadLogoImage(fontSize) {
+  return new Promise((resolve) => {
+    const f = fontSize || 48;
+    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="${f + 20}"><text y="${f}" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="${f}px"><tspan fill="#F5F5F5">Big M</tspan><tspan fill="#D4AF37">▲</tspan><tspan fill="#F5F5F5">rkt</tspan></text></svg>`;
+    const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+    const url  = URL.createObjectURL(blob);
+    const img  = new Image();
+    img.onload  = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
 /* ── Main card builder ── */
-function _buildTradeCard(trade) {
+async function _buildTradeCard(trade) {
   const W = 600, H = 348;
   const canvas = document.createElement('canvas');
   const DPR = 2;
@@ -119,27 +134,16 @@ function _buildTradeCard(trade) {
   _crr(ctx, 9, 9, W - 18, H - 18, 7);
   ctx.stroke();
 
-  // ── BigM▲rkt wordmark ──
-  const logoY = 62;
-  ctx.font = '800 21px "Inter", system-ui, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
-
-  ctx.fillStyle = TEXT;
-  ctx.fillText('BigM', P, logoY);
-  const bigMW = ctx.measureText('BigM').width;
-
-  ctx.fillStyle = GOLD;
-  ctx.fillText('▲', P + bigMW, logoY);
-  const triW = ctx.measureText('▲').width;
-
-  ctx.fillStyle = TEXT;
-  ctx.fillText('rkt', P + bigMW + triW, logoY);
+  // ── BigM▲rkt wordmark (SVG→Image for pixel-perfect gold triangle) ──
+  const logoImg = await _loadLogoImage(21);
+  if (logoImg) ctx.drawImage(logoImg, 40, 36);
 
   // Subtitle
   ctx.fillStyle = GOLD_DIM;
   ctx.font = '600 9px "Inter", system-ui, sans-serif';
-  ctx.fillText('FTS TRADE JOURNAL', P, logoY + 13);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText('FTS TRADE JOURNAL', P, 75);
 
   // Date (top-right)
   ctx.fillStyle = MUTED;
@@ -336,4 +340,269 @@ function _buildShareText(trade) {
     'PnL: ' + pnlStr + rr + session,
     'Track your trades → https://journal.bigmarkt.co'
   ].join('\n');
+}
+
+/* ====================================================
+   REPORT SHARE CARD  (weekly / monthly)
+   ==================================================== */
+let _reportCardDataUrl = null;
+let _reportCardMode    = null;
+
+/* Filter trades to the current ISO week (Mon–Sun) or calendar month */
+function _getReportTrades(mode) {
+  const now = new Date();
+  if (mode === 'weekly') {
+    const day  = now.getDay();
+    const diff = (day === 0) ? -6 : 1 - day;
+    const mon  = new Date(now);
+    mon.setDate(now.getDate() + diff);
+    mon.setHours(0, 0, 0, 0);
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate() + 6);
+    sun.setHours(23, 59, 59, 999);
+    return state.trades.filter(t => { const d = new Date(t.created_at); return d >= mon && d <= sun; });
+  }
+  const y = now.getFullYear(), m = now.getMonth();
+  return state.trades.filter(t => { const d = new Date(t.created_at); return d.getFullYear() === y && d.getMonth() === m; });
+}
+
+function _getReportPeriodLabel(mode) {
+  const now = new Date();
+  const MO  = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  if (mode === 'weekly') {
+    const day  = now.getDay();
+    const diff = (day === 0) ? -6 : 1 - day;
+    const mon  = new Date(now);
+    mon.setDate(now.getDate() + diff);
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate() + 6);
+    return 'WEEK OF ' + MO[mon.getMonth()] + ' ' + mon.getDate() + ' — ' + MO[sun.getMonth()] + ' ' + sun.getDate() + ', ' + sun.getFullYear();
+  }
+  return MO[now.getMonth()] + ' ' + now.getFullYear() + ' PERFORMANCE';
+}
+
+async function generateReportCard(mode) {
+  const W = 1080, H = 1080;
+
+  // Load both logo images before drawing (SVG→Image for gold triangle)
+  const logoImg      = await _loadLogoImage(52);
+  const watermarkImg = await _loadLogoImage(28);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const GOLD   = '#D4AF37';
+  const WIN_C  = '#22c55e';
+  const LOSS_C = '#ef4444';
+  const TEXT   = '#F5F5F5';
+  const MUTED  = '#888888';
+
+  // Background
+  ctx.fillStyle = '#0A0A0A';
+  ctx.fillRect(0, 0, W, H);
+
+  // Gold radial glow — top-left corner
+  const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, 500);
+  grd.addColorStop(0, 'rgba(212,175,55,0.10)');
+  grd.addColorStop(1, 'rgba(212,175,55,0)');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, W, H);
+
+  // Logo: Big M▲rkt at (80, 76)
+  if (logoImg) ctx.drawImage(logoImg, 80, 76);
+
+  // "FTS TRADE JOURNAL" subtitle with manual letter-spacing
+  ctx.fillStyle = GOLD;
+  ctx.font = '600 20px "Inter", Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  const subChars = 'FTS TRADE JOURNAL';
+  let sx = 80;
+  for (let ci = 0; ci < subChars.length; ci++) {
+    ctx.fillText(subChars[ci], sx, 148);
+    sx += ctx.measureText(subChars[ci]).width + (subChars[ci] === ' ' ? 6 : 3);
+  }
+
+  // Gold header divider y=175
+  ctx.globalAlpha = 0.4;
+  ctx.strokeStyle = GOLD;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(80, 175); ctx.lineTo(1000, 175); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Period label centered y=230
+  ctx.fillStyle = MUTED;
+  ctx.font = '400 22px "Inter", Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(_getReportPeriodLabel(mode), W / 2, 230);
+
+  // Compute stats
+  const trades   = _getReportTrades(mode);
+  const wins     = trades.filter(t => t.result === 'WIN').length;
+  const losses   = trades.filter(t => t.result === 'LOSS').length;
+  const total    = wins + losses;
+  const winRate  = total ? Math.round(wins / total * 100) : 0;
+  const totalPnL = trades.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
+  const rrList   = trades.map(t => Number(t.rr_ratio)).filter(r => r > 0);
+  const avgRR    = rrList.length ? rrList.reduce((a, b) => a + b, 0) / rrList.length : null;
+
+  const pairWins = {};
+  trades.filter(t => t.result === 'WIN' && t.pair).forEach(t => { pairWins[t.pair] = (pairWins[t.pair] || 0) + 1; });
+  const bestPair = Object.keys(pairWins).sort((a, b) => pairWins[b] - pairWins[a])[0] || null;
+
+  const sessWins = {};
+  trades.filter(t => t.result === 'WIN' && t.session).forEach(t => { sessWins[t.session] = (sessWins[t.session] || 0) + 1; });
+  const bestSess = Object.keys(sessWins).sort((a, b) => sessWins[b] - sessWins[a])[0] || null;
+
+  if (trades.length === 0) {
+    // No trades this period
+    ctx.fillStyle = '#555555';
+    ctx.font = '400 36px "Inter", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('NO TRADES THIS PERIOD', W / 2, 540);
+  } else {
+    // 2×2 stat grid: col centers x=200 and x=680; row tops y=300 and y=520
+    const pnlAbs = Math.abs(totalPnL).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const pnlStr = (totalPnL >= 0 ? '+$' : '-$') + pnlAbs;
+    const cells  = [
+      { label: 'WIN RATE',  value: winRate + '%',                          color: GOLD },
+      { label: 'TOTAL PnL', value: pnlStr,                                 color: totalPnL > 0 ? WIN_C : totalPnL < 0 ? LOSS_C : GOLD },
+      { label: 'TRADES',    value: String(trades.length),                  color: TEXT },
+      { label: 'AVG RR',    value: avgRR != null ? '1:' + avgRR.toFixed(1) : '—', color: TEXT },
+    ];
+    const colX = [200, 680];
+    const rowY = [300, 520];
+
+    cells.forEach((cell, i) => {
+      const cx = colX[i % 2];
+      const ry = rowY[Math.floor(i / 2)];
+
+      ctx.fillStyle = MUTED;
+      ctx.font = '400 18px "Inter", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(cell.label, cx, ry);
+
+      ctx.fillStyle = cell.color;
+      ctx.font = '800 68px "Inter", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(cell.value, cx, ry + 80);
+    });
+
+    // Pill badges centered at y=680 (center of pill row)
+    const pillLabels = [];
+    if (bestPair) pillLabels.push('BEST PAIR: ' + bestPair);
+    if (bestSess) pillLabels.push('BEST SESSION: ' + bestSess);
+
+    if (pillLabels.length > 0) {
+      ctx.font = '600 18px "Inter", Arial, sans-serif';
+      const pillH = 40, pillPadX = 20, pillGap = 20, pillY = 680;
+      const pillWidths = pillLabels.map(t => ctx.measureText(t).width + pillPadX * 2);
+      const totalPillW = pillWidths.reduce((a, b) => a + b, 0) + pillGap * (pillLabels.length - 1);
+      let px = W / 2 - totalPillW / 2;
+
+      pillLabels.forEach((txt, i) => {
+        const pw = pillWidths[i], pr = pillH / 2;
+        const py = pillY - pillH / 2;
+
+        // Pill stroke (no fill — transparent background)
+        ctx.globalAlpha = 0.6;
+        ctx.strokeStyle = GOLD;
+        ctx.lineWidth = 1.5;
+        _crr(ctx, px, py, pw, pillH, pr);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Pill text
+        ctx.fillStyle = GOLD;
+        ctx.font = '600 18px "Inter", Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(txt, px + pw / 2, pillY);
+        px += pw + pillGap;
+      });
+    }
+  }
+
+  // Gold footer divider y=780
+  ctx.globalAlpha = 0.4;
+  ctx.strokeStyle = GOLD;
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(80, 780); ctx.lineTo(1000, 780); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Trader name — left, y=820
+  const traderName = (state.profile && state.profile.name) ||
+    (state.user && state.user.email && state.user.email.split('@')[0]) || 'Trader';
+  ctx.fillStyle = TEXT;
+  ctx.font = '700 22px "Inter", Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(traderName, 80, 820);
+
+  // Community tag — right, y=820
+  ctx.fillStyle = '#555555';
+  ctx.font = '400 18px "Inter", Arial, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('FTS COMMUNITY · BIGMARKT', 1000, 820);
+
+  // Watermark logo — centered, faint, y=920
+  ctx.globalAlpha = 0.15;
+  if (watermarkImg) ctx.drawImage(watermarkImg, (W - 320) / 2, 920);
+  ctx.globalAlpha = 1;
+
+  // URL — centered, y=990
+  ctx.fillStyle = '#444444';
+  ctx.font = '400 18px "Inter", Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('journal.bigmarkt.co', W / 2, 990);
+
+  return canvas.toDataURL('image/png');
+}
+
+function showReportCardModal(mode) {
+  _reportCardMode    = mode;
+  _reportCardDataUrl = null;
+
+  const modal = document.getElementById('reportCardModal');
+  const img   = document.getElementById('reportCardPreview');
+  img.src = ''; img.style.opacity = '0.3';
+  modal.classList.add('show');
+
+  generateReportCard(mode).then(dataUrl => {
+    _reportCardDataUrl = dataUrl;
+    img.src = dataUrl;
+    img.style.opacity = '1';
+  });
+}
+
+function closeReportCardModal() {
+  document.getElementById('reportCardModal').classList.remove('show');
+  _reportCardDataUrl = null;
+  _reportCardMode    = null;
+}
+
+function downloadReportCard() {
+  if (!_reportCardDataUrl) return;
+  const a = document.createElement('a');
+  a.href = _reportCardDataUrl;
+  a.download = _reportCardMode === 'weekly' ? 'bigmarkt-weekly-report.png' : 'bigmarkt-monthly-report.png';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function shareReportToWhatsApp() {
+  const period    = _getReportPeriodLabel(_reportCardMode);
+  const typeLabel = _reportCardMode === 'weekly' ? 'Weekly' : 'Monthly';
+  const msg = '📊 My ' + typeLabel + ' Trading Report — ' + period + '\n' +
+              'Check out my stats on BigMarkt FTS Trade Journal 🔥\n' +
+              'Track yours free: journal.bigmarkt.co';
+  const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+  window.open((isMobile ? 'whatsapp://send?text=' : 'https://wa.me/?text=') + encodeURIComponent(msg), '_blank');
+  toast('Save the image first, then attach it in WhatsApp.');
 }

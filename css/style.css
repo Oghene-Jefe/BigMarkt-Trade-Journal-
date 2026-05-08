@@ -2125,3 +2125,45 @@
     margin-bottom: 16px;
     line-height: 1.6;
   }
+
+  /* ====================================================
+     REPORT SHARE CARD BUTTONS + MODAL
+     ==================================================== */
+  .report-share-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .report-share-btn {
+    flex: 1;
+    background: var(--black);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    padding: 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .report-share-btn:hover {
+    background: var(--gold);
+    color: var(--black);
+  }
+  .report-card-preview {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    border-radius: 12px;
+    border: 1px solid var(--gold);
+    margin: 0 auto;
+  }
+  .report-card-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .report-card-actions .btn { flex: 1; min-width: 120px; }
