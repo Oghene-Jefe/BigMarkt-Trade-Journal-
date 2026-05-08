@@ -52,10 +52,29 @@ function renderJournal() {
   if (sort === 'pnl_low') list.sort((a,b) => Number(a.pnl) - Number(b.pnl));
 
   const c = document.getElementById('journalContainer');
+
+  // Load-more footer — shown outside the table regardless of filter state
+  const loadMoreHtml = state.hasMore
+    ? `<div id="loadMoreWrap" style="text-align:center; padding:20px 0 8px;">
+         <button id="loadMoreBtn" onclick="loadMoreTrades()"
+           style="font-family:'Bebas Neue',sans-serif; letter-spacing:0.12em; font-size:15px;
+                  padding:12px 32px; border:1.5px solid var(--gold); background:var(--black);
+                  color:var(--gold); border-radius:8px; cursor:pointer; width:100%; max-width:320px;
+                  transition:opacity 0.2s;">
+           LOAD MORE TRADES
+         </button>
+       </div>`
+    : (state.trades.length > 0
+        ? `<div style="text-align:center; padding:16px 0 8px;">
+             <p style="color:var(--muted-2); font-size:12px; font-family:'Inter',sans-serif; letter-spacing:0.06em;">All trades loaded</p>
+           </div>`
+        : '');
+
   if (list.length === 0) {
-    c.innerHTML = `<div class="empty-state"><div class="empty-state-icon">∅</div><div class="empty-state-title">NO TRADES MATCH</div><div class="text-muted small">Try clearing the filters.</div></div>`;
+    c.innerHTML = `<div class="empty-state"><div class="empty-state-icon">∅</div><div class="empty-state-title">NO TRADES MATCH</div><div class="text-muted small">Try clearing the filters.</div></div>${loadMoreHtml}`;
     return;
   }
+
   c.innerHTML = `
     <div class="table-wrap">
       <table>
@@ -88,7 +107,8 @@ function renderJournal() {
             </tr>`).join('')}
         </tbody>
       </table>
-    </div>`;
+    </div>
+    ${loadMoreHtml}`;
 }
 
 ['filterPair', 'filterResult', 'filterSession', 'filterSort'].forEach(id => {

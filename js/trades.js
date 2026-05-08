@@ -3,22 +3,133 @@ let screenshotDataUrl = null;   // preview (still base64 for local preview)
 let screenshotFile = null;      // raw File object to upload on save
 let editingTradeId = null;
 
+/* ====================================================
+   IN-MEMORY TRADE CACHE
+   Two separate caches: paginated (first 50) and full
+   dataset (all trades). Both expire after 60 seconds.
+   Cleared on every write operation to prevent stale data.
+   ==================================================== */
+const _tradesCache = { data: null, ts: null, hasMore: false }; // first page (50)
+const _allCache    = { data: null, ts: null };                 // full dataset
+const CACHE_TTL    = 60000; // 60 seconds
+
+function clearCache() {
+  _tradesCache.data = null; _tradesCache.ts = null; _tradesCache.hasMore = false;
+  _allCache.data    = null; _allCache.ts    = null;
+  console.log('Trade cache cleared');
+}
+
+// Normalize raw Supabase rows into consistent app trade objects
+function _normalizeTrades(data) {
+  return (data || []).map(t => ({
+    ...t,
+    created_at: new Date(t.created_at).getTime(),
+    pnl: Number(t.pnl) || 0,
+    rr_ratio: Number(t.rr_ratio) || 0
+  }));
+}
+
+/* Load first 50 trades — used on initial app load and after writes */
 async function loadTrades() {
   if (!state.user) return;
+
+  // If full-dataset cache is warm, slice from it (avoids a redundant page fetch)
+  if (_allCache.data && (Date.now() - _allCache.ts) < CACHE_TTL) {
+    console.log('Cache hit — skipping Supabase fetch');
+    state.trades    = _allCache.data.slice(0, 50);
+    state.tradePage = 0;
+    state.hasMore   = _allCache.data.length > 50;
+    return;
+  }
+
+  // First-page cache check
+  if (_tradesCache.data && (Date.now() - _tradesCache.ts) < CACHE_TTL) {
+    console.log('Cache hit — skipping Supabase fetch');
+    state.trades    = _tradesCache.data;
+    state.tradePage = 0;
+    state.hasMore   = _tradesCache.hasMore;
+    return;
+  }
+
+  console.log('Cache miss — fetching from Supabase');
   showSpinner('LOADING TRADES…');
+  const { data, error } = await _sb.from('trades')
+    .select('*')
+    .eq('user_id', state.user.id)
+    .order('created_at', { ascending: false })
+    .range(0, 49);
+  hideSpinner();
+  if (error) { console.error(error); return; }
+
+  const normalized = _normalizeTrades(data);
+  state.trades    = normalized;
+  state.tradePage = 0;
+  state.hasMore   = normalized.length === 50;
+
+  _tradesCache.data    = normalized;
+  _tradesCache.ts      = Date.now();
+  _tradesCache.hasMore = state.hasMore;
+}
+
+/* Load next 50 trades — appends to state.trades, increments page */
+async function loadMoreTrades() {
+  if (!state.user || !state.hasMore) return;
+
+  const nextPage = state.tradePage + 1;
+  const from = nextPage * 50;
+  const to   = from + 49;
+
+  const btn = document.getElementById('loadMoreBtn');
+  if (btn) { btn.textContent = 'LOADING...'; btn.disabled = true; }
+
+  const { data, error } = await _sb.from('trades')
+    .select('*')
+    .eq('user_id', state.user.id)
+    .order('created_at', { ascending: false })
+    .range(from, to);
+
+  if (error) {
+    console.error(error);
+    if (btn) { btn.textContent = 'LOAD MORE TRADES'; btn.disabled = false; }
+    return;
+  }
+
+  const normalized = _normalizeTrades(data);
+  state.trades    = [...state.trades, ...normalized];
+  state.tradePage = nextPage;
+  state.hasMore   = normalized.length === 50;
+
+  renderJournal();
+}
+
+/* Fetch complete trade history — bypasses pagination.
+   Called by Dashboard and Analytics to ensure accurate stats. */
+async function loadAllTrades() {
+  if (!state.user) return;
+
+  if (_allCache.data && (Date.now() - _allCache.ts) < CACHE_TTL) {
+    console.log('Cache hit (all trades) — skipping Supabase fetch');
+    state.trades    = _allCache.data;
+    state.tradePage = 0;
+    state.hasMore   = false;
+    return;
+  }
+
+  showSpinner('LOADING…');
   const { data, error } = await _sb.from('trades')
     .select('*')
     .eq('user_id', state.user.id)
     .order('created_at', { ascending: false });
   hideSpinner();
   if (error) { console.error(error); return; }
-  // Normalize created_at to timestamp number for compatibility
-  state.trades = (data || []).map(t => ({
-    ...t,
-    created_at: new Date(t.created_at).getTime(),
-    pnl: Number(t.pnl) || 0,
-    rr_ratio: Number(t.rr_ratio) || 0
-  }));
+
+  const normalized = _normalizeTrades(data);
+  state.trades    = normalized;
+  state.tradePage = 0;
+  state.hasMore   = false;
+
+  _allCache.data = normalized;
+  _allCache.ts   = Date.now();
 }
 
 async function loadProfile() {
@@ -32,6 +143,7 @@ async function saveTrade(trade) {
   const { error } = await _sb.from('trades').insert(trade);
   hideSpinner();
   if (error) { toast('Error saving trade: ' + error.message, 'error'); return false; }
+  clearCache();
   await loadTrades();
   return true;
 }
@@ -42,6 +154,7 @@ async function deleteTrade(id) {
   const { error } = await _sb.from('trades').delete().eq('id', id).eq('user_id', state.user.id);
   hideSpinner();
   if (error) { toast('Error deleting trade.', 'error'); return; }
+  clearCache();
   await loadTrades();
   toast('Trade deleted.');
   renderJournal();
@@ -190,6 +303,7 @@ async function saveEditTrade() {
   }
 
   hideEditModal();
+  clearCache();
   await loadTrades();
   toast('Trade updated ✅');
   renderJournal();

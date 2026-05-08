@@ -2,6 +2,8 @@ let state = {
   user: null,
   profile: null,
   trades: [],
+  tradePage: 0,       // current pagination page (0-based)
+  hasMore: false,     // true when more trades exist beyond what's loaded
   currentPage: 'dashboard',
   formDirection: 'BUY',
   formResult: 'WIN',

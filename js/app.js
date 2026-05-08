@@ -19,7 +19,10 @@ function navigate(page) {
   }
 
   if (page === 'admin') { if (!isAdmin()) { navigate('dashboard'); return; } renderAdmin(); }
-  if (page === 'dashboard') { renderDashboard(); checkSessionBanner(); }
+  if (page === 'dashboard') {
+    // Always load full dataset so stats (PnL, win rate, streak) are accurate
+    loadAllTrades().then(() => { renderDashboard(); checkSessionBanner(); });
+  }
   if (page === 'journal') {
     // Always reset to table view on navigation
     document.getElementById('journalTableView').style.display  = 'block';
@@ -31,7 +34,10 @@ function navigate(page) {
     state.journalView = 'table';
     renderJournal();
   }
-  if (page === 'analytics') renderAnalytics();
+  if (page === 'analytics') {
+    // Load full dataset before drawing charts to ensure all trades are included
+    loadAllTrades().then(() => renderAnalytics());
+  }
   if (page === 'leaderboard') renderLeaderboard();
   if (page === 'add') { resetTradeForm(); setDefaultTradeDate(); }
   if (page === 'profile') renderProfile();
