@@ -67,12 +67,37 @@ function _pill(ctx, x, y, w, h, bg, border, text, textColor) {
   ctx.fillText(text, x + w / 2, y + h / 2);
 }
 
-/* Converts the Big M▲rkt wordmark SVG to an HTMLImageElement so canvas
-   gets pixel-perfect Inter 800 rendering with the gold triangle. */
+/* Renders BigMArkt as SVG — hollow gold triangle outline for the A,
+   flush against BigM and rkt with no gaps, matching the onboarding logo. */
 function _loadLogoImage(fontSize) {
   return new Promise((resolve) => {
-    const f = fontSize || 48;
-    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="${f + 20}"><text y="${f}" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="${f}px"><tspan fill="#F5F5F5">Big M</tspan><tspan fill="#D4AF37">▲</tspan><tspan fill="#F5F5F5">rkt</tspan></text></svg>`;
+    const f  = fontSize || 48;
+    const h  = f;          // triangle height = cap height
+    const w  = f * 0.7;    // triangle width proportional to height
+    const sw = f * 0.08;   // stroke width scales with font size
+
+    // Measure BigM and rkt widths via a temp canvas
+    const tmp = document.createElement('canvas');
+    const tc  = tmp.getContext('2d');
+    tc.font = '800 ' + f + 'px Inter, Arial, sans-serif';
+    const bigMWidth = tc.measureText('BigM').width;
+    const rktWidth  = tc.measureText('rkt').width;
+
+    const totalW = bigMWidth + w + rktWidth + f;
+    const totalH = h + f * 0.4;
+
+    // Hollow upward-pointing triangle, baseline-aligned with text
+    const triX     = bigMWidth;
+    const triTop   = sw;
+    const triLeft  = triX + sw;
+    const triRight = triX + w - sw;
+    const triBot   = h - sw;
+    const points   = (triX + w / 2) + ',' + triTop + ' ' +
+                     triLeft        + ',' + triBot  + ' ' +
+                     triRight       + ',' + triBot;
+
+    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(totalW)}" height="${Math.ceil(totalH)}"><text x="0" y="${h}" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="${f}px" fill="#F5F5F5">BigM</text><polygon points="${points}" fill="none" stroke="#D4AF37" stroke-width="${sw}" stroke-linejoin="round"/><text x="${triX + w}" y="${h}" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="${f}px" fill="#F5F5F5">rkt</text></svg>`;
+
     const blob = new Blob([svgStr], { type: 'image/svg+xml' });
     const url  = URL.createObjectURL(blob);
     const img  = new Image();
