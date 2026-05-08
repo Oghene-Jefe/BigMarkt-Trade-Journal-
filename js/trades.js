@@ -139,10 +139,35 @@ async function loadProfile() {
 }
 
 async function saveTrade(trade) {
+  // Hard offline check — queue immediately, no Supabase attempt
+  if (!navigator.onLine) {
+    await queueTrade(trade, state.user.id);
+    return false;
+  }
+
   showSpinner('SAVING TRADE…');
-  const { error } = await _sb.from('trades').insert(trade);
+  let error;
+  try {
+    ({ error } = await _sb.from('trades').insert(trade));
+  } catch (e) {
+    // fetch() threw a network exception even though navigator.onLine was true
+    hideSpinner();
+    await queueTrade(trade, state.user.id);
+    return false;
+  }
   hideSpinner();
-  if (error) { toast('Error saving trade: ' + error.message, 'error'); return false; }
+
+  if (error) {
+    // error.status present → server responded (RLS, validation, etc.) → show message
+    // error.status absent  → transport failure → queue for later
+    if (!error.status) {
+      await queueTrade(trade, state.user.id);
+      return false;
+    }
+    toast('Error saving trade: ' + error.message, 'error');
+    return false;
+  }
+
   clearCache();
   await loadTrades();
   return true;

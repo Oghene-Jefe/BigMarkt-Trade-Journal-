@@ -933,6 +933,7 @@
     padding-bottom: env(safe-area-inset-bottom);
     /* Distribute items evenly when they fit; scroll when they don't */
     justify-content: space-around;
+    /* position:fixed creates a containing block — .offline-badge anchors to it */
   }
   .bottom-nav::-webkit-scrollbar { display: none; }
   .nav-item {
@@ -1464,6 +1465,52 @@
     color: var(--gold);
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ====================================================
+     OFFLINE STATUS INDICATORS
+     ==================================================== */
+  .offline-banner {
+    background: #eab308;
+    color: #0A0A0A;
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 16px;
+    width: 100%;
+    position: sticky;
+    top: 55px; /* sits just below the topbar */
+    z-index: 49;
+    animation: slideDown 0.3s ease;
+  }
+
+  @keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+  }
+
+  /* Absolute pill inside the fixed bottom nav */
+  .offline-badge {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: #eab308;
+    color: #0A0A0A;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 101;
+    animation: badgePulse 2s ease-in-out infinite;
+  }
+
+  @keyframes badgePulse {
+    0%, 100% { opacity: 1;   transform: scale(1); }
+    50%       { opacity: 0.7; transform: scale(0.93); }
+  }
 
   /* ====================================================
      DARK / LIGHT MODE

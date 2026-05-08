@@ -50,6 +50,21 @@ function navigate(page) {
 function _initApp() {
   loadTheme();
   checkReferralCode();
+
+  // Prepare offline queue — non-blocking, app works fine without it
+  initOfflineDB().catch(e => console.warn('Offline queue init failed:', e));
+
+  // Show amber banner while offline; hide and trigger sync on reconnection
+  window.addEventListener('offline', () => {
+    const banner = document.getElementById('offlineBanner');
+    if (banner) banner.style.display = 'block';
+  });
+  window.addEventListener('online', () => {
+    const banner = document.getElementById('offlineBanner');
+    if (banner) banner.style.display = 'none';
+    syncPendingTrades();
+  });
+
   checkPasswordReset().then(isReset => {
     if (!isReset) checkSession();
   });
