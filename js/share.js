@@ -67,36 +67,45 @@ function _pill(ctx, x, y, w, h, bg, border, text, textColor) {
   ctx.fillText(text, x + w / 2, y + h / 2);
 }
 
-/* Renders BigMArkt as SVG — hollow gold triangle outline for the A,
-   flush against BigM and rkt with no gaps, matching the onboarding logo. */
+/* Renders BigMArkt wordmark as SVG using the same CSS border-trick
+   technique as the HTML logo: solid gold outer triangle + dark
+   inner punch-out triangle to match the onboarding A exactly. */
 function _loadLogoImage(fontSize) {
   return new Promise((resolve) => {
-    const f  = fontSize || 48;
-    const h  = f;          // triangle height = cap height
-    const w  = f * 0.85;   // triangle width proportional to height
-    const sw = f * 0.07;   // stroke width scales with font size
+    const f = fontSize || 48;
 
-    // Measure BigM and rkt widths via a temp canvas
+    const scale   = f / 28;
+    const outerW  = 18 * scale;
+    const outerH  = 22 * scale;
+    const innerW  = 10 * scale;
+    const innerH  = 10 * scale;
+    const marginH = 6  * scale;
+    const gap     = 1  * scale;
+
     const tmp = document.createElement('canvas');
     const tc  = tmp.getContext('2d');
     tc.font = '800 ' + f + 'px Inter, Arial, sans-serif';
     const bigMWidth = tc.measureText('BigM').width;
-    const rktWidth  = tc.measureText('rkt').width;
 
-    const totalW = bigMWidth + w + rktWidth + f;
-    const totalH = h + f * 0.4;
+    const totalW   = Math.ceil(bigMWidth + gap + outerW + gap + tc.measureText('rkt').width + f * 0.5);
+    const totalH   = Math.ceil(f * 1.3);
+    const baseline = f;
 
-    // Hollow upward-pointing triangle, baseline-aligned with text
-    const triX     = bigMWidth;
-    const triTop   = sw;
-    const triLeft  = triX + sw;
-    const triRight = triX + w - sw;
-    const triBot   = h - sw;
-    const points   = (triX + w / 2) + ',' + triTop + ' ' +
-                     triLeft        + ',' + triBot  + ' ' +
-                     triRight       + ',' + triBot;
+    const tx = bigMWidth + gap;
+    const ty = baseline - outerH - marginH;
 
-    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(totalW)}" height="${Math.ceil(totalH)}"><text x="0" y="${h}" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="${f}px" fill="#F5F5F5">BigM</text><polygon points="${points}" fill="none" stroke="#D4AF37" stroke-width="${sw}" stroke-linejoin="round"/><text x="${triX + w}" y="${h}" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="${f}px" fill="#F5F5F5">rkt</text></svg>`;
+    const outerApexX = tx + outerW / 2;
+    const outerApexY = ty;
+    const outerBotL  = [tx,           ty + outerH];
+    const outerBotR  = [tx + outerW,  ty + outerH];
+
+    const innerOffsetX = (outerW - innerW) / 2;
+    const innerApexX   = tx + outerW / 2;
+    const innerApexY   = ty + (outerH - innerH) - (2 * scale);
+    const innerBotL    = [tx + innerOffsetX,          ty + outerH - (1 * scale)];
+    const innerBotR    = [tx + outerW - innerOffsetX, ty + outerH - (1 * scale)];
+
+    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${totalH}"><text x="0" y="${baseline}" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="${f}px" fill="#F5F5F5">BigM</text><polygon points="${outerApexX},${outerApexY} ${outerBotL[0]},${outerBotL[1]} ${outerBotR[0]},${outerBotR[1]}" fill="#D4AF37"/><polygon points="${innerApexX},${innerApexY} ${innerBotL[0]},${innerBotL[1]} ${innerBotR[0]},${innerBotR[1]}" fill="#0A0A0A"/><text x="${tx + outerW + gap}" y="${baseline}" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="${f}px" fill="#F5F5F5">rkt</text></svg>`;
 
     const blob = new Blob([svgStr], { type: 'image/svg+xml' });
     const url  = URL.createObjectURL(blob);
