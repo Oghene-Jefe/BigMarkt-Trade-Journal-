@@ -73,8 +73,8 @@ function _loadLogoImage(fontSize) {
   return new Promise((resolve) => {
     const f  = fontSize || 48;
     const h  = f;          // triangle height = cap height
-    const w  = f * 0.7;    // triangle width proportional to height
-    const sw = f * 0.08;   // stroke width scales with font size
+    const w  = f * 0.85;   // triangle width proportional to height
+    const sw = f * 0.07;   // stroke width scales with font size
 
     // Measure BigM and rkt widths via a temp canvas
     const tmp = document.createElement('canvas');
