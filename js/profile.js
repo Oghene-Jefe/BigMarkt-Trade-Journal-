@@ -4,13 +4,9 @@
 async function renderProfile() {
   if (!state.user) return;
   showSpinner('LOADING PROFILE…');
-  const [{ data: profile }, refResult] = await Promise.all([
-    _sb.from('profiles').select('*').eq('id', state.user.id).single(),
-    (async () => {
-      const refCode = btoa(state.user.id).replace(/=/g, '').substring(0, 12);
-      return _sb.from('profiles').select('id,created_at').eq('referred_by', refCode);
-    })()
-  ]);
+  // Only fetch profile here; referral stats use RPC below
+  const { data: profile } = await _sb
+    .from('profiles').select('*').eq('id', state.user.id).single();
   hideSpinner();
   const name = profile?.name || state.user.email.split('@')[0];
   const email = state.user.email;
@@ -38,21 +34,23 @@ async function renderProfile() {
   pnlEl.textContent = fmtMoney(pnl);
   pnlEl.style.color = pnl > 0 ? 'var(--win)' : pnl < 0 ? 'var(--loss)' : 'var(--gold)';
 
-  // Populate referral section inside profile
-  const refData = refResult?.data || [];
-  const refTotal = refData.length;
+  // Populate referral section — real active count via server-side RPC
+  // (avoids exposing cross-user trade data to the client)
   const refCode = btoa(state.user.id).replace(/=/g, '').substring(0, 12);
   const refLink = `https://journal.bigmarkt.co?ref=${refCode}`;
-
-  const linkEl = document.getElementById('referralLinkInput');
+  const linkEl  = document.getElementById('referralLinkInput');
   if (linkEl) linkEl.value = refLink;
 
-  const totalEl = document.getElementById('refTotalCount');
+  const { data: refStats } = await _sb.rpc('get_referral_stats', { ref_code: refCode });
+  const refTotal  = refStats?.total  || 0;
+  const refActive = refStats?.active || 0;
+
+  const totalEl  = document.getElementById('refTotalCount');
   const activeEl = document.getElementById('refActiveCount');
   const rankEl   = document.getElementById('refRank');
 
-  if (totalEl) totalEl.textContent = refTotal;
-  if (activeEl) activeEl.textContent = refTotal > 0 ? Math.ceil(refTotal * 0.6) : 0;
+  if (totalEl)  totalEl.textContent  = refTotal;
+  if (activeEl) activeEl.textContent = refActive; // real count — users with ≥1 trade
 
   let rank = '—';
   if (refTotal >= 50) rank = '🥇 ELITE';
