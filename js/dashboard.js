@@ -53,6 +53,9 @@ function renderDashboard() {
   // Render psychology advisor
   renderPsychAdvisor();
 
+  // Render challenge card (state.challenge populated by loadChallenge)
+  renderChallengeCard();
+
   const recent = sorted.slice(0, 5);
   const c = document.getElementById('recentTradesContainer');
   if (recent.length === 0) {

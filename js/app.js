@@ -21,7 +21,9 @@ function navigate(page) {
   if (page === 'admin') { if (!isAdmin()) { navigate('dashboard'); return; } renderAdmin(); }
   if (page === 'dashboard') {
     // Always load full dataset so stats (PnL, win rate, streak) are accurate
-    loadAllTrades().then(() => { renderDashboard(); checkSessionBanner(); });
+    loadAllTrades().then(() => { renderDashboard(); checkSessionBanner(); checkChallengeProgress(); });
+    // Load challenge in parallel — re-renders card when resolved
+    loadChallenge();
   }
   if (page === 'journal') {
     // Always reset to table view on navigation

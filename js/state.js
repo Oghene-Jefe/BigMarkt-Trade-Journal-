@@ -13,6 +13,7 @@ let state = {
   calMonth: new Date().getMonth(),
   journalView: 'table',
   resets: [],
+  challenge: null,
   _lbData: null,
   _lbMode: 'quality',
   _admLbData: null,
