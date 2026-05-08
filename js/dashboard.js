@@ -3,8 +3,8 @@ let bannerDismissed = {};
 
 function renderDashboard() {
   renderAccountTracker();
-  const t = state.trades;
-  const total = t.length;
+  const t = state.trades.filter(x => x.trade_visibility !== 'exclude');
+  const total = state.trades.length;
   const wins = t.filter(x => x.result === 'WIN').length;
   const losses = t.filter(x => x.result === 'LOSS').length;
   const totalPnL = t.reduce((s, x) => s + (Number(x.pnl) || 0), 0);
@@ -56,7 +56,7 @@ function renderDashboard() {
   // Render challenge card (state.challenge populated by loadChallenge)
   renderChallengeCard();
 
-  const recent = sorted.slice(0, 5);
+  const recent = [...state.trades].sort((a, b) => b.created_at - a.created_at).slice(0, 5);
   const c = document.getElementById('recentTradesContainer');
   if (recent.length === 0) {
     c.innerHTML = `
@@ -93,7 +93,7 @@ function renderAccountTracker() {
   const profile = state.profile;
   const startBal = (profile?.starting_balance != null && profile.starting_balance !== '') ? Number(profile.starting_balance) : null;
   const dailyLossLimit = (profile?.daily_loss_limit != null && profile.daily_loss_limit !== '') ? Number(profile.daily_loss_limit) : 3;
-  const totalPnL = state.trades.reduce((s, x) => s + (Number(x.pnl) || 0), 0);
+  const totalPnL = state.trades.filter(x => x.trade_visibility !== 'exclude').reduce((s, x) => s + (Number(x.pnl) || 0), 0);
 
   if (!startBal) {
     el.innerHTML = `
@@ -114,7 +114,7 @@ function renderAccountTracker() {
 
   const today = new Date().toDateString();
   const todayPnL = state.trades
-    .filter(x => new Date(x.created_at).toDateString() === today)
+    .filter(x => x.trade_visibility !== 'exclude' && new Date(x.created_at).toDateString() === today)
     .reduce((s, x) => s + (Number(x.pnl) || 0), 0);
 
   const dailyLossThreshold = -(startBal * (dailyLossLimit / 100));
@@ -190,7 +190,7 @@ function renderPsychAdvisor() {
   el.style.display = 'block';
 
   const insights = [];
-  const trades = state.trades;
+  const trades = state.trades.filter(x => x.trade_visibility !== 'exclude');
 
   // ── EMOTION ANALYSIS ──
   const fomoTrades  = trades.filter(t => t.emotions === 'FOMO');

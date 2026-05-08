@@ -9,6 +9,7 @@ let state = {
   formResult: 'WIN',
   formGrade: null,
   formTags: [],
+  formTradeVisibility: 'public',
   calYear: new Date().getFullYear(),
   calMonth: new Date().getMonth(),
   journalView: 'table',

@@ -78,7 +78,7 @@ function renderJournal() {
   c.innerHTML = `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Pair</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Lot</th><th>Result</th><th>PnL</th><th>RR</th><th>Grade</th><th>Tags</th><th>Session</th><th>Emotion</th><th>Strategy</th><th>Chart</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Pair</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Lot</th><th>Result</th><th>PnL</th><th>RR</th><th>Grade</th><th>Tags</th><th>Session</th><th>Emotion</th><th>Strategy</th><th>Vis</th><th>Chart</th><th></th></tr></thead>
         <tbody>
           ${list.map(t => `
             <tr>
@@ -96,6 +96,7 @@ function renderJournal() {
               <td class="text-muted small">${t.session}</td>
               <td class="text-muted small">${t.emotions}</td>
               <td class="text-muted small">${t.strategy}</td>
+              <td style="white-space:nowrap;">${tvBadge(t.id, t.trade_visibility)}</td>
               <td style="white-space:nowrap;">
                 ${t.image_url ? `<img src="${t.image_url}" class="trade-thumb" onclick="viewScreenshot('${t.id}')" title="View chart">` : '<span style="color:var(--muted-2);font-size:11px;">—</span>'}
               </td>
@@ -113,6 +114,43 @@ function renderJournal() {
 
 ['filterPair', 'filterResult', 'filterSession', 'filterSort'].forEach(id => {
   document.addEventListener('change', e => { if (e.target.id === id) renderJournal(); });
+});
+
+/* ====================================================
+   TRADE VISIBILITY — journal badge + inline dropdown
+   ==================================================== */
+const _TV_LABELS = { public: '🌐', followers_only: '👥', private: '🔒', exclude: '🚫' };
+const _TV_NAMES  = { public: 'Public', followers_only: 'Followers', private: 'Private', exclude: 'Exclude' };
+
+function tvBadge(id, vis) {
+  const v = vis || 'public';
+  const opts = Object.keys(_TV_LABELS).map(k => `
+    <div class="tv-dd-opt${k === v ? ' selected' : ''}"
+         onclick="updateTradeVisibility('${id}','${k}');this.closest('.tv-badge-wrap').classList.remove('open');event.stopPropagation()">
+      ${_TV_LABELS[k]} ${_TV_NAMES[k]}
+    </div>`).join('');
+  return `<div class="tv-badge-wrap" onclick="event.stopPropagation();this.classList.toggle('open')">
+    <span class="tv-badge tv-${v}" title="Visibility: ${_TV_NAMES[v]}">${_TV_LABELS[v]}</span>
+    <div class="tv-dropdown">${opts}</div>
+  </div>`;
+}
+
+async function updateTradeVisibility(id, val) {
+  const { error } = await _sb.from('trades')
+    .update({ trade_visibility: val })
+    .eq('id', id)
+    .eq('user_id', state.user.id);
+  if (error) { toast('Error updating visibility.', 'error'); return; }
+  const idx = state.trades.findIndex(t => t.id === id);
+  if (idx !== -1) state.trades[idx] = { ...state.trades[idx], trade_visibility: val };
+  clearCache();
+  toast('Visibility updated ✅');
+  renderJournal();
+}
+
+// Close any open tv-dropdown when clicking outside
+document.addEventListener('click', () => {
+  document.querySelectorAll('.tv-badge-wrap.open').forEach(el => el.classList.remove('open'));
 });
 
 /* ---------- CALENDAR HEATMAP ---------- */

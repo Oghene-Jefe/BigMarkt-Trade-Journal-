@@ -7,9 +7,11 @@ function resetTradeForm() {
   state.formResult = 'WIN';
   state.formGrade = null;
   state.formTags = [];
+  state.formTradeVisibility = 'public';
   syncToggleGroups();
   syncGradeButtons();
   syncTagChips();
+  syncTradeVisibility();
   document.getElementById('pairSelect').value = 'XAU/USD';
   document.getElementById('pairWrap').classList.remove('custom');
   document.getElementById('pairCustom').value = '';
@@ -38,6 +40,17 @@ function syncTagChips() {
   document.querySelectorAll('#tagsWrap .tag-chip').forEach(chip => {
     chip.classList.toggle('active', state.formTags.includes(chip.dataset.tag));
   });
+}
+
+function syncTradeVisibility() {
+  document.querySelectorAll('#tvSegGroup .tv-seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tv === state.formTradeVisibility);
+  });
+}
+
+function setTradeVisibility(val) {
+  state.formTradeVisibility = val;
+  syncTradeVisibility();
 }
 
 /* ====================================================
@@ -117,7 +130,8 @@ document.getElementById('tradeForm').addEventListener('submit', async e => {
     notes: document.getElementById('notes').value,
     setup_grade: state.formGrade || null,
     tags: state.formTags.length > 0 ? state.formTags.join(',') : null,
-    image_url: imageUrl
+    image_url: imageUrl,
+    trade_visibility: state.formTradeVisibility
   };
   const ok = await saveTrade(trade);
   if (ok) {

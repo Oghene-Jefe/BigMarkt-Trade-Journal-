@@ -32,7 +32,7 @@ function chartCommon() {
 function drawPnLChart() {
   const ctx = document.getElementById('chartPnL').getContext('2d');
   if (charts.pnl) charts.pnl.destroy();
-  const sorted = [...state.trades].sort((a,b) => a.created_at - b.created_at);
+  const sorted = [...state.trades.filter(x => x.trade_visibility !== 'exclude')].sort((a,b) => a.created_at - b.created_at);
   let cum = 0;
   const labels = sorted.map(t => fmtDate(t.created_at));
   const data = sorted.map(t => { cum += Number(t.pnl) || 0; return cum; });
@@ -54,7 +54,7 @@ function drawPairChart() {
   const ctx = document.getElementById('chartPair').getContext('2d');
   if (charts.pair) charts.pair.destroy();
   const map = {};
-  state.trades.forEach(t => {
+  state.trades.filter(x => x.trade_visibility !== 'exclude').forEach(t => {
     if (!map[t.pair]) map[t.pair] = { wins: 0, losses: 0 };
     if (t.result === 'WIN') map[t.pair].wins++;
     if (t.result === 'LOSS') map[t.pair].losses++;
@@ -73,8 +73,9 @@ function drawPairChart() {
 
 function drawSessionList() {
   const sessions = ['London', 'New York', 'Asian', 'Overlap'];
+  const _activeTrades = state.trades.filter(x => x.trade_visibility !== 'exclude');
   const data = sessions.map(s => {
-    const arr = state.trades.filter(t => t.session === s);
+    const arr = _activeTrades.filter(t => t.session === s);
     const pnl = arr.reduce((acc, t) => acc + (Number(t.pnl) || 0), 0);
     const wins = arr.filter(t => t.result === 'WIN').length;
     const losses = arr.filter(t => t.result === 'LOSS').length;
@@ -100,9 +101,10 @@ function drawSessionList() {
 function drawEmotionChart() {
   const ctx = document.getElementById('chartEmotion').getContext('2d');
   if (charts.emotion) charts.emotion.destroy();
+  const _activeTrades = state.trades.filter(x => x.trade_visibility !== 'exclude');
   const emotions = ['Confident', 'Patient', 'Hesitant', 'FOMO', 'Revenge'];
-  const counts = emotions.map(e => state.trades.filter(t => t.emotions === e).length);
-  const pnls = emotions.map(e => state.trades.filter(t => t.emotions === e).reduce((s,t)=>s+(Number(t.pnl)||0),0));
+  const counts = emotions.map(e => _activeTrades.filter(t => t.emotions === e).length);
+  const pnls = emotions.map(e => _activeTrades.filter(t => t.emotions === e).reduce((s,t)=>s+(Number(t.pnl)||0),0));
   charts.emotion = new Chart(ctx, {
     type: 'bar',
     data: {
@@ -117,7 +119,7 @@ function drawEmotionChart() {
   if (gradeEl) {
     const grades = ['A+', 'A', 'B', 'C', 'D'];
     const gradeColors = { 'A+': '#16a34a', 'A': '#22c55e', 'B': '#D4AF37', 'C': '#f97316', 'D': '#ef4444' };
-    const gradedTrades = state.trades.filter(t => t.setup_grade);
+    const gradedTrades = _activeTrades.filter(t => t.setup_grade);
     if (gradedTrades.length === 0) {
       gradeEl.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0;">No graded trades yet.<br><span style="font-size:11px;">Add setup grades when logging trades.</span></div>`;
     } else {
@@ -150,7 +152,7 @@ function drawEmotionChart() {
   // ── TAG PNL IMPACT ──
   const tagEl = document.getElementById('tagBreakdown');
   if (tagEl) {
-    const taggedTrades = state.trades.filter(t => t.tags);
+    const taggedTrades = _activeTrades.filter(t => t.tags);
     if (taggedTrades.length === 0) {
       tagEl.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0;">No tagged trades yet.<br><span style="font-size:11px;">Add tags when logging trades.</span></div>`;
     } else {

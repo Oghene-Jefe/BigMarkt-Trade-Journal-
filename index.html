@@ -527,6 +527,16 @@
         </div>
 
         <div class="field full">
+          <label>Trade Visibility</label>
+          <div class="tv-seg" id="tvSegGroup">
+            <button type="button" class="tv-seg-btn active" data-tv="public" onclick="setTradeVisibility('public')">🌐 Public</button>
+            <button type="button" class="tv-seg-btn" data-tv="followers_only" onclick="setTradeVisibility('followers_only')">👥 Followers</button>
+            <button type="button" class="tv-seg-btn" data-tv="private" onclick="setTradeVisibility('private')">🔒 Private</button>
+            <button type="button" class="tv-seg-btn" data-tv="exclude" onclick="setTradeVisibility('exclude')">🚫 Exclude</button>
+          </div>
+        </div>
+
+        <div class="field full">
           <label>Notes</label>
           <textarea id="notes" placeholder="What did you see? What did you feel? What would you do different?"></textarea>
         </div>
