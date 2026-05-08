@@ -1,5 +1,7 @@
 /* ---------- AUTH ---------- */
 let authMode = 'login';
+let _loggingOut = false;        // true during intentional logout — suppresses session-expiry handler
+let _sessionExpiredShown = false; // prevents double-triggering from fetch + onAuthStateChange
 
 async function login(email, password) {
   showSpinner('SIGNING IN…');
@@ -53,6 +55,7 @@ function enterApp() {
 }
 
 async function logout() {
+  _loggingOut = true;
   await _sb.auth.signOut();
   state.user = null;
   state.profile = null;
@@ -97,6 +100,13 @@ async function checkSession() {
 }
 
 async function handleLoginSubmit() {
+  // Honeypot check — bots fill hidden fields, humans don't
+  const hp = document.getElementById('website');
+  if (hp && hp.value) {
+    console.log('Bot detected, signup blocked');
+    return;
+  }
+
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pwd   = document.getElementById('loginPassword').value;
   const name  = document.getElementById('loginName').value.trim();
@@ -258,3 +268,46 @@ async function sendResetEmail() {
 }
 
 function isAdmin() { return !!(state.user && ADMIN_EMAILS.includes(state.user.email)); }
+
+/* ====================================================
+   SESSION EXPIRY — shared handler for both triggers
+   (onAuthStateChange SIGNED_OUT + global 401 fetch)
+   ==================================================== */
+function _forceLogout() {
+  if (_sessionExpiredShown || _loggingOut) return;
+  _sessionExpiredShown = true;
+  toast('Session expired — please log in again', 'error');
+  setTimeout(() => {
+    _sessionExpiredShown = false;
+    state.user = null;
+    state.profile = null;
+    state.trades = [];
+    state.resets = [];
+    state._lbData = null;
+    state._admLbData = null;
+    state.currentPage = 'dashboard';
+    document.getElementById('app').classList.remove('active');
+    document.getElementById('bottomNav').style.display = 'none';
+    document.getElementById('calcFab').style.display = 'none';
+    document.getElementById('adminNavBtn').style.display = 'none';
+    document.getElementById('lbNavBtn').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+  }, 2000);
+}
+
+// Intercept all fetch calls — if Supabase returns 401 while user is logged in, force logout
+const _origFetch = window.fetch;
+window.fetch = async function (...args) {
+  const res = await _origFetch.apply(this, args);
+  if (res.status === 401 && state.user && !_loggingOut) {
+    _forceLogout();
+  }
+  return res;
+};
+
+// Handle token expiry / remote sign-out from Supabase auth state machine
+_sb.auth.onAuthStateChange((event, _session) => {
+  if (event === 'SIGNED_OUT' && state.user && !_loggingOut) {
+    _forceLogout();
+  }
+});

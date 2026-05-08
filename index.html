@@ -97,6 +97,12 @@
           <span style="font-size:12px; color:var(--gold); cursor:pointer;" onclick="showForgotPassword()">Forgot password?</span>
         </div>
       </div>
+      <!-- Honeypot anti-bot trap — never shown to real users -->
+      <div class="hp-field" aria-hidden="true">
+        <label for="website">Website</label>
+        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+
       <button type="button" class="btn btn-primary" id="authSubmitBtn" onclick="handleLoginSubmit()">ENTER THE MARKET</button>
     </form>
 

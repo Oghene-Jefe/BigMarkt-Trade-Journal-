@@ -18,6 +18,9 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
+  /* Honeypot anti-bot field — invisible to real users */
+  .hp-field { position: absolute; left: -9999px; opacity: 0; height: 0; overflow: hidden; pointer-events: none; }
+
   html, body {
     background: var(--black);
     color: var(--text);
