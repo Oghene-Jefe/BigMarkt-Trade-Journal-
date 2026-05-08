@@ -742,6 +742,40 @@
       </div>
     </div>
 
+    <!-- Profile Visibility -->
+    <div class="profile-section">
+      <div class="profile-section-title">👁 PROFILE VISIBILITY</div>
+      <div style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.6;">
+        Control who can see your trading stats and profile.
+      </div>
+      <div class="visibility-options" id="visibilityOptions">
+        <div class="visibility-option" data-value="private" onclick="selectVisibility('private')">
+          <div class="visibility-option-icon">🔒</div>
+          <div class="visibility-option-body">
+            <div class="visibility-option-name">Private</div>
+            <div class="visibility-option-desc">Only you see your profile</div>
+          </div>
+        </div>
+        <div class="visibility-option" data-value="community" onclick="selectVisibility('community')">
+          <div class="visibility-option-icon">👥</div>
+          <div class="visibility-option-body">
+            <div class="visibility-option-name">Community</div>
+            <div class="visibility-option-desc">Members see your win rate, RR &amp; trade count — trades hidden</div>
+          </div>
+        </div>
+        <div class="visibility-option" data-value="public" onclick="selectVisibility('public')">
+          <div class="visibility-option-icon">🌐</div>
+          <div class="visibility-option-body">
+            <div class="visibility-option-name">Public</div>
+            <div class="visibility-option-desc">Anyone with your link sees full stats &amp; trade details</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <button class="btn btn-primary" onclick="saveVisibility()" style="max-width:200px;">SAVE VISIBILITY</button>
+      </div>
+    </div>
+
     <!-- BigMarkt Community -->
     <div class="profile-section" style="background: linear-gradient(135deg, rgba(212,175,55,0.08), rgba(212,175,55,0.03)); border-color: rgba(212,175,55,0.25);">
       <div class="profile-section-title">🌍 BIGMARKT COMMUNITY</div>

@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node *)",
+      "Bash(git -C \"C:/Users/AEGEAN AJENO/Desktop/bigmarkt-trade-journal\" status)",
+      "Bash(git -C \"C:/Users/AEGEAN AJENO/Desktop/bigmarkt-trade-journal\" diff)",
+      "Bash(git -C \"C:/Users/AEGEAN AJENO/Desktop/bigmarkt-trade-journal\" add index.html)",
+      "Bash(git -C 'C:/Users/AEGEAN AJENO/Desktop/bigmarkt-trade-journal' commit -m ' *)",
+      "Bash(git *)",
+      "Bash(PowerShell *)",
+      "Bash(sed -n '170,178p' assets/_share_base.js)",
+      "Bash(sed -n '420,455p' assets/_share_base.js)",
+      "Bash(sed -n '586,596p' assets/_share_base.js)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\AEGEAN AJENO\\\\Desktop\\\\bigmarkt-trade-journal\" -File)",
+      "Bash(Select-Object Name)"
+    ]
+  }
+}

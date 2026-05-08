@@ -22,6 +22,7 @@ async function renderProfile() {
   if (profile?.starting_balance != null) document.getElementById('editStartingBalance').value = profile.starting_balance;
   if (profile?.daily_loss_limit != null) document.getElementById('editDailyLossLimit').value = profile.daily_loss_limit;
   else document.getElementById('editDailyLossLimit').value = 3;
+  selectVisibility(profile?.visibility || 'private');
   const trades = state.trades;
   const wins = trades.filter(t => t.result === 'WIN').length;
   const losses = trades.filter(t => t.result === 'LOSS').length;
@@ -276,6 +277,32 @@ function shareRefGeneral() {
   } else {
     copyReferralLink();
   }
+}
+
+/* ====================================================
+   PROFILE VISIBILITY
+   ==================================================== */
+function selectVisibility(value) {
+  document.querySelectorAll('#visibilityOptions .visibility-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.value === value);
+  });
+  // Store on the container for saveVisibility() to read
+  const container = document.getElementById('visibilityOptions');
+  if (container) container.dataset.current = value;
+}
+
+async function saveVisibility() {
+  const container = document.getElementById('visibilityOptions');
+  if (!container) return;
+  const visibility = container.dataset.current || 'private';
+  showSpinner('SAVING…');
+  const { error } = await _sb.from('profiles')
+    .update({ visibility })
+    .eq('id', state.user.id);
+  hideSpinner();
+  if (error) { toast('Error saving visibility setting.', 'error'); return; }
+  state.profile = { ...state.profile, visibility };
+  toast('Visibility updated ✅');
 }
 
 // Check for referral code on load and save it

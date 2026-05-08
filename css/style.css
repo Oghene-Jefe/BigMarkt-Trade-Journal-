@@ -1956,6 +1956,70 @@
   .danger-btn:hover { background: rgba(239,68,68,0.1); }
 
   /* ====================================================
+     PROFILE VISIBILITY SELECTOR
+     ==================================================== */
+  .visibility-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .visibility-option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--black-3);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color 0.18s, background 0.18s;
+    user-select: none;
+  }
+  .visibility-option:hover {
+    border-color: rgba(212,175,55,0.4);
+    background: rgba(212,175,55,0.04);
+  }
+  .visibility-option.selected {
+    border-color: #FFD700;
+    background: rgba(212,175,55,0.07);
+  }
+  .visibility-option-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    width: 28px;
+    text-align: center;
+  }
+  .visibility-option-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.08em;
+    color: var(--text);
+  }
+  .visibility-option.selected .visibility-option-name {
+    color: #FFD700;
+  }
+  .visibility-option-desc {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+  @media (min-width: 600px) {
+    .visibility-options {
+      flex-direction: row;
+    }
+    .visibility-option {
+      flex: 1;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .visibility-option-icon {
+      font-size: 26px;
+    }
+  }
+
+  /* ====================================================
      ADMIN PANEL
      ==================================================== */
   .admin-delete-btn {
