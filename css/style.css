@@ -1897,43 +1897,6 @@
     border-color: var(--gold);
     color: var(--gold);
   }
-  .report-share-row {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-  }
-  .report-share-btn {
-    flex: 1;
-    min-width: 140px;
-    font-size: 13px;
-    letter-spacing: 0.08em;
-    border-color: var(--gold);
-    color: var(--gold);
-  }
-  .report-share-btn:hover {
-    background: rgba(212,175,55,0.1);
-  }
-  .report-card-preview {
-    display: block;
-    width: 100%;
-    max-width: 360px;
-    margin: 0 auto 4px;
-    border-radius: 10px;
-    border: 1px solid var(--gold);
-    transition: opacity 0.2s;
-  }
-  .report-card-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    margin-top: 16px;
-    flex-wrap: wrap;
-  }
-  .report-card-actions .btn {
-    flex: 1;
-    min-width: 120px;
-  }
   .trade-thumb {
     width: 60px; height: 40px;
     border-radius: 4px;

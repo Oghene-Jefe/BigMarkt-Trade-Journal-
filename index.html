@@ -361,10 +361,6 @@
         </div>
         <button class="export-btn" onclick="exportReportPDF()">📄 EXPORT PDF</button>
       </div>
-      <div class="report-share-row">
-        <button class="btn btn-ghost report-share-btn" onclick="showReportCardModal('weekly')">📤 SHARE WEEKLY CARD</button>
-        <button class="btn btn-ghost report-share-btn" onclick="showReportCardModal('monthly')">📤 SHARE MONTHLY CARD</button>
-      </div>
       <div id="reportContent"></div>
     </div>
   </section>
@@ -1410,22 +1406,6 @@
       </button>
       <button class="btn btn-ghost share-app-btn" onclick="shareToTelegram()">
         <span style="font-size:16px;line-height:1;">✈</span> TELEGRAM
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ============== REPORT CARD MODAL ============== -->
-<div id="reportCardModal" class="modal-overlay" style="z-index:700;">
-  <div class="modal-box" style="max-width:420px; padding:24px;">
-    <button class="modal-close" onclick="closeReportCardModal()">✕</button>
-    <div class="modal-title">REPORT CARD</div>
-    <div class="modal-sub">Your branded stats card is ready to share.</div>
-    <img id="reportCardPreview" class="report-card-preview" alt="Report card preview">
-    <div class="report-card-actions">
-      <button class="btn btn-primary" onclick="downloadReportCard()">⬇ DOWNLOAD</button>
-      <button class="btn btn-ghost share-app-btn" onclick="shareReportToWhatsApp()">
-        <span style="font-size:16px;line-height:1;">💬</span> WHATSAPP
       </button>
     </div>
   </div>
