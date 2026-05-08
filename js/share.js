@@ -443,23 +443,23 @@ async function generateReportCard(mode) {
   const subChars = 'FTS TRADE JOURNAL';
   let sx = 80;
   for (let ci = 0; ci < subChars.length; ci++) {
-    ctx.fillText(subChars[ci], sx, 148);
+    ctx.fillText(subChars[ci], sx, 170);
     sx += ctx.measureText(subChars[ci]).width + (subChars[ci] === ' ' ? 6 : 3);
   }
 
-  // Gold header divider y=175
+  // Gold header divider y=195
   ctx.globalAlpha = 0.4;
   ctx.strokeStyle = GOLD;
   ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(80, 175); ctx.lineTo(1000, 175); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(80, 195); ctx.lineTo(1000, 195); ctx.stroke();
   ctx.globalAlpha = 1;
 
-  // Period label centered y=230
+  // Period label centered y=250
   ctx.fillStyle = MUTED;
   ctx.font = '400 22px "Inter", Arial, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(_getReportPeriodLabel(mode), W / 2, 230);
+  ctx.fillText(_getReportPeriodLabel(mode), W / 2, 250);
 
   // Compute stats
   const trades   = _getReportTrades(mode);
