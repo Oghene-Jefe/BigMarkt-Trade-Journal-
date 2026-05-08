@@ -474,7 +474,9 @@ function viewScreenshot(tradeId) {
 function previewScreenshot(input) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 5 * 1024 * 1024) { toast('Image must be under 5MB.', 'error'); return; }
+  if (file.size > 5 * 1024 * 1024) {
+    toast('Large image detected — will be compressed before upload', 'info');
+  }
   screenshotFile = file;
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -498,9 +500,56 @@ function clearScreenshot() {
   document.getElementById('screenshotInput').value = '';
 }
 
+// Compress a screenshot File to JPEG ≤ 1280×720 at 0.82 quality.
+// Files already under 300 KB are returned as-is.
+async function _compressScreenshot(file) {
+  if (file.size < 300 * 1024) return file;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      const MAX_W = 1280, MAX_H = 720;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > MAX_W || h > MAX_H) {
+        const ratio = Math.min(MAX_W / w, MAX_H / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+      canvas.toBlob((blob) => {
+        if (!blob) { resolve(file); return; }
+        const compressed = new File(
+          [blob],
+          file.name.replace(/\.[^.]+$/, '.jpg'),
+          { type: 'image/jpeg' }
+        );
+        console.log(
+          'Screenshot compressed:',
+          (file.size / 1024).toFixed(0) + 'KB →',
+          (compressed.size / 1024).toFixed(0) + 'KB'
+        );
+        resolve(compressed);
+      }, 'image/jpeg', 0.82);
+    };
+
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
 // Upload file to Supabase Storage → return public URL or null
 async function uploadScreenshotToStorage(file, userId) {
   if (!file) return null;
+  file = await _compressScreenshot(file); // compress before uploading
+  showSpinner('UPLOADING CHART…');        // update spinner after compression
   const ext = file.name.split('.').pop() || 'jpg';
   const path = `${userId}/${Date.now()}.${ext}`;
   const { error } = await _sb.storage

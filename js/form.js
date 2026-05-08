@@ -93,7 +93,7 @@ document.getElementById('tradeForm').addEventListener('submit', async e => {
   // Upload screenshot to Supabase Storage if a file is selected
   let imageUrl = null;
   if (screenshotFile) {
-    showSpinner('UPLOADING CHART…');
+    showSpinner('COMPRESSING IMAGE…');
     imageUrl = await uploadScreenshotToStorage(screenshotFile, state.user.id);
     hideSpinner();
   }
