@@ -186,7 +186,9 @@ async function checkPasswordReset() {
         <div class="brand-stack">
           <div class="brand-mark">
             <div class="bm-wordmark">
-              <span style="color:#F5F5F5;font-family:'Inter',sans-serif;font-weight:800;font-size:32px;">Big M</span><span style="color:#D4AF37;font-family:'Inter',sans-serif;font-weight:800;font-size:32px;">▲</span><span style="color:#F5F5F5;font-family:'Inter',sans-serif;font-weight:800;font-size:32px;">rkt</span>
+              <span class="bm-big">Big</span><span class="bm-m">M</span>
+              <span class="bm-a-wrap"><span class="bm-a-tri"></span></span>
+              <span class="bm-rkt">rkt</span>
             </div>
           </div>
           <div class="login-tag">FTS Trade Journal</div>

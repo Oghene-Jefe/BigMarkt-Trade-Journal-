@@ -15,8 +15,8 @@ function openShareModal(tradeId) {
   img.style.opacity = '0.3';
   document.getElementById('shareModal').classList.add('show');
 
-  document.fonts.ready.then(async () => {
-    _shareCardDataUrl = await _buildTradeCard(trade);
+  document.fonts.ready.then(() => {
+    _shareCardDataUrl = _buildTradeCard(trade);
     img.src = _shareCardDataUrl;
     img.style.opacity = '1';
   });
@@ -37,42 +37,6 @@ function closeShareModal() {
 }
 
 /* ── Canvas helpers ── */
-
-/* Draws the BigM▲rkt wordmark at (x, y) baseline, left-aligned.
-   Reused by both trade cards and report cards for consistency. */
-function _drawLogoOnCanvas(ctx, x, y, fontSize) {
-  ctx.font = '800 ' + fontSize + 'px "Inter", system-ui, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
-
-  ctx.fillStyle = '#F5F5F5';
-  ctx.fillText('Big M', x, y);
-  const bigMW = ctx.measureText('Big M').width;
-
-  ctx.fillStyle = '#D4AF37';
-  ctx.fillText('▲', x + bigMW, y);
-  const triW = ctx.measureText('▲').width;
-
-  ctx.fillStyle = '#F5F5F5';
-  ctx.fillText('rkt', x + bigMW + triW, y);
-}
-
-/* Renders the Big M▲rkt wordmark as an SVG-to-Image so canvas
-   gets the exact same Inter 800 font and gold triangle as the HTML.
-   Returns a Promise<HTMLImageElement|null>. */
-function _loadLogoImage(fontSize) {
-  return new Promise((resolve) => {
-    const f = fontSize || 48;
-    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="${f + 16}"><text y="${f}" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="${f}px"><tspan fill="#F5F5F5">Big M</tspan><tspan fill="#D4AF37">▲</tspan><tspan fill="#F5F5F5">rkt</tspan></text></svg>`;
-    const blob = new Blob([svgStr], { type: 'image/svg+xml' });
-    const url  = URL.createObjectURL(blob);
-    const img  = new Image();
-    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
-    img.src = url;
-  });
-}
-
 function _crr(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -104,7 +68,7 @@ function _pill(ctx, x, y, w, h, bg, border, text, textColor) {
 }
 
 /* ── Main card builder ── */
-async function _buildTradeCard(trade) {
+function _buildTradeCard(trade) {
   const W = 600, H = 348;
   const canvas = document.createElement('canvas');
   const DPR = 2;
@@ -155,15 +119,27 @@ async function _buildTradeCard(trade) {
   _crr(ctx, 9, 9, W - 18, H - 18, 7);
   ctx.stroke();
 
-  // ── BigM▲rkt wordmark (SVG→Image for pixel-perfect gold triangle) ──
-  const logoImg = await _loadLogoImage(21);
-  if (logoImg) ctx.drawImage(logoImg, 40, 36);
+  // ── BigM▲rkt wordmark ──
+  const logoY = 62;
+  ctx.font = '800 21px "Inter", system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+
+  ctx.fillStyle = TEXT;
+  ctx.fillText('BigM', P, logoY);
+  const bigMW = ctx.measureText('BigM').width;
+
+  ctx.fillStyle = GOLD;
+  ctx.fillText('▲', P + bigMW, logoY);
+  const triW = ctx.measureText('▲').width;
+
+  ctx.fillStyle = TEXT;
+  ctx.fillText('rkt', P + bigMW + triW, logoY);
 
   // Subtitle
   ctx.fillStyle = GOLD_DIM;
   ctx.font = '600 9px "Inter", system-ui, sans-serif';
-  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  ctx.fillText('FTS TRADE JOURNAL', P, 75);
+  ctx.fillText('FTS TRADE JOURNAL', P, logoY + 13);
 
   // Date (top-right)
   ctx.fillStyle = MUTED;
@@ -400,15 +376,11 @@ function _getReportPeriodLabel(mode) {
   return MO[now.getMonth()] + ' ' + now.getFullYear() + ' PERFORMANCE';
 }
 
-async function generateReportCard(mode) {
+function generateReportCard(mode) {
   const W = 1080, H = 1080, P = 60;
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
-
-  // Load logo images up-front so canvas draws them synchronously below
-  const logoImg      = await _loadLogoImage(52);
-  const watermarkImg = await _loadLogoImage(28);
 
   const GOLD     = '#D4AF37';
   const GOLD_DIM = 'rgba(212,175,55,0.5)';
@@ -441,15 +413,18 @@ async function generateReportCard(mode) {
   ctx.strokeStyle = GOLD; ctx.lineWidth = 2;
   _crr(ctx, 8, 8, W - 16, H - 16, 16); ctx.stroke();
 
-  // ── BigM▲rkt wordmark (SVG→Image for pixel-perfect gold triangle) ──
-  if (logoImg) ctx.drawImage(logoImg, 80, 76);
-
-  // FTS TRADE JOURNAL subtitle
-  ctx.fillStyle = GOLD_DIM;
-  ctx.font = '400 22px "Bebas Neue", Arial Narrow, Arial, sans-serif';
+  // ── BIGMARKT header ──
+  ctx.font = '700 72px "Bebas Neue", Arial Narrow, Arial, sans-serif';
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = TEXT;
+  ctx.fillText('BIGMARKT', P, 115);
+
+  // FTS TRADE JOURNAL — manual letter spacing (canvas doesn't support it universally)
+  ctx.fillStyle = GOLD;
+  ctx.font = '400 24px "Bebas Neue", Arial Narrow, Arial, sans-serif';
+  ctx.textBaseline = 'alphabetic';
   const subStr = 'FTS TRADE JOURNAL';
-  let sx = 80;
+  let sx = P;
   for (let ci = 0; ci < subStr.length; ci++) {
     ctx.fillText(subStr[ci], sx, 152);
     sx += ctx.measureText(subStr[ci]).width + (subStr[ci] === ' ' ? 8 : 4);
@@ -557,9 +532,12 @@ async function generateReportCard(mode) {
   ctx.textAlign = 'right'; ctx.fillStyle = GOLD_DIM;
   ctx.fillText('FTS COMMUNITY · BIGMARKT', W - P, 863);
 
-  // Watermark wordmark — centered, faint
+  // Watermark wordmark
   ctx.globalAlpha = 0.12;
-  if (watermarkImg) ctx.drawImage(watermarkImg, (W - 300) / 2, 920);
+  ctx.fillStyle = TEXT;
+  ctx.font = '700 36px "Bebas Neue", Arial Narrow, Arial, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('BigM▲rkt', W / 2, 937);
   ctx.globalAlpha = 1;
 
   // URL
@@ -580,8 +558,8 @@ function showReportCardModal(mode) {
   img.src = ''; img.style.opacity = '0.3';
   modal.classList.add('show');
 
-  document.fonts.ready.then(async () => {
-    _reportCardDataUrl = await generateReportCard(mode);
+  document.fonts.ready.then(() => {
+    _reportCardDataUrl = generateReportCard(mode);
     img.src = _reportCardDataUrl;
     img.style.opacity = '1';
   });
