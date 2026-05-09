@@ -37,12 +37,50 @@ export type TradeRow = {
   created_at: string;
 };
 
+export type LeaderboardEntry = {
+  user_id: string;
+  display_name: string;
+  avatar_path: string | null;
+  trade_count: number;
+  win_rate: number;
+  total_pnl: number;
+  growth_pct: number | null;
+  quality_score: number | null;
+  badges: string[];
+};
+
+export type PublicProfile = {
+  id: string;
+  display_name: string;
+  avatar_path: string | null;
+  visibility: "community" | "public";
+  trade_count: number;
+  win_rate: number;
+  total_pnl: number;
+  growth_pct: number | null;
+};
+
+export type PublicTrade = {
+  id: string;
+  pair: string | null;
+  direction: "BUY" | "SELL" | null;
+  result: "WIN" | "LOSS" | "BE" | null;
+  pnl: number | null;
+  rr_ratio: number | null;
+  setup_grade: string | null;
+  tags: string | null;
+  notes: string | null;
+  chart_path: string | null;
+  created_at: string;
+};
+
 export type ProfileRow = {
   id: string;
   email: string | null;
   name: string | null;
   display_name: string | null;
   avatar_url: string | null;
+  avatar_path: string | null;
   starting_balance: number | null;
   source: string | null;
   referred_by: string | null;

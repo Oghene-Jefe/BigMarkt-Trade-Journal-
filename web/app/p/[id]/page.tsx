@@ -1,0 +1,109 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { supabaseServer } from "@/lib/supabase/server";
+import { signAvatar, signCharts } from "@/lib/storage";
+import { fmtMoney, fmtDate, fmtPct } from "@/lib/format";
+import type { PublicProfile, PublicTrade } from "@/lib/types";
+
+// Public share page — NO auth gate. Lives outside the (app) route group.
+// All data comes from SECURITY DEFINER RPCs that filter by visibility on the
+// database side, so anonymous callers see nothing they shouldn't.
+export const dynamic = "force-dynamic";
+
+export default async function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const sb = await supabaseServer();
+
+  const [{ data: profileData }, { data: tradesData }] = await Promise.all([
+    sb.rpc("get_public_profile", { profile_id: id }),
+    sb.rpc("get_public_trades", { profile_id: id, lim: 50 }),
+  ]);
+
+  const profile = (Array.isArray(profileData) ? profileData[0] : profileData) as PublicProfile | null;
+  if (!profile) notFound();
+
+  const trades = (tradesData ?? []) as PublicTrade[];
+  const avatarUrl = profile.avatar_path ? await signAvatar(profile.avatar_path) : null;
+  const chartPaths = trades.map((t) => t.chart_path).filter((p): p is string => !!p);
+  const chartUrls = await signCharts(chartPaths);
+
+  return (
+    <main className="mx-auto max-w-3xl p-6">
+      <header className="mb-8 flex items-center justify-between">
+        <Link href="/" className="font-display text-2xl tracking-widest text-gold">
+          BIGMARKT
+        </Link>
+        <Link href="/leaderboard" className="text-xs text-muted hover:text-white">
+          Leaderboard →
+        </Link>
+      </header>
+
+      <section className="rounded-2xl border border-white/10 bg-panel p-6">
+        <div className="flex items-center gap-5">
+          <div className="h-20 w-20 overflow-hidden rounded-full border border-white/10 bg-black/40">
+            {avatarUrl ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" /> : null}
+          </div>
+          <div>
+            <h1 className="font-display text-3xl tracking-widest text-gold">{profile.display_name}</h1>
+            <p className="text-xs uppercase tracking-wider text-muted">Public profile · {profile.visibility}</p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Stat label="Trades" value={String(profile.trade_count)} />
+          <Stat label="Win Rate" value={`${Math.round(profile.win_rate)}%`} />
+          <Stat label="Net P&L" value={fmtMoney(profile.total_pnl)} tone={profile.total_pnl >= 0 ? "win" : "loss"} />
+          <Stat label="Growth" value={fmtPct(profile.growth_pct)} tone={(profile.growth_pct ?? 0) >= 0 ? "win" : "loss"} />
+        </div>
+      </section>
+
+      <section className="mt-6 space-y-3">
+        <h2 className="font-display text-xl tracking-widest text-gold">PUBLIC TRADES</h2>
+        {trades.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-panel p-8 text-center">
+            <p className="text-sm text-muted">This trader hasn't shared any trades yet.</p>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {trades.map((t) => (
+              <li key={t.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-panel p-3">
+                <span className="w-24 text-xs text-muted">{fmtDate(t.created_at)}</span>
+                {t.chart_path && chartUrls[t.chart_path] ? (
+                  <a href={chartUrls[t.chart_path]} target="_blank" rel="noreferrer">
+                    <img src={chartUrls[t.chart_path]} alt="" className="h-10 w-14 rounded object-cover" loading="lazy" />
+                  </a>
+                ) : (
+                  <span className="h-10 w-14 rounded bg-black/30" />
+                )}
+                <span className="w-20 font-medium">{t.pair ?? "—"}</span>
+                <span className={`w-12 rounded px-2 py-0.5 text-center text-xs ${t.direction === "BUY" ? "bg-win/20 text-win" : "bg-loss/20 text-loss"}`}>
+                  {t.direction ?? "—"}
+                </span>
+                <span className={`w-14 text-xs uppercase ${t.result === "WIN" ? "text-win" : t.result === "LOSS" ? "text-loss" : "text-muted"}`}>
+                  {t.result ?? "—"}
+                </span>
+                <span className={`flex-1 text-right tabular-nums ${(t.pnl ?? 0) >= 0 ? "text-win" : "text-loss"}`}>
+                  {fmtMoney(t.pnl)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <p className="mt-10 text-center text-xs text-muted">
+        BigMarkt · public profiles never expose email addresses
+      </p>
+    </main>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: string; tone?: "win" | "loss" }) {
+  const colour = tone === "win" ? "text-win" : tone === "loss" ? "text-loss" : "text-white";
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
+      <p className="text-xs uppercase tracking-wider text-muted">{label}</p>
+      <p className={`mt-1 font-display text-2xl tracking-wider ${colour}`}>{value}</p>
+    </div>
+  );
+}

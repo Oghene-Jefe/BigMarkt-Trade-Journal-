@@ -19,7 +19,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <nav className="flex items-center gap-5 text-sm">
             <Link href="/dashboard" className="text-muted hover:text-white">Dashboard</Link>
             <Link href="/journal" className="text-muted hover:text-white">Journal</Link>
-            <span className="text-xs text-muted">{user.email}</span>
+            <Link href="/leaderboard" className="text-muted hover:text-white">Leaderboard</Link>
+            <Link href="/profile" className="text-muted hover:text-white">Profile</Link>
+            <span className="hidden text-xs text-muted md:inline">{user.email}</span>
             <form action={logoutAction}>
               <button className="rounded-md border border-white/20 px-3 py-1 text-xs">Log out</button>
             </form>
