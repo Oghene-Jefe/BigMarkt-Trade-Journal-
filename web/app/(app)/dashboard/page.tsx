@@ -1,0 +1,75 @@
+import Link from "next/link";
+import { supabaseServer } from "@/lib/supabase/server";
+import type { TradeRow } from "@/lib/types";
+import { fmtMoney, fmtDate, fmtPct } from "@/lib/format";
+
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const sb = await supabaseServer();
+  const { data: { user } } = await sb.auth.getUser();
+  // Layout already redirects unauthed users; user is guaranteed to exist here.
+
+  const [{ data: tradesData }, { data: profileData }] = await Promise.all([
+    sb.from("trades").select("*").order("created_at", { ascending: false }),
+    sb.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
+  ]);
+  const trades = (tradesData ?? []) as TradeRow[];
+  const startBal = profileData?.starting_balance ?? null;
+
+  const wins = trades.filter((t) => t.result === "WIN").length;
+  const losses = trades.filter((t) => t.result === "LOSS").length;
+  const closed = wins + losses;
+  const winRate = closed > 0 ? (wins / closed) * 100 : null;
+  const totalPnl = trades.reduce((s, t) => s + (t.pnl ?? 0), 0);
+  const growth = startBal && startBal > 0 ? (totalPnl / startBal) * 100 : null;
+  const recent = trades.slice(0, 5);
+
+  return (
+    <div className="space-y-6">
+      <h1 className="font-display text-3xl tracking-widest text-gold">DASHBOARD</h1>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Stat label="Total Trades" value={String(trades.length)} />
+        <Stat label="Win Rate" value={winRate == null ? "—" : `${winRate.toFixed(0)}%`} />
+        <Stat label="Net P&L" value={fmtMoney(totalPnl)} tone={totalPnl >= 0 ? "win" : "loss"} />
+        <Stat label="Growth" value={fmtPct(growth)} tone={(growth ?? 0) >= 0 ? "win" : "loss"} />
+      </div>
+
+      <section className="rounded-2xl border border-white/10 bg-panel p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-display text-xl tracking-widest text-gold">RECENT TRADES</h2>
+          <Link href="/journal" className="text-xs text-muted hover:text-white">View all →</Link>
+        </div>
+        {recent.length === 0 ? (
+          <p className="text-sm text-muted">No trades yet. <Link href="/journal/new" className="text-gold">Log your first.</Link></p>
+        ) : (
+          <ul className="divide-y divide-white/5 text-sm">
+            {recent.map((t) => (
+              <li key={t.id} className="flex items-center justify-between py-2">
+                <span className="text-muted">{fmtDate(t.created_at)}</span>
+                <span className="flex-1 px-3 font-medium">{t.pair}</span>
+                <span className={`px-3 text-xs ${t.result === "WIN" ? "text-win" : t.result === "LOSS" ? "text-loss" : "text-muted"}`}>
+                  {t.result}
+                </span>
+                <span className={`tabular-nums ${(t.pnl ?? 0) >= 0 ? "text-win" : "text-loss"}`}>
+                  {fmtMoney(t.pnl)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: string; tone?: "win" | "loss" }) {
+  const colour = tone === "win" ? "text-win" : tone === "loss" ? "text-loss" : "text-white";
+  return (
+    <div className="rounded-2xl border border-white/10 bg-panel p-4">
+      <p className="text-xs uppercase tracking-wider text-muted">{label}</p>
+      <p className={`mt-1 font-display text-2xl tracking-wider ${colour}`}>{value}</p>
+    </div>
+  );
+}

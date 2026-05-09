@@ -1,0 +1,27 @@
+import { notFound } from "next/navigation";
+import TradeForm from "@/components/TradeForm";
+import { supabaseServer } from "@/lib/supabase/server";
+import type { TradeRow } from "@/lib/types";
+import { updateTradeAction, type TradeActionState } from "../../../actions";
+
+export default async function EditTradePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const sb = await supabaseServer();
+  const { data } = await sb.from("trades").select("*").eq("id", id).maybeSingle();
+  if (!data) notFound();
+  const trade = data as TradeRow;
+
+  // Bind the row id into the update action so the form can reuse the
+  // generic (state, fd) signature.
+  async function bound(state: TradeActionState, fd: FormData) {
+    "use server";
+    return updateTradeAction(id, state, fd);
+  }
+
+  return (
+    <div className="space-y-4">
+      <h1 className="font-display text-3xl tracking-widest text-gold">EDIT TRADE</h1>
+      <TradeForm trade={trade} action={bound} submitLabel="SAVE CHANGES" />
+    </div>
+  );
+}

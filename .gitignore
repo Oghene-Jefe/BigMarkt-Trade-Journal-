@@ -10,6 +10,7 @@
 *service_role*
 service-role-key*
 .supabase/
+supabase/.temp/
 
 # ── Dependencies / build artefacts ──────────────────────────────────────
 node_modules/
