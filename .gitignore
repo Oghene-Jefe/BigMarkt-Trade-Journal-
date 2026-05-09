@@ -1,0 +1,35 @@
+# ── Credentials & secrets ───────────────────────────────────────────────
+# Belt-and-braces: anything that *looks* like an env / secret never reaches git.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*service-role*
+*service_role*
+service-role-key*
+.supabase/
+
+# ── Dependencies / build artefacts ──────────────────────────────────────
+node_modules/
+.next/
+dist/
+build/
+out/
+coverage/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# ── OS / editor ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+*.swp
+
+# ── Tooling caches ──────────────────────────────────────────────────────
+.npm-cache/
+.cache/
