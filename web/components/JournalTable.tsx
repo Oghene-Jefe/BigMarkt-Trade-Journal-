@@ -6,7 +6,17 @@ import { deleteTradeAction } from "@/app/(app)/actions";
 // Server component. All trade fields render as React text — never as raw
 // HTML — which structurally prevents the stored-XSS class of bug the old
 // static app was vulnerable to.
-export default function JournalTable({ trades }: { trades: TradeRow[] }) {
+//
+// chartUrls is a path → signed URL lookup minted by the parent page so we
+// only round-trip Storage once for the whole list. URLs expire on the next
+// request, so a cached page can't be replayed forever.
+export default function JournalTable({
+  trades,
+  chartUrls,
+}: {
+  trades: TradeRow[];
+  chartUrls: Record<string, string>;
+}) {
   if (trades.length === 0) {
     return (
       <div className="rounded-2xl border border-white/10 bg-panel p-12 text-center">
@@ -25,6 +35,7 @@ export default function JournalTable({ trades }: { trades: TradeRow[] }) {
         <thead className="bg-black/30 text-xs uppercase tracking-wider text-muted">
           <tr>
             <th className="px-3 py-2 text-left">Date</th>
+            <th className="px-3 py-2"></th>
             <th className="px-3 py-2 text-left">Pair</th>
             <th className="px-3 py-2 text-left">Dir</th>
             <th className="px-3 py-2 text-left">Result</th>
@@ -39,6 +50,20 @@ export default function JournalTable({ trades }: { trades: TradeRow[] }) {
           {trades.map((t) => (
             <tr key={t.id} className="border-t border-white/5">
               <td className="px-3 py-2 text-muted">{fmtDate(t.created_at)}</td>
+              <td className="px-3 py-2">
+                {t.chart_path && chartUrls[t.chart_path] ? (
+                  <a href={chartUrls[t.chart_path]} target="_blank" rel="noreferrer">
+                    <img
+                      src={chartUrls[t.chart_path]}
+                      alt=""
+                      className="h-8 w-12 rounded object-cover"
+                      loading="lazy"
+                    />
+                  </a>
+                ) : (
+                  <span className="text-xs text-muted">—</span>
+                )}
+              </td>
               <td className="px-3 py-2 font-medium">{t.pair ?? "—"}</td>
               <td className="px-3 py-2">
                 <span className={`rounded px-2 py-0.5 text-xs ${t.direction === "BUY" ? "bg-win/20 text-win" : "bg-loss/20 text-loss"}`}>

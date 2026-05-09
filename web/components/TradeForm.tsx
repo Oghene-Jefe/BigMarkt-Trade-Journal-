@@ -7,16 +7,17 @@ import type { TradeActionState } from "@/app/(app)/actions";
 
 type Props = {
   trade?: TradeRow;
+  existingChartUrl?: string | null;
   action: (state: TradeActionState, fd: FormData) => Promise<TradeActionState>;
   submitLabel: string;
 };
 
-export default function TradeForm({ trade, action, submitLabel }: Props) {
+export default function TradeForm({ trade, existingChartUrl, action, submitLabel }: Props) {
   const [state, formAction, pending] = useActionState<TradeActionState, FormData>(action, {});
   const fe = state.fieldErrors ?? {};
 
   return (
-    <form action={formAction} className="space-y-4 rounded-2xl bg-panel p-6">
+    <form action={formAction} className="space-y-4 rounded-2xl bg-panel p-6" encType="multipart/form-data">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Field label="Pair" name="pair" required defaultValue={trade?.pair ?? ""} placeholder="EURUSD" error={fe.pair} />
         <Select label="Direction" name="direction" defaultValue={trade?.direction ?? "BUY"} options={["BUY", "SELL"]} error={fe.direction} />
@@ -44,6 +45,28 @@ export default function TradeForm({ trade, action, submitLabel }: Props) {
       </div>
 
       <Field label="Tags (comma-separated)" name="tags" defaultValue={trade?.tags ?? ""} placeholder="breakout, news" />
+
+      <div className="space-y-2">
+        <span className="block text-sm text-muted">Chart screenshot</span>
+        {existingChartUrl ? (
+          <div className="space-y-2">
+            <a href={existingChartUrl} target="_blank" rel="noreferrer" className="inline-block">
+              <img src={existingChartUrl} alt="Current chart" className="max-h-40 rounded-md border border-white/10" />
+            </a>
+            <label className="flex items-center gap-2 text-xs text-muted">
+              <input type="checkbox" name="remove_chart" value="1" />
+              Remove current chart on save
+            </label>
+          </div>
+        ) : null}
+        <input
+          type="file"
+          name="chart"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="block w-full text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-gold/20 file:px-3 file:py-1.5 file:text-xs file:font-display file:tracking-widest file:text-gold hover:file:bg-gold/30"
+        />
+        <p className="text-xs text-muted">Max 5 MB. JPEG / PNG / WebP / GIF. Visible only to you unless trade visibility is public.</p>
+      </div>
 
       <label className="block text-sm">
         <span className="mb-1 block text-muted">Notes</span>

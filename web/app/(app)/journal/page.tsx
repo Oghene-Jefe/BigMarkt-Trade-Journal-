@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
+import { signCharts } from "@/lib/storage";
 import JournalTable from "@/components/JournalTable";
 import type { TradeRow } from "@/lib/types";
 
@@ -13,6 +14,8 @@ export default async function JournalPage() {
     .order("created_at", { ascending: false });
 
   const trades = (data ?? []) as TradeRow[];
+  const paths = trades.map((t) => t.chart_path).filter((p): p is string => !!p);
+  const chartUrls = await signCharts(paths);
 
   return (
     <div className="space-y-4">
@@ -23,7 +26,7 @@ export default async function JournalPage() {
         </Link>
       </div>
       {error ? <p className="text-sm text-loss">Couldn't load trades: {error.message}</p> : null}
-      <JournalTable trades={trades} />
+      <JournalTable trades={trades} chartUrls={chartUrls} />
     </div>
   );
 }

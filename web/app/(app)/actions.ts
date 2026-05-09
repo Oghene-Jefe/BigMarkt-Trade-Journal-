@@ -8,8 +8,9 @@ import { tradeSchema, tradeVisibility } from "@/lib/schemas";
 
 export type TradeActionState = { error?: string; ok?: string; fieldErrors?: Record<string, string> };
 
-// FormData → tradeSchema input. Numeric fields come in as strings; we coerce
-// here so the schema can stay strictly numeric and reject invalid values.
+const MAX_CHART_BYTES = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
 function parseTradeForm(fd: FormData) {
   const num = (k: string) => {
     const v = fd.get(k);
@@ -59,16 +60,46 @@ async function requireUser() {
   return { sb, user };
 }
 
+// Returns { path } if a valid file was attached, null if no file, or { error }.
+async function uploadChartIfPresent(
+  sb: Awaited<ReturnType<typeof supabaseServer>>,
+  userId: string,
+  tradeId: string,
+  file: File | null,
+): Promise<{ path: string } | { error: string } | null> {
+  if (!file || file.size === 0) return null;
+  if (file.size > MAX_CHART_BYTES) return { error: "Chart too large (5 MB max)." };
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) return { error: "Chart must be a JPEG/PNG/WebP/GIF image." };
+
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const safeExt = ext.length > 0 && ext.length <= 5 ? ext : "jpg";
+  const path = `${userId}/${tradeId}/chart-${Date.now()}.${safeExt}`;
+
+  const { error } = await sb.storage
+    .from("trade-charts")
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) return { error: `Chart upload failed: ${error.message}` };
+  return { path };
+}
+
 export async function createTradeAction(_: TradeActionState, fd: FormData): Promise<TradeActionState> {
   const parsed = parseTradeForm(fd);
   if (!parsed.success) return { error: "Check your inputs.", fieldErrors: fieldErrorsFromZod(parsed.error) };
 
   const { sb, user } = await requireUser();
-  // Mirror visibility into the legacy `trade_visibility` column so the old
-  // static app at the repo root keeps working until cutover.
-  const row = { ...parsed.data, user_id: user.id, trade_visibility: parsed.data.visibility };
-  const { error } = await sb.from("trades").insert(row);
-  if (error) return { error: error.message };
+  const insertRow = { ...parsed.data, user_id: user.id, trade_visibility: parsed.data.visibility };
+  const { data: inserted, error } = await sb.from("trades").insert(insertRow).select("id").single();
+  if (error || !inserted) return { error: error?.message ?? "Failed to save trade." };
+
+  const file = fd.get("chart") as File | null;
+  const upload = await uploadChartIfPresent(sb, user.id, inserted.id, file);
+  if (upload && "error" in upload) {
+    // Trade is saved without chart — surface the upload failure but don't roll back.
+    return { error: upload.error };
+  }
+  if (upload && "path" in upload) {
+    await sb.from("trades").update({ chart_path: upload.path }).eq("id", inserted.id);
+  }
 
   revalidatePath("/journal");
   revalidatePath("/dashboard");
@@ -80,9 +111,35 @@ export async function updateTradeAction(id: string, _: TradeActionState, fd: For
   if (!parsed.success) return { error: "Check your inputs.", fieldErrors: fieldErrorsFromZod(parsed.error) };
 
   const { sb, user } = await requireUser();
-  const row = { ...parsed.data, trade_visibility: parsed.data.visibility };
-  // RLS already restricts to user_id = auth.uid(); the explicit eq is defence-in-depth.
-  const { error } = await sb.from("trades").update(row).eq("id", id).eq("user_id", user.id);
+  const updateRow: Record<string, unknown> = { ...parsed.data, trade_visibility: parsed.data.visibility };
+
+  const file = fd.get("chart") as File | null;
+  if (file && file.size > 0) {
+    // Look up existing chart_path so we can delete the old object after the
+    // new one is in place. RLS means this query only succeeds for the owner.
+    const { data: existing } = await sb.from("trades")
+      .select("chart_path").eq("id", id).eq("user_id", user.id).maybeSingle();
+
+    const upload = await uploadChartIfPresent(sb, user.id, id, file);
+    if (upload && "error" in upload) return { error: upload.error };
+    if (upload && "path" in upload) {
+      updateRow.chart_path = upload.path;
+      if (existing?.chart_path && existing.chart_path !== upload.path) {
+        await sb.storage.from("trade-charts").remove([existing.chart_path]);
+      }
+    }
+  }
+
+  if (fd.get("remove_chart") === "1") {
+    const { data: existing } = await sb.from("trades")
+      .select("chart_path").eq("id", id).eq("user_id", user.id).maybeSingle();
+    if (existing?.chart_path) {
+      await sb.storage.from("trade-charts").remove([existing.chart_path]);
+    }
+    updateRow.chart_path = null;
+  }
+
+  const { error } = await sb.from("trades").update(updateRow).eq("id", id).eq("user_id", user.id);
   if (error) return { error: error.message };
 
   revalidatePath("/journal");
@@ -92,7 +149,14 @@ export async function updateTradeAction(id: string, _: TradeActionState, fd: For
 
 export async function deleteTradeAction(id: string) {
   const { sb, user } = await requireUser();
+  // Capture chart path first so we can clean up storage after the row is gone.
+  const { data: existing } = await sb.from("trades")
+    .select("chart_path").eq("id", id).eq("user_id", user.id).maybeSingle();
+
   await sb.from("trades").delete().eq("id", id).eq("user_id", user.id);
+  if (existing?.chart_path) {
+    await sb.storage.from("trade-charts").remove([existing.chart_path]);
+  }
   revalidatePath("/journal");
   revalidatePath("/dashboard");
 }

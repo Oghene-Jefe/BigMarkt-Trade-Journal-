@@ -31,6 +31,7 @@ export type TradeRow = {
   tags: string | null;
   notes: string | null;
   image_url: string | null;
+  chart_path: string | null;
   visibility: "private" | "public" | "exclude";
   trade_visibility: string | null;
   created_at: string;
