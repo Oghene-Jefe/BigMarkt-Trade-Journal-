@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { TradeRow } from "@/lib/types";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { deleteTradeAction } from "@/app/(app)/actions";
+import ConfirmButton from "./ConfirmButton";
 
 // Server component. All trade fields render as React text — never as raw
 // HTML — which structurally prevents the stored-XSS class of bug the old
@@ -120,9 +121,12 @@ function DeleteForm({ id }: { id: string }) {
   }
   return (
     <form action={action}>
-      <button className="rounded border border-loss/40 px-2 py-1 text-xs text-loss hover:bg-loss/10">
+      <ConfirmButton
+        message="Delete this trade? Its chart screenshot will also be removed."
+        className="rounded border border-loss/40 px-2 py-1 text-xs text-loss hover:bg-loss/10"
+      >
         Delete
-      </button>
+      </ConfirmButton>
     </form>
   );
 }

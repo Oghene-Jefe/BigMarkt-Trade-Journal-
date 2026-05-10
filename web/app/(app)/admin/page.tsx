@@ -2,6 +2,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import { adminDeleteUserAction } from "./actions";
+import ConfirmButton from "@/components/ConfirmButton";
 
 export const dynamic = "force-dynamic";
 
@@ -116,9 +117,12 @@ export default async function AdminPage() {
                   <td className="px-3 py-2 text-right">
                     <form action={adminDeleteUserAction}>
                       <input type="hidden" name="id" value={u.id} />
-                      <button className="rounded border border-loss/40 px-2 py-1 text-xs text-loss hover:bg-loss/10">
+                      <ConfirmButton
+                        message={`Permanently delete ${u.name ?? u.email ?? "this user"} and ALL their trades, charts, balance resets, and challenges? This cannot be undone.`}
+                        className="rounded border border-loss/40 px-2 py-1 text-xs text-loss hover:bg-loss/10"
+                      >
                         Delete
-                      </button>
+                      </ConfirmButton>
                     </form>
                   </td>
                 </tr>

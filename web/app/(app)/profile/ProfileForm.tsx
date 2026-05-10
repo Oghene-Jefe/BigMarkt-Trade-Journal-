@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { ProfileRow } from "@/lib/types";
+import CompressedFileInput from "@/components/CompressedFileInput";
 import { updateProfileAction, type ProfileActionState } from "./actions";
 
 export default function ProfileForm({
@@ -74,13 +75,12 @@ export default function ProfileForm({
 
       <div className="space-y-2">
         <span className="block text-sm text-muted">Avatar</span>
-        <input
-          type="file"
+        <CompressedFileInput
           name="avatar"
           accept="image/jpeg,image/png,image/webp"
           className="block w-full text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-gold/20 file:px-3 file:py-1.5 file:text-xs file:font-display file:tracking-widest file:text-gold hover:file:bg-gold/30"
         />
-        <p className="text-xs text-muted">Max 2 MB. JPEG / PNG / WebP. Stored privately; signed URL minted on each render.</p>
+        <p className="text-xs text-muted">Auto-compressed before upload. Server cap 2 MB. Stored privately; signed URL minted on each render.</p>
       </div>
 
       {state.error ? <p className="text-sm text-loss">{state.error}</p> : null}

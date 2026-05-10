@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import type { TradeRow } from "@/lib/types";
 import type { TradeActionState } from "@/app/(app)/actions";
+import CompressedFileInput from "./CompressedFileInput";
 
 type Props = {
   trade?: TradeRow;
@@ -59,13 +60,12 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
             </label>
           </div>
         ) : null}
-        <input
-          type="file"
+        <CompressedFileInput
           name="chart"
           accept="image/jpeg,image/png,image/webp,image/gif"
           className="block w-full text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-gold/20 file:px-3 file:py-1.5 file:text-xs file:font-display file:tracking-widest file:text-gold hover:file:bg-gold/30"
         />
-        <p className="text-xs text-muted">Max 5 MB. JPEG / PNG / WebP / GIF. Visible only to you unless trade visibility is public.</p>
+        <p className="text-xs text-muted">Auto-compressed to ≤1600px, JPEG q82. Server cap 5 MB. Visible only to you unless trade visibility is public.</p>
       </div>
 
       <label className="block text-sm">

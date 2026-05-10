@@ -2,6 +2,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import type { ChallengeRow } from "@/lib/types";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import NewChallengeForm from "./NewChallengeForm";
+import ConfirmButton from "@/components/ConfirmButton";
 import { setChallengeStatusAction, deleteChallengeAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -98,9 +99,12 @@ function ChallengeCard({ challenge: c, historical }: { challenge: ChallengeRow; 
         ) : (
           <form action={deleteChallengeAction}>
             <input type="hidden" name="id" value={c.id} />
-            <button className="rounded border border-loss/40 px-2 py-1 text-xs text-loss hover:bg-loss/10">
+            <ConfirmButton
+              message="Delete this challenge from your history?"
+              className="rounded border border-loss/40 px-2 py-1 text-xs text-loss hover:bg-loss/10"
+            >
               Delete
-            </button>
+            </ConfirmButton>
           </form>
         )}
       </div>

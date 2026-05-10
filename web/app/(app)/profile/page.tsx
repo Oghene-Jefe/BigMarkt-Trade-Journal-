@@ -4,21 +4,34 @@ import { signAvatar } from "@/lib/storage";
 import type { ProfileRow, BalanceResetRow } from "@/lib/types";
 import ProfileForm from "./ProfileForm";
 import BalanceResetForm from "./BalanceResetForm";
+import Referrals from "./Referrals";
 import { fmtMoney, fmtDate } from "@/lib/format";
+
+function refCodeFromId(id: string): string {
+  return Buffer.from(id, "utf8").toString("base64").replace(/=/g, "").substring(0, 12);
+}
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
-  const [{ data: profileData }, { data: resetsData }] = await Promise.all([
+  const refCode = refCodeFromId(user!.id);
+  const [{ data: profileData }, { data: resetsData }, refStats] = await Promise.all([
     sb.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
     sb.from("balance_resets").select("*").order("created_at", { ascending: false }).limit(20),
+    sb.rpc("get_referral_stats", { ref_code: refCode }),
   ]);
 
   const profile = (profileData ?? null) as ProfileRow | null;
   const resets = (resetsData ?? []) as BalanceResetRow[];
   const avatarUrl = profile?.avatar_path ? await signAvatar(profile.avatar_path) : null;
+
+  // get_referral_stats returns json — accept either { count } or a number.
+  const rs = refStats.data as { count?: number; total?: number; active?: number } | number | null;
+  const referralCount = typeof rs === "number"
+    ? rs
+    : (rs?.count ?? rs?.total ?? rs?.active ?? 0);
 
   return (
     <div className="space-y-6">
@@ -32,6 +45,8 @@ export default async function ProfilePage() {
       </div>
 
       <ProfileForm profile={profile} avatarUrl={avatarUrl} email={user!.email ?? ""} />
+
+      <Referrals userId={user!.id} count={referralCount} />
 
       <section className="space-y-3">
         <h2 className="font-display text-xl tracking-widest text-gold">BALANCE RESET</h2>
