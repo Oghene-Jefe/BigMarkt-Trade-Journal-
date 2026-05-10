@@ -29,6 +29,25 @@ export const newPasswordSchema = z
 export const tradeVisibility = z.enum(["private", "public", "exclude"]);
 export const profileVisibility = z.enum(["private", "community", "public"]);
 
+export const balanceResetSchema = z.object({
+  new_balance: z.number().finite().positive(),
+  reason: z.string().max(200).nullable().optional(),
+});
+export type BalanceResetInput = z.infer<typeof balanceResetSchema>;
+
+export const challengeSchema = z.object({
+  goal_type: z.string().min(1).max(40).transform((s) => s.trim()),
+  goal_target: z.number().finite().positive(),
+  start_date: z.string().date(),
+  end_date: z.string().date(),
+}).refine((v) => v.end_date >= v.start_date, {
+  message: "End date must be on or after start date",
+  path: ["end_date"],
+});
+export type ChallengeInput = z.infer<typeof challengeSchema>;
+
+export const challengeStatus = z.enum(["active", "completed", "failed", "abandoned"]);
+
 // Mirrors actual prod columns (entry_price, lot_size, setup_grade, etc.) —
 // see lib/types.ts for the rationale.
 export const tradeSchema = z.object({

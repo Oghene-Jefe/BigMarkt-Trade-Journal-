@@ -74,6 +74,31 @@ export type PublicTrade = {
   created_at: string;
 };
 
+export type BalanceResetRow = {
+  id: string;
+  user_id: string;
+  previous_balance: number | null;
+  new_balance: number | null;
+  reason: string | null;
+  reset_date: string | null; // date as ISO string
+  created_at: string;
+};
+
+export type ChallengeRow = {
+  id: string;
+  user_id: string;
+  goal_type: string | null;
+  goal_target: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  status: "active" | "completed" | "failed" | "abandoned" | null;
+  current_streak: number | null;
+  longest_streak: number | null;
+  badge_earned: string | null;
+  created_at: string;
+  completed_at: string | null;
+};
+
 export type ProfileRow = {
   id: string;
   email: string | null;
