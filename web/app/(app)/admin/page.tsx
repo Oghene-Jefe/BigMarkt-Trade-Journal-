@@ -1,7 +1,7 @@
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin";
 import { fmtMoney, fmtDate } from "@/lib/format";
-import { adminDeleteUserAction } from "./actions";
+import { adminPurgeUserDataAction } from "./actions";
 import ConfirmButton from "@/components/ConfirmButton";
 
 export const dynamic = "force-dynamic";
@@ -115,13 +115,13 @@ export default async function AdminPage() {
                     {fmtMoney(u.total_pnl)}
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <form action={adminDeleteUserAction}>
+                    <form action={adminPurgeUserDataAction}>
                       <input type="hidden" name="id" value={u.id} />
                       <ConfirmButton
-                        message={`Permanently delete ${u.name ?? u.email ?? "this user"} and ALL their trades, charts, balance resets, and challenges? This cannot be undone.`}
+                        message={`Purge all app data for ${u.name ?? u.email ?? "this user"}? This deletes their trades, charts, balance resets, challenges, and profile. The auth account itself stays — finalise from the Supabase dashboard if needed. This cannot be undone.`}
                         className="rounded border border-loss/40 px-2 py-1 text-xs text-loss hover:bg-loss/10"
                       >
-                        Delete
+                        Purge data
                       </ConfirmButton>
                     </form>
                   </td>

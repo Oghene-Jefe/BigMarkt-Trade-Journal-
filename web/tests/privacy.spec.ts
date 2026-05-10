@@ -113,9 +113,9 @@ d("authenticated user A", () => {
     expect(data ?? []).toHaveLength(0);
   });
 
-  it("cannot call admin_delete_user", async () => {
+  it("cannot call admin_purge_user_data", async () => {
     const c = await asA();
-    const { error } = await c.rpc("admin_delete_user", { target_id: userB.id });
+    const { error } = await c.rpc("admin_purge_user_data", { target_id: userB.id });
     expect(error).not.toBeNull();
   });
 
