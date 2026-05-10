@@ -54,16 +54,26 @@ export function validateBybitKey(info: BybitKeyInfo): ValidationResult {
   }
 
   for (const [group, values] of Object.entries(info.permissions ?? {})) {
+    const vs = values ?? [];
+
+    // Empty value array means no scope was actually granted on this group —
+    // Bybit just declares the group exists. Safe to allow even unknown
+    // groups in this case (Bybit keeps adding new groups: Affiliate,
+    // FiatP2P, BitCard, etc.).
+    if (vs.length === 0) continue;
+
+    // Non-empty values on an unknown group means Bybit granted something
+    // we haven't reviewed. Reject so a code update is required.
     if (!KNOWN_GROUPS.has(group)) {
       return {
         ok: false,
         reason:
-          `Unsupported Bybit permission group "${group}". This may be a new ` +
-          `Bybit feature; please contact BigMarkt support so we can review it ` +
-          `before connecting.`,
+          `Unsupported Bybit permission group "${group}" with non-empty ` +
+          `scope ${JSON.stringify(vs)}. This may be a new Bybit feature; ` +
+          `please contact BigMarkt support so we can review it.`,
       };
     }
-    for (const v of values ?? []) {
+    for (const v of vs) {
       if (FUND_MOVEMENT_VALUES.has(v)) {
         return {
           ok: false,

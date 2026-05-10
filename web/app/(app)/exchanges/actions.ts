@@ -74,8 +74,11 @@ export async function connectBybitAction(
     is_master: info.isMaster ?? null,
     is_uta: info.uta === 1,
     permissions: info.permissions,
-    ip_bound: info.ips.length > 0,
-    bound_ips: info.ips,
+    // Bybit reports `["*"]` for keys with no IP restriction (any-IP).
+    // A real binding has explicit IP strings. Treat the wildcard as
+    // unbound so the UI badge reflects reality.
+    ip_bound: info.ips.length > 0 && !(info.ips.length === 1 && info.ips[0] === "*"),
+    bound_ips: info.ips.filter((ip) => ip !== "*"),
     status: "active",
   });
 

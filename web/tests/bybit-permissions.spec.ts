@@ -71,9 +71,18 @@ describe("validateBybitKey — fund-movement deny-list", () => {
 });
 
 describe("validateBybitKey — group allow-list", () => {
-  it("rejects an unknown permission group", () => {
+  it("accepts an unknown permission group with empty values (Bybit added a new group)", () => {
+    // Real Bybit responses include groups like "Affiliate", "FiatP2P",
+    // "BitCard" with empty value arrays. Empty = no scope granted = safe.
     const r = validateBybitKey(
-      key({ permissions: { FutureBybitFeature: [""] } }),
+      key({ permissions: { Affiliate: [], FiatP2P: [], BitCard: [] } }),
+    );
+    expect(r.ok).toBe(true);
+  });
+
+  it("rejects an unknown permission group with non-empty values", () => {
+    const r = validateBybitKey(
+      key({ permissions: { FutureBybitFeature: ["SomeWriteScope"] } }),
     );
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toMatch(/Unsupported.*FutureBybitFeature/);
