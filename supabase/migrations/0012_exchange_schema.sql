@@ -25,11 +25,13 @@ create table if not exists public.exchange_connections (
   account_label         text,
 
   -- Ciphertext blobs are versioned JSON produced by lib/exchanges/crypto.ts.
-  -- Salt is a per-connection random 32-byte value; same salt is used to
-  -- derive the key for both the api_key and api_secret blobs.
-  encrypted_api_key     text  not null,
-  encrypted_api_secret  text  not null,
-  key_salt              bytea not null,
+  -- Salt is a per-connection random 32-byte value, base64-encoded as text
+  -- so it travels cleanly through PostgREST/supabase-js without bytea
+  -- encoding gymnastics. Same salt is used to derive the key for both
+  -- the api_key and api_secret blobs.
+  encrypted_api_key     text not null,
+  encrypted_api_secret  text not null,
+  key_salt              text not null,
 
   -- Last 4 + first 4 chars of the api key for UI display. Never the secret.
   api_key_hint          text,
@@ -51,7 +53,7 @@ create table if not exists public.exchange_connections (
 );
 
 alter table public.exchange_connections
-  add column if not exists key_salt             bytea,
+  add column if not exists key_salt             text,
   add column if not exists external_user_id     text,
   add column if not exists is_master            boolean,
   add column if not exists is_uta               boolean,

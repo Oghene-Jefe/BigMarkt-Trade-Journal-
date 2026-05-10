@@ -48,6 +48,19 @@ export type ChallengeInput = z.infer<typeof challengeSchema>;
 
 export const challengeStatus = z.enum(["active", "completed", "failed", "abandoned"]);
 
+export const exchangeEnvironment = z.enum(["mainnet", "testnet"]);
+
+export const connectBybitSchema = z.object({
+  label: z.string().min(1).max(80).transform((s) => s.trim()),
+  environment: exchangeEnvironment,
+  // Bybit V5 API keys are typically 18+ chars; secrets are longer. Cap at
+  // 128 to defang accidental paste of huge strings, but otherwise trust
+  // Bybit's own validation via /v5/user/query-api.
+  apiKey: z.string().min(8).max(128).transform((s) => s.trim()),
+  apiSecret: z.string().min(8).max(128).transform((s) => s.trim()),
+});
+export type ConnectBybitInput = z.infer<typeof connectBybitSchema>;
+
 // Mirrors actual prod columns (entry_price, lot_size, setup_grade, etc.) —
 // see lib/types.ts for the rationale.
 export const tradeSchema = z.object({
