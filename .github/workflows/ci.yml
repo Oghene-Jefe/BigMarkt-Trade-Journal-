@@ -12,9 +12,13 @@ jobs:
       run:
         working-directory: web
     env:
-      # Dummy values so `next build` finds the env names. No secrets.
+      # Dummy values so `next build` and unit tests find the env names.
+      # No real secrets in CI. Privacy spec self-skips without
+      # SUPABASE_SERVICE_ROLE_KEY (only set in a future staging-tests workflow).
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
+      # 32 zero bytes, base64-encoded — only valid for crypto unit tests.
+      EXCHANGE_CREDENTIAL_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +32,9 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build
