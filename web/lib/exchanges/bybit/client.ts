@@ -59,9 +59,21 @@ async function call<T>(
     query,
   });
 
-  const res = await fetch(url, { headers, cache: "no-store" });
+  // Bybit's edge (Cloudflare) drops requests with no User-Agent. Set a
+  // simple identifier so geo/edge filters see us as a real client.
+  const res = await fetch(url, {
+    headers: { ...headers, "User-Agent": "BigMarkt/1.0 (+https://journal.bigmarkt.co)" },
+    cache: "no-store",
+  });
   if (!res.ok) {
-    throw new BybitHttpError(res.status, res.statusText || "request failed");
+    // Read the body so the action can surface Bybit's actual reason
+    // (geo-block, CF challenge, etc.) instead of a bare HTTP code.
+    const body = await res.text().catch(() => "");
+    const excerpt = body.slice(0, 200).replace(/\s+/g, " ").trim();
+    throw new BybitHttpError(
+      res.status,
+      excerpt ? `${res.statusText || "request failed"} — ${excerpt}` : res.statusText,
+    );
   }
   const json = (await res.json()) as BybitEnvelope<T>;
   if (json.retCode !== 0) {
