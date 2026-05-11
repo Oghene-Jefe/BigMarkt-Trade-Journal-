@@ -30,12 +30,37 @@ export default function ProfileForm({
 
   function handleJournalModeChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const v = e.target.value as "manual" | "automated";
+    if (v === journalMode) return;
+
     if (v === "automated" && !tosAccepted) {
       setShowTosModal(true);
       setJournalMode("manual");
       return;
     }
-    setJournalMode(v);
+
+    if (v === "automated" && tosAccepted) {
+      const ok = window.confirm(
+        "You are enabling Automated Journal Mode. Your broker EA or API connection will begin capturing trades. Continue?",
+      );
+      if (!ok) {
+        setJournalMode("manual");
+        return;
+      }
+      setJournalMode("automated");
+      return;
+    }
+
+    if (v === "manual") {
+      const ok = window.confirm(
+        "Are you sure you want to switch to Manual Mode? Automated capture will stop. You can switch back at any time.",
+      );
+      if (!ok) {
+        setJournalMode("automated");
+        return;
+      }
+      setJournalMode("manual");
+      return;
+    }
   }
 
   return (
