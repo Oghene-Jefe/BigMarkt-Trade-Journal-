@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth/require-user";
 const PAGE_SIZE = 20;
 
 const TRADE_FIELDS =
-  "id, pair, direction, lot_size, entry_price, exit_price, pnl, result, opened_at, closed_at, trust_badge, capture_source, journal_mode, notes, created_at";
+  "id, pair, direction, lot_size, entry_price, exit_price, pnl, result, open_time, close_time, trust_badge, capture_source, journal_mode, notes, created_at";
 
 export type Trade = {
   id: string;
@@ -17,8 +17,8 @@ export type Trade = {
   exit_price: number | null;
   pnl: number | null;
   result: string | null;
-  opened_at: string | null;
-  closed_at: string | null;
+  open_time: string | null;
+  close_time: string | null;
   trust_badge: string | null;
   capture_source: string | null;
   journal_mode: string | null;

@@ -134,7 +134,7 @@ export default async function TradesPage({
                         "—"
                       )}
                     </td>
-                    <td className="px-3 py-2">{formatDate(t.opened_at)}</td>
+                    <td className="px-3 py-2">{formatDate(t.open_time)}</td>
                     <td className="px-3 py-2">
                       <Link
                         href={{ pathname: `/trades/${t.id}` }}
