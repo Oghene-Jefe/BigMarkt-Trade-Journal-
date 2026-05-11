@@ -5,6 +5,7 @@ import type { ProfileRow, BalanceResetRow } from "@/lib/types";
 import ProfileForm from "./ProfileForm";
 import BalanceResetForm from "./BalanceResetForm";
 import Referrals from "./Referrals";
+import ShareableLink from "./ShareableLink";
 import { fmtMoney, fmtDate } from "@/lib/format";
 
 function refCodeFromId(id: string): string {
@@ -45,6 +46,16 @@ export default async function ProfilePage() {
       </div>
 
       <ProfileForm profile={profile} avatarUrl={avatarUrl} email={user!.email ?? ""} />
+
+      {profile ? (
+        <section className="space-y-2 rounded-2xl bg-panel p-6">
+          <label className="block text-xs uppercase tracking-wider text-muted">
+            Shareable Profile Link
+          </label>
+          <ShareableLink url={`https://journal.bigmarkt.co/p/${profile.id}`} />
+          <p className="text-xs text-muted">Click to select, then copy. Works without login.</p>
+        </section>
+      ) : null}
 
       <Referrals userId={user!.id} count={referralCount} />
 

@@ -31,11 +31,9 @@ export default async function PublicProfilePage({
   const chartPaths = trades.map((t) => t.chart_path).filter((p): p is string => !!p);
   const chartUrls = await signCharts(chartPaths);
 
-  const journalModeLabel = {
-    manual: null,
-    automated: "🔵 AUTO-VERIFIED JOURNAL",
-    hybrid: "🟡 HYBRID JOURNAL",
-  }[profile.journal_mode ?? "manual"];
+  const journalModeLabel = profile.journal_mode === "automated"
+    ? "🔵 AUTO-VERIFIED JOURNAL"
+    : null;
 
   return (
     <main className="mx-auto max-w-3xl p-6">
