@@ -10,6 +10,8 @@ export type Broker = {
   prop_firm: boolean;
   notes: string;
   website?: string;
+  connectPath?: string;
+  eaDownload?: boolean;
 };
 
 export const STATUS_META: Record<
@@ -54,6 +56,7 @@ export const BROKERS: Broker[] = [
     notes:
       "Full MT4/MT5 support. Drop our read-only EA on any chart and every trade is captured live with verified trust badges.",
     website: "https://www.icmarkets.com",
+    eaDownload: true,
   },
   {
     id: "pepperstone",
@@ -65,6 +68,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA captures fills automatically. cTrader users can use the bridge plugin.",
     website: "https://pepperstone.com",
+    eaDownload: true,
   },
   {
     id: "exness",
@@ -76,6 +80,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 fully supported. EA reads execution history in real time on both standard and pro accounts.",
     website: "https://www.exness.com",
+    eaDownload: true,
   },
   {
     id: "xm",
@@ -87,6 +92,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA install takes under a minute. All account tiers (Micro, Standard, Ultra Low) work.",
     website: "https://www.xm.com",
+    eaDownload: true,
   },
   {
     id: "fbs",
@@ -98,6 +104,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4 and MT5 supported across all FBS account types — read-only EA is allowed.",
     website: "https://fbs.com",
+    eaDownload: true,
   },
   {
     id: "octafx",
@@ -109,6 +116,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA is supported on all OctaFX account types.",
     website: "https://www.octafx.com",
+    eaDownload: true,
   },
   {
     id: "hfm",
@@ -120,6 +128,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 supported. Drop the EA and every fill streams into your BigMarkt journal.",
     website: "https://www.hfm.com",
+    eaDownload: true,
   },
   {
     id: "axess-markets",
@@ -131,6 +140,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA captures trades natively. No special account flag required.",
     website: "https://www.axessmarkets.com",
+    eaDownload: true,
   },
   {
     id: "hantec-markets",
@@ -142,6 +152,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA install is supported across retail account types.",
     website: "https://www.hantecmarkets.com",
+    eaDownload: true,
   },
   {
     id: "fp-markets",
@@ -153,6 +164,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4, MT5, and cTrader all work — the read-only EA streams every fill in real time.",
     website: "https://www.fpmarkets.com",
+    eaDownload: true,
   },
   {
     id: "tickmill",
@@ -164,6 +176,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA captures all fills. Compatible with Tickmill Pro and VIP accounts.",
     website: "https://www.tickmill.com",
+    eaDownload: true,
   },
   {
     id: "vantage-markets",
@@ -175,6 +188,7 @@ export const BROKERS: Broker[] = [
     notes:
       "Full MT4/MT5/cTrader support. Read-only EA install on any chart.",
     website: "https://www.vantagemarkets.com",
+    eaDownload: true,
   },
   {
     id: "blackbull-markets",
@@ -186,6 +200,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA streams trades live. ECN, Prime and Institutional tiers all work.",
     website: "https://blackbull.com",
+    eaDownload: true,
   },
   {
     id: "eightcap",
@@ -197,6 +212,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA supported. Crypto CFD instruments are journaled alongside FX automatically.",
     website: "https://www.eightcap.com",
+    eaDownload: true,
   },
   {
     id: "axi",
@@ -208,6 +224,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4 fully supported. MT5 not offered by Axi at this time.",
     website: "https://www.axi.com",
+    eaDownload: true,
   },
   {
     id: "admirals",
@@ -219,6 +236,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4 and MT5 (including Supreme Edition) work with the read-only EA.",
     website: "https://admiralmarkets.com",
+    eaDownload: true,
   },
   {
     id: "fxtm",
@@ -230,6 +248,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4 and MT5 fully supported across FXTM account types.",
     website: "https://www.fxtm.com",
+    eaDownload: true,
   },
   {
     id: "eglobal",
@@ -241,6 +260,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA captures fills on both eGlobal-branded and MarketsForYou accounts.",
     website: "https://www.marketsforyou.com",
+    eaDownload: true,
   },
   {
     id: "alpari",
@@ -252,6 +272,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 supported. The read-only EA works on all Alpari live account types.",
     website: "https://alpari.com",
+    eaDownload: true,
   },
   {
     id: "roboforex",
@@ -263,6 +284,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4 and MT5 (Pro, ECN, R StocksTrader linked) supported by the EA.",
     website: "https://roboforex.com",
+    eaDownload: true,
   },
   {
     id: "fxgt",
@@ -274,6 +296,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA captures forex and crypto CFD fills natively.",
     website: "https://www.fxgt.com",
+    eaDownload: true,
   },
   {
     id: "thinkmarkets",
@@ -285,6 +308,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 fully supported. ThinkTrader users can switch to MT4/MT5 to enable the EA.",
     website: "https://www.thinkmarkets.com",
+    eaDownload: true,
   },
 
   // ── SUPPORTED — Crypto Exchanges ───────────────────────────────────────────
@@ -298,6 +322,7 @@ export const BROKERS: Broker[] = [
     notes:
       "Connect a read-only API key — spot and futures fills stream in over the user-data WebSocket with no polling delay.",
     website: "https://www.binance.com",
+    connectPath: "/exchanges/binance",
   },
   {
     id: "bybit",
@@ -309,6 +334,7 @@ export const BROKERS: Broker[] = [
     notes:
       "Read-only API key with no withdraw permission. We validate the key on connect and stream order updates live.",
     website: "https://www.bybit.com",
+    connectPath: "/exchanges/bybit",
   },
   {
     id: "coinbase-advanced",
@@ -320,6 +346,7 @@ export const BROKERS: Broker[] = [
     notes:
       "Advanced Trade view-only API key. Real-time fills over the authenticated WebSocket channel.",
     website: "https://www.coinbase.com/advanced-trade",
+    connectPath: "/exchanges/coinbase",
   },
 
   // ── SUPPORTED — Prop Firms ─────────────────────────────────────────────────
@@ -333,6 +360,7 @@ export const BROKERS: Broker[] = [
     notes:
       "FTMO permits read-only EAs that only read trade history. Journal-only — copy execution is permanently disabled.",
     website: "https://ftmo.com",
+    eaDownload: true,
   },
   {
     id: "my-forex-funds",
@@ -344,6 +372,7 @@ export const BROKERS: Broker[] = [
     notes:
       "Read-only EA is allowed under their rules. Journal-only — copy execution stays off for prop accounts.",
     website: "https://myforexfunds.com",
+    eaDownload: true,
   },
   {
     id: "e8-funding",
@@ -355,6 +384,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA captures fills. Journal-only — copying disabled per prop firm policy.",
     website: "https://e8funding.com",
+    eaDownload: true,
   },
   {
     id: "true-forex-funds",
@@ -366,6 +396,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 read-only EA works on challenge and funded accounts. Journal-only.",
     website: "https://trueforexfunds.com",
+    eaDownload: true,
   },
   {
     id: "fundednext",
@@ -377,6 +408,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA supported across all FundedNext models. Journal-only — copying is permanently off.",
     website: "https://fundednext.com",
+    eaDownload: true,
   },
   {
     id: "funded-engineer",
@@ -388,6 +420,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT5 EA works on Funded Engineer challenge and funded accounts. Journal-only.",
     website: "https://fundedengineer.com",
+    eaDownload: true,
   },
   {
     id: "alpha-capital-group",
@@ -399,6 +432,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 read-only EA accepted. Journal-only — copy execution disabled by policy.",
     website: "https://alphacapitalgroup.uk",
+    eaDownload: true,
   },
   {
     id: "instant-funding",
@@ -410,6 +444,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA streams every fill. Journal-only for all Instant Funding accounts.",
     website: "https://instantfunding.com",
+    eaDownload: true,
   },
   {
     id: "goat-funded",
@@ -421,6 +456,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT5 EA captures all trades. Journal-only — copy execution off for prop accounts.",
     website: "https://goatfundedtrader.com",
+    eaDownload: true,
   },
   {
     id: "maven-trading",
@@ -432,6 +468,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 read-only EA is allowed. Journal-only on Maven accounts.",
     website: "https://maven-trading.com",
+    eaDownload: true,
   },
   {
     id: "atlas-funded",
@@ -443,6 +480,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA captures fills. Journal-only per prop firm policy.",
     website: "https://atlasfunded.com",
+    eaDownload: true,
   },
   {
     id: "blue-guardian",
@@ -454,6 +492,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 read-only EA works on Blue Guardian challenge and funded accounts. Journal-only.",
     website: "https://blueguardian.com",
+    eaDownload: true,
   },
   {
     id: "funding-pips",
@@ -465,6 +504,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA captures fills. Journal-only — copy execution disabled for prop accounts.",
     website: "https://fundingpips.com",
+    eaDownload: true,
   },
   {
     id: "the-funded-trader",
@@ -476,6 +516,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA captures every fill. Journal-only for all Funded Trader account types.",
     website: "https://thefundedtraderprogram.com",
+    eaDownload: true,
   },
   {
     id: "fidelcrest",
@@ -487,6 +528,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 read-only EA allowed. Journal-only on Fidelcrest accounts.",
     website: "https://fidelcrest.com",
+    eaDownload: true,
   },
   {
     id: "ofp-funding",
@@ -498,6 +540,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 EA streams fills in real time. Journal-only per prop firm rules.",
     website: "https://ofpfunding.com",
+    eaDownload: true,
   },
 
   // ── PARTIAL ────────────────────────────────────────────────────────────────
@@ -511,6 +554,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4 works with our EA. OANDA's fxTrade API is not yet integrated — use MT4 for full automation.",
     website: "https://www.oanda.com",
+    eaDownload: true,
   },
   {
     id: "ig-markets",
@@ -522,6 +566,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4 is supported via EA. ProRealTime and the native IG API are not supported yet.",
     website: "https://www.ig.com",
+    eaDownload: true,
   },
   {
     id: "kraken",
@@ -544,6 +589,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4 was deprecated in 2024. Some Deriv account types block EAs — verify your account tier before connecting.",
     website: "https://deriv.com",
+    eaDownload: true,
   },
   {
     id: "saxo-bank",
@@ -555,6 +601,7 @@ export const BROKERS: Broker[] = [
     notes:
       "SaxoTraderGO is the primary platform; MT4 is available on request only. EA works once MT4 access is granted.",
     website: "https://www.home.saxo",
+    eaDownload: true,
   },
   {
     id: "cmc-markets",
@@ -566,6 +613,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4 is not the primary CMC platform — some instruments and order types aren't available there.",
     website: "https://www.cmcmarkets.com",
+    eaDownload: true,
   },
   {
     id: "swissquote",
@@ -577,6 +625,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4/MT5 access is restricted to institutional-tier accounts. Retail users get the proprietary platform only.",
     website: "https://www.swissquote.com",
+    eaDownload: true,
   },
   {
     id: "interactive-brokers",
@@ -599,6 +648,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT4 access on Capital.com is feature-limited — not all instruments stream through MT4.",
     website: "https://capital.com",
+    eaDownload: true,
   },
   {
     id: "apex-trader-funding",
@@ -632,6 +682,7 @@ export const BROKERS: Broker[] = [
     notes:
       "MT5 EA works but some account types restrict EA access — verify your tier before installing. Journal-only.",
     website: "https://the5ers.com",
+    eaDownload: true,
   },
 
   // ── UNSUPPORTED ────────────────────────────────────────────────────────────

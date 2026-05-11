@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
   BROKERS,
   STATUS_META,
@@ -168,6 +169,26 @@ export default function BrokersPage() {
                     </span>
                   ))}
                 </div>
+
+                {b.connectPath || b.eaDownload ? (
+                  <div className="mt-3 flex justify-end">
+                    {b.connectPath ? (
+                      <Link
+                        href={b.connectPath}
+                        className="inline-flex items-center gap-1 rounded px-3 py-1 text-xs font-medium bg-green-600 hover:bg-green-700 text-white transition-colors"
+                      >
+                        Connect →
+                      </Link>
+                    ) : (
+                      <Link
+                        href="/ea-setup"
+                        className="inline-flex items-center gap-1 rounded px-3 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                      >
+                        Install EA →
+                      </Link>
+                    )}
+                  </div>
+                ) : null}
               </article>
             );
           })
