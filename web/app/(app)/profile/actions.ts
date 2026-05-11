@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
-import { profileVisibility, journalMode } from "@/lib/schemas";
+import { profileVisibility, journalMode, usernameSchema } from "@/lib/schemas";
 
 export type ProfileActionState = { error?: string; ok?: string };
 
@@ -15,6 +15,7 @@ const updateSchema = z.object({
   display_name: z.string().min(1).max(40).transform((s) => s.trim()),
   visibility: profileVisibility,
   journal_mode: journalMode,
+  username: usernameSchema.nullable().optional(),
   starting_balance: z.number().finite().nonnegative().nullable(),
 });
 
@@ -35,6 +36,7 @@ export async function updateProfileAction(_: ProfileActionState, fd: FormData): 
     display_name: fd.get("display_name"),
     visibility: fd.get("visibility"),
     journal_mode: fd.get("journal_mode") ?? "manual",
+    username: fd.get("username") ? String(fd.get("username")) : null,
     starting_balance: Number.isFinite(startBal) ? startBal : null,
   });
   if (!parsed.success) return { error: "Check your inputs." };

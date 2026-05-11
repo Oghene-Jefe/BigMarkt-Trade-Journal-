@@ -1,22 +1,6 @@
-// DB row shapes mirrored from the live prod schema. Column names match
-// the actual `public.trades` and `public.profiles` tables — these were
-// established by the older static app and the rebuild keeps them.
-//
-// Key naming quirks (kept for backwards-compat with the static app):
-//   entry_price, exit_price, stop_loss, lot_size, setup_grade
-//   tags is a free-text comma-separated string, not text[]
-//   profiles.preferred_pairs is text, not text[]
-//
-// `trade_visibility` is the legacy column (still written by the old app).
-// `visibility` is the new one used by RLS + the leaderboard RPC. Migration
-// 0005 backfills new from old; both are populated for now.
-//
-// Session 1 additions:
-//   trades.trust_badge        — manual | auto_verified | draft | edited | prop_firm
-//   trades.capture_source     — manual | ea | websocket
-//   trades.core_fields_locked — true once auto-captured (locks pair/direction/prices/lots)
-//   trades.auto_approved      — false in hybrid mode until trader approves
-//   profiles.journal_mode     — manual | automated | hybrid
+// DB row shapes mirrored from the live prod schema.
+// Session 1: trust_badge, capture_source, core_fields_locked, auto_approved, journal_mode
+// Session 2: username on profiles, followers_only on trades visibility
 
 export type TrustBadge = 'manual' | 'auto_verified' | 'draft' | 'edited' | 'prop_firm';
 export type CaptureSource = 'manual' | 'ea' | 'websocket';
@@ -43,9 +27,8 @@ export type TradeRow = {
   notes: string | null;
   image_url: string | null;
   chart_path: string | null;
-  visibility: "private" | "public" | "exclude";
+  visibility: "private" | "public" | "exclude" | "followers_only";
   trade_visibility: string | null;
-  // Session 1 — trust badge system
   trust_badge: TrustBadge;
   capture_source: CaptureSource;
   core_fields_locked: boolean;
@@ -76,6 +59,19 @@ export type PublicProfile = {
   growth_pct: number | null;
 };
 
+export type PublicProfileFull = {
+  id: string;
+  display_name: string;
+  avatar_path: string | null;
+  visibility: string;
+  journal_mode: JournalMode;
+  username: string | null;
+  trade_count: number;
+  win_rate: number;
+  total_pnl: number;
+  growth_pct: number | null;
+};
+
 export type PublicTrade = {
   id: string;
   pair: string | null;
@@ -99,7 +95,7 @@ export type BalanceResetRow = {
   previous_balance: number | null;
   new_balance: number | null;
   reason: string | null;
-  reset_date: string | null; // date as ISO string
+  reset_date: string | null;
   created_at: string;
 };
 
@@ -134,8 +130,8 @@ export type ProfileRow = {
   preferred_pairs: string | null;
   daily_loss_limit: number | null;
   visibility: "private" | "community" | "public";
-  // Session 1 addition
   journal_mode: JournalMode;
+  username: string | null;
   created_at: string;
   updated_at: string;
 };

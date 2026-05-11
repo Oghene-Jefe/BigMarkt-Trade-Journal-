@@ -1,5 +1,3 @@
-// Single source of truth for input validation. Used by client forms AND
-// server actions — the server never trusts the client's check.
 import { z } from "zod";
 
 export const emailSchema = z.string().email().max(254).transform((s) => s.toLowerCase().trim());
@@ -15,7 +13,6 @@ export const signupSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   name: z.string().min(1).max(80).transform((s) => s.trim()),
-  // Honeypot: bots fill hidden fields, humans don't. Must be empty.
   website: z.string().max(0).optional().or(z.literal("")),
 });
 export type SignupInput = z.infer<typeof signupSchema>;
@@ -26,9 +23,16 @@ export const newPasswordSchema = z
   .object({ password: passwordSchema, confirm: passwordSchema })
   .refine((v) => v.password === v.confirm, { message: "Passwords do not match", path: ["confirm"] });
 
-export const tradeVisibility = z.enum(["private", "public", "exclude"]);
+export const tradeVisibility = z.enum(["private", "public", "exclude", "followers_only"]);
 export const profileVisibility = z.enum(["private", "community", "public"]);
 export const journalMode = z.enum(["manual", "automated", "hybrid"]);
+
+export const usernameSchema = z
+  .string()
+  .min(3)
+  .max(30)
+  .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores")
+  .transform((s) => s.toLowerCase().trim());
 
 export const balanceResetSchema = z.object({
   new_balance: z.number().finite().positive(),
@@ -48,22 +52,16 @@ export const challengeSchema = z.object({
 export type ChallengeInput = z.infer<typeof challengeSchema>;
 
 export const challengeStatus = z.enum(["active", "completed", "failed", "abandoned"]);
-
 export const exchangeEnvironment = z.enum(["mainnet", "testnet"]);
 
 export const connectBybitSchema = z.object({
   label: z.string().min(1).max(80).transform((s) => s.trim()),
   environment: exchangeEnvironment,
-  // Bybit V5 API keys are typically 18+ chars; secrets are longer. Cap at
-  // 128 to defang accidental paste of huge strings, but otherwise trust
-  // Bybit's own validation via /v5/user/query-api.
   apiKey: z.string().min(8).max(128).transform((s) => s.trim()),
   apiSecret: z.string().min(8).max(128).transform((s) => s.trim()),
 });
 export type ConnectBybitInput = z.infer<typeof connectBybitSchema>;
 
-// Mirrors actual prod columns (entry_price, lot_size, setup_grade, etc.) —
-// see lib/types.ts for the rationale.
 export const tradeSchema = z.object({
   pair: z.string().min(1).max(20),
   direction: z.enum(["BUY", "SELL"]),
@@ -79,7 +77,7 @@ export const tradeSchema = z.object({
   emotions: z.string().max(40).nullable().optional(),
   strategy: z.string().max(80).nullable().optional(),
   setup_grade: z.string().max(4).nullable().optional(),
-  tags: z.string().max(400).nullable().optional(), // comma-separated text in prod
+  tags: z.string().max(400).nullable().optional(),
   notes: z.string().max(4000).nullable().optional(),
   visibility: tradeVisibility.default("private"),
 });

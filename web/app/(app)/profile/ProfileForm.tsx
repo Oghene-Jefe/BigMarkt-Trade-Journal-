@@ -48,6 +48,23 @@ export default function ProfileForm({
       </label>
 
       <label className="block text-sm">
+        <span className="mb-1 block text-muted">Username</span>
+        <div className="flex items-center rounded-md border border-white/10 bg-black/40">
+          <span className="px-3 py-2 text-muted text-sm">@</span>
+          <input
+            name="username"
+            maxLength={30}
+            defaultValue={profile?.username ?? ""}
+            placeholder="jefe_xau"
+            className="flex-1 bg-transparent px-2 py-2 outline-none"
+          />
+        </div>
+        <span className="mt-1 block text-xs text-muted">
+          Your public URL: bigmarkt.co/@username · Letters, numbers, underscores only.
+        </span>
+      </label>
+
+      <label className="block text-sm">
         <span className="mb-1 block text-muted">Journal Mode</span>
         <select
           name="journal_mode"

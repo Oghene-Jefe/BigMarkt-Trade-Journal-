@@ -1,30 +1,32 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signAvatar, signCharts } from "@/lib/storage";
-import { fmtMoney, fmtDate, fmtPct } from "@/lib/format";
+import { fmtMoney, fmtDate } from "@/lib/format";
 import TrustBadge from "@/components/TrustBadge";
+import Link from "next/link";
 import type { PublicProfileFull, PublicTrade } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function PublicProfilePage({
+export default async function UsernameProfilePage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ username: string }>;
 }) {
-  const { id } = await params;
+  const { username } = await params;
   const sb = await supabaseServer();
 
-  const [{ data: profileData }, { data: tradesData }] = await Promise.all([
-    sb.rpc("get_public_profile", { profile_id: id }),
-    sb.rpc("get_public_trades", { profile_id: id, lim: 50 }),
-  ]);
+  const { data: profileData } = await sb.rpc("get_profile_by_username", {
+    slug: username,
+  });
 
-  const profile = (
-    Array.isArray(profileData) ? profileData[0] : profileData
-  ) as PublicProfileFull | null;
+  const profile = (Array.isArray(profileData) ? profileData[0] : profileData) as PublicProfileFull | null;
   if (!profile) notFound();
+
+  const { data: tradesData } = await sb.rpc("get_public_trades", {
+    profile_id: profile.id,
+    lim: 50,
+  });
 
   const trades = (tradesData ?? []) as PublicTrade[];
   const avatarUrl = profile.avatar_path ? await signAvatar(profile.avatar_path) : null;
@@ -60,7 +62,7 @@ export default async function PublicProfilePage({
               {profile.display_name}
             </h1>
             <p className="text-xs uppercase tracking-wider text-muted">
-              {profile.username ? `@${profile.username} · ` : ""}{profile.visibility}
+              @{profile.username} · {profile.visibility}
             </p>
             {journalModeLabel ? (
               <p className="mt-1 text-xs font-mono text-blue-400">{journalModeLabel}</p>
@@ -68,18 +70,17 @@ export default async function PublicProfilePage({
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="mt-6 grid grid-cols-3 gap-3">
           <Stat label="Trades" value={String(profile.trade_count ?? 0)} />
-          <Stat label="Win Rate" value={`${Math.round(profile.win_rate ?? 0)}%`} />
+          <Stat
+            label="Win Rate"
+            value={`${Math.round(profile.win_rate ?? 0)}%`}
+            tone={(profile.win_rate ?? 0) >= 50 ? "win" : "loss"}
+          />
           <Stat
             label="Net P&L"
             value={fmtMoney(profile.total_pnl)}
             tone={(profile.total_pnl ?? 0) >= 0 ? "win" : "loss"}
-          />
-          <Stat
-            label="Growth"
-            value={fmtPct(profile.growth_pct)}
-            tone={(profile.growth_pct ?? 0) >= 0 ? "win" : "loss"}
           />
         </div>
       </section>
@@ -88,7 +89,7 @@ export default async function PublicProfilePage({
         <h2 className="font-display text-xl tracking-widest text-gold">PUBLIC TRADES</h2>
         {trades.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-panel p-8 text-center">
-            <p className="text-sm text-muted">This trader hasn't shared any trades yet.</p>
+            <p className="text-sm text-muted">No public trades yet.</p>
           </div>
         ) : (
           <ul className="space-y-2">
