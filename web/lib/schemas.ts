@@ -13,7 +13,7 @@ export const signupSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   name: z.string().min(1).max(80).transform((s) => s.trim()),
-  website: z.string().max(0).optional().or(z.literal("")),
+  website: z.string().optional(),
 });
 export type SignupInput = z.infer<typeof signupSchema>;
 
@@ -35,7 +35,7 @@ export const usernameSchema = z
   .transform((s) => s.toLowerCase().trim());
 
 export const balanceResetSchema = z.object({
-  new_balance: z.number().finite().positive(),
+  new_balance: z.number().finite().positive().max(10_000_000),
   reason: z.string().max(200).nullable().optional(),
 });
 export type BalanceResetInput = z.infer<typeof balanceResetSchema>;

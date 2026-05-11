@@ -35,7 +35,7 @@ export async function signupAction(_: ActionState, formData: FormData): Promise<
   });
   if (!parsed.success) return { error: "Check your inputs and try again." };
   // Honeypot tripped → silently succeed (don't tell bots).
-  if (parsed.data.website) return { ok: "Thanks." };
+  if (parsed.data.website && parsed.data.website.length > 0) return { error: "Bot detected" };
 
   const sb = await supabaseServer();
   const { data, error } = await sb.auth.signUp({

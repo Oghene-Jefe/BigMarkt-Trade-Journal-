@@ -71,8 +71,13 @@ async function uploadChartIfPresent(
   if (file.size > MAX_CHART_BYTES) return { error: "Chart too large (5 MB max)." };
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) return { error: "Chart must be a JPEG/PNG/WebP/GIF image." };
 
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-  const safeExt = ext.length > 0 && ext.length <= 5 ? ext : "jpg";
+  const extByType: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+  };
+  const safeExt = extByType[file.type] ?? "png";
   const path = `${userId}/${tradeId}/chart-${Date.now()}.${safeExt}`;
 
   const { error } = await sb.storage
@@ -98,7 +103,7 @@ export async function createTradeAction(_: TradeActionState, fd: FormData): Prom
     return { error: upload.error };
   }
   if (upload && "path" in upload) {
-    await sb.from("trades").update({ chart_path: upload.path }).eq("id", inserted.id);
+    await sb.from("trades").update({ chart_path: upload.path }).eq("id", inserted.id).eq("user_id", user.id);
   }
 
   revalidatePath("/journal");

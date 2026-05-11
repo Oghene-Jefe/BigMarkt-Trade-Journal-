@@ -21,6 +21,8 @@ export async function connectBybitAction(
   _state: ConnectActionState,
   fd: FormData,
 ): Promise<ConnectActionState> {
+  const { sb, user } = await requireUser();
+
   // 1. Validate form input
   const parsed = connectBybitSchema.safeParse({
     label: fd.get("label"),
@@ -57,7 +59,6 @@ export async function connectBybitAction(
   if (!validation.ok) return { error: validation.reason };
 
   // 4. Encrypt credentials with a fresh per-connection salt and store.
-  const { sb, user } = await requireUser();
   const salt = generateSalt();
   const saltB64 = salt.toString("base64");
 
