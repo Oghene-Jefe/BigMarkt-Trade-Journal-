@@ -9,7 +9,10 @@ export async function acceptAutomationTosAction(): Promise<{ error?: string }> {
 
   const { error } = await sb
     .from("profiles")
-    .update({ tos_automation_accepted_at: new Date().toISOString() })
+    .update({
+      tos_automation_accepted_at: new Date().toISOString(),
+      journal_mode: "automated",
+    })
     .eq("id", user.id);
 
   if (error) {
