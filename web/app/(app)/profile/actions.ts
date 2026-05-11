@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
-import { profileVisibility } from "@/lib/schemas";
+import { profileVisibility, journalMode } from "@/lib/schemas";
 
 export type ProfileActionState = { error?: string; ok?: string };
 
@@ -14,6 +14,7 @@ const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const updateSchema = z.object({
   display_name: z.string().min(1).max(40).transform((s) => s.trim()),
   visibility: profileVisibility,
+  journal_mode: journalMode,
   starting_balance: z.number().finite().nonnegative().nullable(),
 });
 
@@ -33,6 +34,7 @@ export async function updateProfileAction(_: ProfileActionState, fd: FormData): 
   const parsed = updateSchema.safeParse({
     display_name: fd.get("display_name"),
     visibility: fd.get("visibility"),
+    journal_mode: fd.get("journal_mode") ?? "manual",
     starting_balance: Number.isFinite(startBal) ? startBal : null,
   });
   if (!parsed.success) return { error: "Check your inputs." };

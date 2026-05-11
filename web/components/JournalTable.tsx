@@ -3,6 +3,7 @@ import type { TradeRow } from "@/lib/types";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { deleteTradeAction } from "@/app/(app)/actions";
 import ConfirmButton from "./ConfirmButton";
+import TrustBadge from "./TrustBadge";
 
 // Server component. All trade fields render as React text — never as raw
 // HTML — which structurally prevents the stored-XSS class of bug the old
@@ -40,6 +41,7 @@ export default function JournalTable({
             <th className="px-3 py-2 text-left">Pair</th>
             <th className="px-3 py-2 text-left">Dir</th>
             <th className="px-3 py-2 text-left">Result</th>
+            <th className="px-3 py-2 text-left">Source</th>
             <th className="px-3 py-2 text-right">P&amp;L</th>
             <th className="px-3 py-2 text-right">R:R</th>
             <th className="px-3 py-2 text-left">Tags</th>
@@ -75,6 +77,9 @@ export default function JournalTable({
                 <span className={`text-xs uppercase ${t.result === "WIN" ? "text-win" : t.result === "LOSS" ? "text-loss" : "text-muted"}`}>
                   {t.result ?? "—"}
                 </span>
+              </td>
+              <td className="px-3 py-2">
+                <TrustBadge badge={t.trust_badge ?? 'manual'} />
               </td>
               <td className={`px-3 py-2 text-right tabular-nums ${(t.pnl ?? 0) >= 0 ? "text-win" : "text-loss"}`}>
                 {fmtMoney(t.pnl)}

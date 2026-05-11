@@ -48,6 +48,22 @@ export default function ProfileForm({
       </label>
 
       <label className="block text-sm">
+        <span className="mb-1 block text-muted">Journal Mode</span>
+        <select
+          name="journal_mode"
+          defaultValue={profile?.journal_mode ?? "manual"}
+          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+        >
+          <option value="manual">MANUAL — log trades yourself after the fact</option>
+          <option value="automated">AUTOMATED — EA captures every trade in real time</option>
+          <option value="hybrid">HYBRID — EA captures, you approve before publishing</option>
+        </select>
+        <span className="mt-1 block text-xs text-muted">
+          Automated mode unlocks the verified leaderboard. Manual trades are excluded from ranking.
+        </span>
+      </label>
+
+      <label className="block text-sm">
         <span className="mb-1 block text-muted">Visibility</span>
         <select
           name="visibility"

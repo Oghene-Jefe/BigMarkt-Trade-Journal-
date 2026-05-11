@@ -10,6 +10,17 @@
 // `trade_visibility` is the legacy column (still written by the old app).
 // `visibility` is the new one used by RLS + the leaderboard RPC. Migration
 // 0005 backfills new from old; both are populated for now.
+//
+// Session 1 additions:
+//   trades.trust_badge        — manual | auto_verified | draft | edited | prop_firm
+//   trades.capture_source     — manual | ea | websocket
+//   trades.core_fields_locked — true once auto-captured (locks pair/direction/prices/lots)
+//   trades.auto_approved      — false in hybrid mode until trader approves
+//   profiles.journal_mode     — manual | automated | hybrid
+
+export type TrustBadge = 'manual' | 'auto_verified' | 'draft' | 'edited' | 'prop_firm';
+export type CaptureSource = 'manual' | 'ea' | 'websocket';
+export type JournalMode = 'manual' | 'automated' | 'hybrid';
 
 export type TradeRow = {
   id: string;
@@ -34,19 +45,24 @@ export type TradeRow = {
   chart_path: string | null;
   visibility: "private" | "public" | "exclude";
   trade_visibility: string | null;
+  // Session 1 — trust badge system
+  trust_badge: TrustBadge;
+  capture_source: CaptureSource;
+  core_fields_locked: boolean;
+  auto_approved: boolean;
   created_at: string;
 };
 
 export type LeaderboardEntry = {
-  user_id: string;
+  id: string;
   display_name: string;
   avatar_path: string | null;
+  visibility: string;
+  journal_mode: JournalMode;
   trade_count: number;
   win_rate: number;
   total_pnl: number;
-  growth_pct: number | null;
-  quality_score: number | null;
-  badges: string[];
+  avg_rr: number;
 };
 
 export type PublicProfile = {
@@ -71,6 +87,9 @@ export type PublicTrade = {
   tags: string | null;
   notes: string | null;
   chart_path: string | null;
+  trust_badge: TrustBadge;
+  capture_source: CaptureSource;
+  core_fields_locked: boolean;
   created_at: string;
 };
 
@@ -115,6 +134,8 @@ export type ProfileRow = {
   preferred_pairs: string | null;
   daily_loss_limit: number | null;
   visibility: "private" | "community" | "public";
+  // Session 1 addition
+  journal_mode: JournalMode;
   created_at: string;
   updated_at: string;
 };

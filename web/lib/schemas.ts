@@ -28,6 +28,7 @@ export const newPasswordSchema = z
 
 export const tradeVisibility = z.enum(["private", "public", "exclude"]);
 export const profileVisibility = z.enum(["private", "community", "public"]);
+export const journalMode = z.enum(["manual", "automated", "hybrid"]);
 
 export const balanceResetSchema = z.object({
   new_balance: z.number().finite().positive(),
