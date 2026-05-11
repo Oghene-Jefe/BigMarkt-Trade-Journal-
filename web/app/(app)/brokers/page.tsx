@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import type { Route } from "next";
 import {
   BROKERS,
   STATUS_META,
@@ -174,7 +175,7 @@ export default function BrokersPage() {
                   <div className="mt-3 flex justify-end">
                     {b.connectPath ? (
                       <Link
-                        href={b.connectPath}
+                        href={b.connectPath as Route}
                         className="inline-flex items-center gap-1 rounded px-3 py-1 text-xs font-medium bg-green-600 hover:bg-green-700 text-white transition-colors"
                       >
                         Connect →
