@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { ProfileRow } from "@/lib/types";
 import CompressedFileInput from "@/components/CompressedFileInput";
+import AutomationTosModal from "@/components/brokers/AutomationTosModal";
 import { updateProfileAction, type ProfileActionState } from "./actions";
 
 export default function ProfileForm({
@@ -18,6 +19,22 @@ export default function ProfileForm({
     updateProfileAction,
     {},
   );
+
+  const [tosAccepted, setTosAccepted] = useState<boolean>(!!profile?.tos_automation_accepted_at);
+  const [showTosModal, setShowTosModal] = useState<boolean>(false);
+  const [journalMode, setJournalMode] = useState<"manual" | "automated">(
+    profile?.journal_mode === "automated" ? "automated" : "manual",
+  );
+
+  function handleJournalModeChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const v = e.target.value as "manual" | "automated";
+    if (v === "automated" && !tosAccepted) {
+      setShowTosModal(true);
+      setJournalMode("manual");
+      return;
+    }
+    setJournalMode(v);
+  }
 
   return (
     <form action={formAction} encType="multipart/form-data" className="space-y-5 rounded-2xl bg-panel p-6">
@@ -68,7 +85,8 @@ export default function ProfileForm({
         <span className="mb-1 block text-muted">Journal Mode</span>
         <select
           name="journal_mode"
-          defaultValue={profile?.journal_mode ?? "manual"}
+          value={journalMode}
+          onChange={handleJournalModeChange}
           className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
         >
           <option value="manual">MANUAL — log trades yourself after the fact</option>
@@ -126,6 +144,17 @@ export default function ProfileForm({
           {pending ? "SAVING…" : "SAVE PROFILE"}
         </button>
       </div>
+
+      {showTosModal ? (
+        <AutomationTosModal
+          onAccepted={() => {
+            setTosAccepted(true);
+            setShowTosModal(false);
+            setJournalMode("automated");
+          }}
+          onCancel={() => setShowTosModal(false)}
+        />
+      ) : null}
     </form>
   );
 }

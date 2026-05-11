@@ -132,6 +132,7 @@ export type ProfileRow = {
   visibility: "private" | "community" | "public";
   journal_mode: JournalMode;
   username: string | null;
+  tos_automation_accepted_at: string | null;
   created_at: string;
   updated_at: string;
 };
