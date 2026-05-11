@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { ProfileRow } from "@/lib/types";
 import CompressedFileInput from "@/components/CompressedFileInput";
 import AutomationTosModal from "@/components/brokers/AutomationTosModal";
@@ -20,6 +21,7 @@ export default function ProfileForm({
     {},
   );
 
+  const router = useRouter();
   const [tosAccepted, setTosAccepted] = useState<boolean>(!!profile?.tos_automation_accepted_at);
   const [showTosModal, setShowTosModal] = useState<boolean>(false);
   const [journalMode, setJournalMode] = useState<"manual" | "automated">(
@@ -151,6 +153,7 @@ export default function ProfileForm({
             setTosAccepted(true);
             setShowTosModal(false);
             setJournalMode("automated");
+            router.refresh();
           }}
           onCancel={() => setShowTosModal(false)}
         />
