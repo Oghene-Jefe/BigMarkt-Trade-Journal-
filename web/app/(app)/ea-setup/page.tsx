@@ -117,6 +117,28 @@ export default async function EaSetupPage() {
           </li>
           <li>
             <span className="font-semibold text-white">
+              4b. (Optional) Filter by magic number.
+            </span>{" "}
+            The{" "}
+            <code className="rounded bg-black/40 px-1 font-mono">FilterMagic</code>{" "}
+            input controls which trades get journaled:
+            <ul className="mt-2 ml-4 list-disc space-y-1 text-xs text-white/70">
+              <li>
+                <code className="rounded bg-black/40 px-1 font-mono">-1</code>{" "}
+                (default) — capture <em>all</em> trades, including bot trades.
+              </li>
+              <li>
+                <code className="rounded bg-black/40 px-1 font-mono">0</code> —
+                capture <em>manual trades only</em> (deals with no magic number).
+              </li>
+              <li>
+                Any positive number — capture only trades from the trading bot
+                with that magic number.
+              </li>
+            </ul>
+          </li>
+          <li>
+            <span className="font-semibold text-white">
               5. Allow WebRequest.
             </span>{" "}
             Open <em>Tools → Options → Expert Advisors</em>, tick{" "}

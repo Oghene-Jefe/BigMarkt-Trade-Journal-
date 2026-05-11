@@ -15,6 +15,7 @@
 input string ApiToken    = "";                              // EA Token (from /ea-setup)
 input string ApiEndpoint = "https://journal.bigmarkt.co/api/ea/ingest"; // API Endpoint
 input bool   DebugMode   = false;                          // Print debug logs
+input int    FilterMagic = -1; // Magic filter: -1 = all trades, 0 = manual only, any positive number = that EA's magic only
 
 //--- constants
 #define BIGMARKT_VERSION "1.0.0"
@@ -179,6 +180,19 @@ void OnTradeTransaction(
    datetime from = (datetime)(TimeCurrent() - 86400); // last 24h window
    datetime to   = TimeCurrent() + 60;
    HistorySelect(from, to);
+
+   // Magic number filter
+   if(!HistoryDealSelect(dealTicket))
+   {
+      if(DebugMode) Print("BigMarkt: HistoryDealSelect failed in filter for ticket ", dealTicket);
+      return;
+   }
+   long dealMagic = HistoryDealGetInteger(dealTicket, DEAL_MAGIC);
+   if(FilterMagic >= 0 && dealMagic != (long)FilterMagic)
+   {
+      if(DebugMode) Print("BigMarkt: skipping ticket ", dealTicket, " — magic ", dealMagic, " != FilterMagic ", FilterMagic);
+      return;
+   }
 
    SendDeal(dealTicket);
 }
