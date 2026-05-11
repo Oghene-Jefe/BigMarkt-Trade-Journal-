@@ -56,7 +56,7 @@ export default function BrokersPage() {
       </header>
 
       <section className="flex flex-wrap gap-3">
-        {(["supported", "partial", "unsupported"] as BrokerStatus[]).map((s) => {
+        {(["supported", "partial", "unsupported", "inactive"] as BrokerStatus[]).map((s) => {
           const meta = STATUS_META[s];
           return (
             <span
