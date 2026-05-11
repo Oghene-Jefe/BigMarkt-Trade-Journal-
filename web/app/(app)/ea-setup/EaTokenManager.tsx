@@ -53,6 +53,26 @@ function WsStatusCard({ status }: { status: WsStatus | null }) {
         {dot} {title}
       </p>
       <p className="mt-1 text-xs text-white/70">{body}</p>
+      {status && status.connected_clients > 0 ? (
+        <ul className="mt-3 space-y-1">
+          {status.connections.map((c) => {
+            const secs = Math.round(c.last_ping_ms_ago / 1000);
+            return (
+              <li key={c.token_id} className="text-xs">
+                {c.stale ? (
+                  <span className="text-amber-300">
+                    ⚠️ EA connected but not responding — last seen {secs}s ago
+                  </span>
+                ) : (
+                  <span className="text-emerald-300">
+                    🟢 EA active — last ping {secs}s ago
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
       {status ? (
         <p className="mt-2 text-[11px] text-muted">
           Uptime: {formatUptime(status.server_uptime_seconds)}

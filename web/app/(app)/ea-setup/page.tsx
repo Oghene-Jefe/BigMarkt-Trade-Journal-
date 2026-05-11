@@ -15,6 +15,11 @@ export type WsStatus = {
   connected_clients: number;
   server_uptime_seconds: number;
   ts: number;
+  connections: Array<{
+    token_id: string;
+    last_ping_ms_ago: number;
+    stale?: boolean;
+  }>;
 };
 
 async function getWsStatus(): Promise<WsStatus | null> {

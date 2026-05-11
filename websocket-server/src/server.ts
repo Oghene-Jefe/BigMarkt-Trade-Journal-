@@ -23,7 +23,10 @@ const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROL
 interface AuthedSocket extends WebSocket {
   userId?: string;
   tokenId?: string;
+  lastPing?: number;
 }
+
+const STALE_MS = 60_000;
 
 const authedSockets = new Set<AuthedSocket>();
 
@@ -128,6 +131,7 @@ wss.on("connection", async (socket: AuthedSocket, req) => {
 
   socket.userId = auth.userId;
   socket.tokenId = auth.tokenId;
+  socket.lastPing = Date.now();
   authedSockets.add(socket);
 
   await supabase
@@ -148,6 +152,7 @@ wss.on("connection", async (socket: AuthedSocket, req) => {
 
     switch (msg.type) {
       case "ping":
+        socket.lastPing = Date.now();
         socket.send(JSON.stringify({ type: "pong", ts: Date.now() }));
         return;
       case "trade":
@@ -183,10 +188,22 @@ try {
     const url = (req.url ?? "").split("?")[0];
 
     if (req.method === "GET" && url === "/status") {
+      const now = Date.now();
+      const connections = Array.from(authedSockets).map((s) => {
+        const lastPing = s.lastPing ?? now;
+        const ago = now - lastPing;
+        const entry: { token_id: string; last_ping_ms_ago: number; stale?: boolean } = {
+          token_id: s.tokenId ?? "",
+          last_ping_ms_ago: ago,
+        };
+        if (ago > STALE_MS) entry.stale = true;
+        return entry;
+      });
       const body = JSON.stringify({
         connected_clients: authedSockets.size,
         server_uptime_seconds: Math.floor(process.uptime()),
-        ts: Date.now(),
+        ts: now,
+        connections,
       });
       res.writeHead(200, {
         "Content-Type": "application/json",
