@@ -59,6 +59,52 @@ export async function generateEaTokenAction(
   return { rawToken: raw, id: data.id };
 }
 
+export type EaConnectionLogEntry = {
+  id: number;
+  token_id: string;
+  event: "connected" | "disconnected";
+  ip: string | null;
+  created_at: string;
+  label: string;
+};
+
+/**
+ * Fetch the most recent 20 EA WebSocket connect/disconnect events for the
+ * current user, joined with the token label.
+ */
+export async function getEaConnectionLogAction(): Promise<EaConnectionLogEntry[]> {
+  const user = await requireUser();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("ea_connection_log")
+    .select("id, token_id, event, ip, created_at, ea_tokens(label)")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error || !data) return [];
+
+  return data.map((row: {
+    id: number;
+    token_id: string;
+    event: "connected" | "disconnected";
+    ip: string | null;
+    created_at: string;
+    ea_tokens: { label: string } | { label: string }[] | null;
+  }) => {
+    const tokenJoin = Array.isArray(row.ea_tokens) ? row.ea_tokens[0] : row.ea_tokens;
+    return {
+      id: row.id,
+      token_id: row.token_id,
+      event: row.event,
+      ip: row.ip,
+      created_at: row.created_at,
+      label: tokenJoin?.label ?? "Unknown",
+    };
+  });
+}
+
 /**
  * Revoke an EA token by id. Only the owning user can revoke their own token.
  */

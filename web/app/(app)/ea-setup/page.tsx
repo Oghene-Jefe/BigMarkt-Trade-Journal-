@@ -1,5 +1,6 @@
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
+import { getEaConnectionLogAction } from "@/lib/actions/ea-tokens";
 import EaTokenManager from "./EaTokenManager";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,7 @@ export default async function EaSetupPage() {
 
   const activeTokens: EaTokenRow[] = tokens ?? [];
   const wsStatus = await getWsStatus();
+  const connectionLog = await getEaConnectionLogAction();
 
   return (
     <div className="space-y-8">
@@ -70,7 +72,11 @@ export default async function EaSetupPage() {
             own. Maximum of 5 active tokens per account.
           </p>
         </div>
-        <EaTokenManager tokens={activeTokens} wsStatus={wsStatus} />
+        <EaTokenManager
+          tokens={activeTokens}
+          wsStatus={wsStatus}
+          connectionLog={connectionLog}
+        />
       </section>
 
       {/* Step 2 — Download */}
