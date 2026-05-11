@@ -4,7 +4,7 @@
 
 export type TrustBadge = 'manual' | 'auto_verified' | 'draft' | 'edited' | 'prop_firm';
 export type CaptureSource = 'manual' | 'ea' | 'websocket';
-export type JournalMode = 'manual' | 'automated' | 'hybrid';
+export type JournalMode = 'manual' | 'automated';
 
 export type TradeRow = {
   id: string;

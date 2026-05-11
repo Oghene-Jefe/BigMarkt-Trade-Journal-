@@ -5,8 +5,11 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
   const pathname = url.pathname;
   if (pathname.startsWith("/@")) {
-    url.pathname = pathname.slice(2) ? "/" + pathname.slice(2) : "/";
-    return NextResponse.rewrite(url);
+    const slug = pathname.slice(2);
+    if (slug && slug.length > 0) {
+      url.pathname = "/" + slug;
+      return NextResponse.rewrite(url);
+    }
   }
 
   return updateSession(request);

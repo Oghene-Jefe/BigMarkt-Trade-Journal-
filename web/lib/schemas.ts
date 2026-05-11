@@ -25,7 +25,7 @@ export const newPasswordSchema = z
 
 export const tradeVisibility = z.enum(["private", "public", "exclude", "followers_only"]);
 export const profileVisibility = z.enum(["private", "community", "public"]);
-export const journalMode = z.enum(["manual", "automated", "hybrid"]);
+export const journalMode = z.enum(["manual", "automated"]);
 
 export const usernameSchema = z
   .string()

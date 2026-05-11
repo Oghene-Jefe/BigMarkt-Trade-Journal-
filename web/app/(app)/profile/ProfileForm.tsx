@@ -60,7 +60,7 @@ export default function ProfileForm({
           />
         </div>
         <span className="mt-1 block text-xs text-muted">
-          Your public URL: bigmarkt.co/@username · Letters, numbers, underscores only.
+          Your public URL: journal.bigmarkt.co/@{profile?.username ?? "username"}
         </span>
       </label>
 
@@ -73,10 +73,9 @@ export default function ProfileForm({
         >
           <option value="manual">MANUAL — log trades yourself after the fact</option>
           <option value="automated">AUTOMATED — EA captures every trade in real time</option>
-          <option value="hybrid">HYBRID — EA captures, you approve before publishing</option>
         </select>
         <span className="mt-1 block text-xs text-muted">
-          Automated mode unlocks the verified leaderboard. Manual trades are excluded from ranking.
+          Automated mode unlocks the verified leaderboard. Switch to Automated once your broker EA is connected.
         </span>
       </label>
 

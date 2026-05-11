@@ -36,7 +36,7 @@ export async function updateProfileAction(_: ProfileActionState, fd: FormData): 
     display_name: fd.get("display_name"),
     visibility: fd.get("visibility"),
     journal_mode: fd.get("journal_mode") ?? "manual",
-    username: fd.get("username") ? String(fd.get("username")) : null,
+    username: fd.get("username") ? String(fd.get("username")).toLowerCase().trim() : null,
     starting_balance: Number.isFinite(startBal) ? startBal : null,
   });
   if (!parsed.success) return { error: "Check your inputs." };
