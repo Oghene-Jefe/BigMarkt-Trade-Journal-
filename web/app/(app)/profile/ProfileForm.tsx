@@ -27,6 +27,8 @@ export default function ProfileForm({
   const [journalMode, setJournalMode] = useState<"manual" | "automated">(
     profile?.journal_mode === "automated" ? "automated" : "manual",
   );
+  const [pendingJournalMode, setPendingJournalMode] = useState<"manual" | "automated" | null>(null);
+  const [confirmMessage, setConfirmMessage] = useState<string | null>(null);
 
   function handleJournalModeChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const v = e.target.value as "manual" | "automated";
@@ -34,33 +36,35 @@ export default function ProfileForm({
 
     if (v === "automated" && !tosAccepted) {
       setShowTosModal(true);
-      setJournalMode("manual");
       return;
     }
 
-    if (v === "automated" && tosAccepted) {
-      const ok = window.confirm(
-        "You are enabling Automated Journal Mode. Your broker EA or API connection will begin capturing trades. Continue?",
+    if (v === "automated") {
+      setPendingJournalMode("automated");
+      setConfirmMessage(
+        "You are enabling Automated Journal Mode. Your broker EA or API connection will begin capturing trades.",
       );
-      if (!ok) {
-        setJournalMode("manual");
-        return;
-      }
-      setJournalMode("automated");
       return;
     }
 
     if (v === "manual") {
-      const ok = window.confirm(
-        "Are you sure you want to switch to Manual Mode? Automated capture will stop. You can switch back at any time.",
+      setPendingJournalMode("manual");
+      setConfirmMessage(
+        "You are switching to Manual Mode. Automated capture will stop. You can switch back at any time.",
       );
-      if (!ok) {
-        setJournalMode("automated");
-        return;
-      }
-      setJournalMode("manual");
       return;
     }
+  }
+
+  function confirmJournalModeChange() {
+    if (pendingJournalMode) setJournalMode(pendingJournalMode);
+    setPendingJournalMode(null);
+    setConfirmMessage(null);
+  }
+
+  function cancelJournalModeChange() {
+    setPendingJournalMode(null);
+    setConfirmMessage(null);
   }
 
   return (
@@ -122,6 +126,31 @@ export default function ProfileForm({
         <span className="mt-1 block text-xs text-muted">
           Automated mode unlocks the verified leaderboard. Switch to Automated once your broker EA is connected.
         </span>
+
+        {pendingJournalMode && confirmMessage ? (
+          <div className="mt-3 flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
+            <span aria-hidden className="text-amber-300">⚠</span>
+            <div className="flex-1 space-y-2">
+              <p className="text-xs text-amber-100/90">{confirmMessage}</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={confirmJournalModeChange}
+                  className="rounded-md bg-gold px-3 py-1 text-xs font-display tracking-widest text-black"
+                >
+                  CONFIRM
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelJournalModeChange}
+                  className="rounded-md border border-white/10 bg-black/40 px-3 py-1 text-xs"
+                >
+                  CANCEL
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </label>
 
       <label className="block text-sm">
