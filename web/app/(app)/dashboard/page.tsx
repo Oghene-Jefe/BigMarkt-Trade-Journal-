@@ -16,6 +16,17 @@ export default async function DashboardPage() {
   ]);
   const trades = (tradesData ?? []) as TradeRow[];
   const startBal = profileData?.starting_balance ?? null;
+  const journalMode = (profileData?.journal_mode ?? null) as
+    | "automated"
+    | "manual"
+    | null;
+
+  const modeBadge =
+    journalMode === "automated"
+      ? { text: "🤖 Automated Mode", className: "bg-green-100 text-green-800" }
+      : journalMode === "manual"
+        ? { text: "✍️ Manual Mode", className: "bg-yellow-100 text-yellow-800" }
+        : { text: "⚪ Mode Not Set", className: "bg-gray-100 text-gray-800" };
 
   const wins = trades.filter((t) => t.result === "WIN").length;
   const losses = trades.filter((t) => t.result === "LOSS").length;
@@ -28,6 +39,17 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-display text-3xl tracking-widest text-gold">DASHBOARD</h1>
+
+      <div>
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${modeBadge.className}`}>
+          {modeBadge.text}
+        </span>
+        <div className="mt-1">
+          <Link href="/profile" className="text-xs text-muted hover:text-white">
+            Change in Settings →
+          </Link>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Total Trades" value={String(trades.length)} />
