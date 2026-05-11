@@ -11,7 +11,7 @@ const TRUST_BADGES: Record<string, { emoji: string; label: string }> = {
 };
 
 const SELECT_FIELDS =
-  "id, pair, direction, lot_size, entry_price, exit_price, pnl, result, open_time, close_time, trust_badge, capture_source, journal_mode, notes, created_at, ticket, swap, commission, magic, comment";
+  "id, pair, direction, lot_size, entry_price, exit_price, pnl, result, open_time, close_time, trust_badge, capture_source, notes, created_at, ticket, swap, commission, magic, comment";
 
 function fmtDateTime(value: string | null | undefined): string {
   if (!value) return "—";
@@ -83,7 +83,6 @@ export default async function TradeDetailPage({
     { label: "Magic", value: fmtValue(t.magic) },
     { label: "Comment", value: fmtValue(t.comment) },
     { label: "Capture Source", value: fmtValue(t.capture_source) },
-    { label: "Journal Mode", value: fmtValue(t.journal_mode) },
     { label: "Open Time", value: fmtDateTime(t.open_time as string | null) },
     { label: "Close Time", value: fmtDateTime(t.close_time as string | null) },
     { label: "Created At", value: fmtDateTime(t.created_at as string | null) },
