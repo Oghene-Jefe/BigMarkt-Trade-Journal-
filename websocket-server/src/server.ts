@@ -139,6 +139,18 @@ wss.on("connection", async (socket: AuthedSocket, req) => {
     .update({ last_used_at: new Date().toISOString() })
     .eq("id", auth.tokenId);
 
+  try {
+    const ip = req.socket.remoteAddress ?? null;
+    await supabase.from("ea_connection_log").insert({
+      user_id: auth.userId,
+      token_id: auth.tokenId,
+      event: "connected",
+      ip,
+    });
+  } catch (err) {
+    console.error("ea_connection_log connect insert failed:", err);
+  }
+
   console.log(`WS connected: user=${auth.userId} token=${auth.tokenId}`);
 
   socket.on("message", async (raw) => {
@@ -170,6 +182,18 @@ wss.on("connection", async (socket: AuthedSocket, req) => {
   socket.on("close", () => {
     authedSockets.delete(socket);
     console.log(`WS disconnected: user=${socket.userId ?? "unknown"}`);
+    if (socket.userId && socket.tokenId) {
+      void supabase
+        .from("ea_connection_log")
+        .insert({
+          user_id: socket.userId,
+          token_id: socket.tokenId,
+          event: "disconnected",
+        })
+        .then(({ error }) => {
+          if (error) console.error("ea_connection_log disconnect insert failed:", error);
+        });
+    }
   });
 
   socket.on("error", (err) => {
