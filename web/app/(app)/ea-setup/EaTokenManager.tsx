@@ -5,7 +5,7 @@ import {
   generateEaTokenAction,
   revokeEaTokenAction,
 } from "@/lib/actions/ea-tokens";
-import type { EaTokenRow } from "./page";
+import type { EaTokenRow, WsStatus } from "./page";
 
 const MAX_TOKENS = 5;
 
@@ -21,7 +21,54 @@ function formatDate(value: string | null): string {
   });
 }
 
-export default function EaTokenManager({ tokens }: { tokens: EaTokenRow[] }) {
+function formatUptime(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${h}h ${m}m`;
+}
+
+function WsStatusCard({ status }: { status: WsStatus | null }) {
+  let dot = "🔴";
+  let title = "WebSocket Server — Offline";
+  let body = "Start the WebSocket server locally with npm run dev";
+  let border = "border-rose-500/40 bg-rose-500/10";
+
+  if (status) {
+    if (status.connected_clients === 0) {
+      dot = "🟡";
+      title = "WebSocket Server — Online, no EA connected";
+      body = "Server is running. Connect your MT4/MT5 EA to begin receiving trades.";
+      border = "border-amber-500/40 bg-amber-500/10";
+    } else {
+      dot = "🟢";
+      title = `WebSocket Server — Online · ${status.connected_clients} EA connected`;
+      body = "Receiving trade events in real time.";
+      border = "border-emerald-500/40 bg-emerald-500/10";
+    }
+  }
+
+  return (
+    <div className={`rounded-xl border ${border} p-4`}>
+      <p className="text-sm font-semibold text-white">
+        {dot} {title}
+      </p>
+      <p className="mt-1 text-xs text-white/70">{body}</p>
+      {status ? (
+        <p className="mt-2 text-[11px] text-muted">
+          Uptime: {formatUptime(status.server_uptime_seconds)}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export default function EaTokenManager({
+  tokens,
+  wsStatus = null,
+}: {
+  tokens: EaTokenRow[];
+  wsStatus?: WsStatus | null;
+}) {
   const [label, setLabel] = useState("");
   const [freshToken, setFreshToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -66,6 +113,8 @@ export default function EaTokenManager({ tokens }: { tokens: EaTokenRow[] }) {
 
   return (
     <div className="space-y-4">
+      <WsStatusCard status={wsStatus} />
+
       {/* Freshly generated token — shown once */}
       {freshToken ? (
         <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4">

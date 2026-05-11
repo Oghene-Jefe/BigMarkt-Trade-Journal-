@@ -16,6 +16,9 @@ supabase/.temp/
 node_modules/
 .next/
 dist/
+websocket-server/node_modules/
+websocket-server/dist/
+websocket-server/.env
 build/
 out/
 coverage/

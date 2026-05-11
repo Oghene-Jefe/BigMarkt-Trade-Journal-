@@ -11,6 +11,23 @@ export type EaTokenRow = {
   last_used_at: string | null;
 };
 
+export type WsStatus = {
+  connected_clients: number;
+  server_uptime_seconds: number;
+  ts: number;
+};
+
+async function getWsStatus(): Promise<WsStatus | null> {
+  const url = process.env.WS_STATUS_URL ?? "http://localhost:8081/status";
+  try {
+    const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(2000) });
+    if (!res.ok) return null;
+    return (await res.json()) as WsStatus;
+  } catch {
+    return null;
+  }
+}
+
 export default async function EaSetupPage() {
   const user = await requireUser();
   const sb = await supabaseServer();
@@ -23,6 +40,7 @@ export default async function EaSetupPage() {
     .order("created_at", { ascending: false });
 
   const activeTokens: EaTokenRow[] = tokens ?? [];
+  const wsStatus = await getWsStatus();
 
   return (
     <div className="space-y-8">
@@ -47,7 +65,7 @@ export default async function EaSetupPage() {
             own. Maximum of 5 active tokens per account.
           </p>
         </div>
-        <EaTokenManager tokens={activeTokens} />
+        <EaTokenManager tokens={activeTokens} wsStatus={wsStatus} />
       </section>
 
       {/* Step 2 — Download */}
