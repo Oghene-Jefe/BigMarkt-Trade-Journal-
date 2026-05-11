@@ -8,6 +8,7 @@ import {
   type BrokerStatus,
 } from "@/lib/brokers";
 import UnlistedBrokerChecker from "@/components/brokers/UnlistedBrokerChecker";
+import BrokerSubmissionForm from "@/components/brokers/BrokerSubmissionForm";
 
 const ALL_CATEGORIES: (BrokerCategory | "all")[] = [
   "all",
@@ -22,6 +23,7 @@ const ALL_STATUSES: (BrokerStatus | "all")[] = [
   "supported",
   "partial",
   "unsupported",
+  "inactive",
 ];
 
 export default function BrokersPage() {
@@ -173,6 +175,7 @@ export default function BrokersPage() {
       </section>
 
       <UnlistedBrokerChecker />
+      <BrokerSubmissionForm />
     </main>
   );
 }
