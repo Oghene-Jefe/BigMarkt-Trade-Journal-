@@ -112,6 +112,7 @@ function VisibilityPill({ v }: { v: TradeRow["visibility"] }) {
     private: "bg-white/10 text-muted",
     public: "bg-gold/20 text-gold",
     exclude: "bg-loss/20 text-loss",
+    followers_only: "bg-blue-500/20 text-blue-400",
   } as const;
   return <span className={`rounded px-2 py-0.5 ${map[v]}`}>{v}</span>;
 }
