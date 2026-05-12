@@ -126,7 +126,7 @@ export default async function TradesPage({
                     <td className="px-3 py-2 capitalize">{t.result ?? "—"}</td>
                     <td className="px-3 py-2">
                       {badge ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 text-xs font-medium">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 text-xs font-medium whitespace-nowrap">
                           <span>{badge.emoji}</span>
                           <span>{badge.label}</span>
                         </span>

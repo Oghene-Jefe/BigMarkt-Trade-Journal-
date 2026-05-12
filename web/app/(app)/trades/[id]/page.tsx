@@ -11,7 +11,7 @@ const TRUST_BADGES: Record<string, { emoji: string; label: string }> = {
 };
 
 const SELECT_FIELDS =
-  "id, pair, direction, lot_size, entry_price, exit_price, pnl, result, open_time, close_time, trust_badge, capture_source, notes, created_at, ticket, swap, commission, magic, comment";
+  "id, pair, direction, lot_size, entry_price, exit_price, pnl, result, notes, ticket, open_time, close_time, swap, commission, magic, comment, trust_badge, capture_source, created_at";
 
 function fmtDateTime(value: string | null | undefined): string {
   if (!value) return "—";
@@ -99,7 +99,7 @@ export default async function TradeDetailPage({
         <div className="flex items-center justify-between border-b px-6 py-4">
           <h1 className="text-xl font-bold">Trade Detail</h1>
           {badge ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-gray-100 text-xs font-medium">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 text-xs font-medium whitespace-nowrap">
               <span>{badge.emoji}</span>
               <span>{badge.label}</span>
             </span>
