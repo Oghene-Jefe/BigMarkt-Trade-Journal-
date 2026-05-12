@@ -27,6 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Link href="/analytics" className="text-muted hover:text-white">Analytics</Link>
             <Link href="/challenges" className="text-muted hover:text-white">Challenges</Link>
             <Link href="/leaderboard" className="text-muted hover:text-white">Leaderboard</Link>
+            <Link href="/subscriptions" className="text-muted hover:text-white">Subscriptions</Link>
             <Link href="/brokers" className="text-muted hover:text-white">Broker Guide</Link>
             <Link href="/accounts" className="text-muted hover:text-white">Accounts</Link>
             <Link href="/ea-setup" className="text-muted hover:text-white">EA Setup</Link>

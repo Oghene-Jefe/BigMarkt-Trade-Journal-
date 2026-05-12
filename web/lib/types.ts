@@ -201,3 +201,73 @@ export interface AccountScore {
   created_at: string;
   updated_at: string;
 }
+
+// Session 10: copy-trading / signal infrastructure
+export type FlowDirection = 'leader' | 'follower' | 'inactive';
+export type SubscriptionMode = 'journal_only' | 'execution';
+export type SubscriptionStatus = 'active' | 'paused' | 'cancelled';
+export type SignalStatus = 'live' | 'pending' | 'expired' | 'filled' | 'cancelled' | 'suspended';
+export type SignalType = 'market' | 'limit';
+export type MinSignalGrade = 'A+' | 'A' | 'B' | 'C' | 'any';
+
+export interface Subscription {
+  id: string;
+  follower_id: string;
+  leader_id: string;
+  broker_account_id: string;
+  mode: SubscriptionMode;
+  status: SubscriptionStatus;
+  min_signal_grade: MinSignalGrade;
+  leader_also_follows: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SignalEntry {
+  id: string;
+  leader_id: string;
+  broker_account_id: string;
+  trade_id: string | null;
+  pair: string;
+  direction: 'BUY' | 'SELL';
+  signal_type: SignalType;
+  entry_price: number | null;
+  stop_loss: number | null;
+  take_profit: number | null;
+  lot_size: number | null;
+  setup_grade: string | null;
+  status: SignalStatus;
+  notes: string | null;
+  expires_at: string | null;
+  filled_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SignalLog {
+  id: string;
+  signal_id: string;
+  subscription_id: string;
+  follower_id: string;
+  leader_id: string;
+  action: string;
+  status: SignalStatus;
+  message: string | null;
+  payload: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface NewsEvent {
+  id: string;
+  title: string;
+  currency: string | null;
+  impact: 'low' | 'medium' | 'high' | null;
+  event_time: string;
+  forecast: string | null;
+  previous: string | null;
+  actual: string | null;
+  source: string | null;
+  created_at: string;
+  updated_at: string;
+}
