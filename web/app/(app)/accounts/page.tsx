@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth/require-user";
 import { supabaseServer } from "@/lib/supabase/server";
 import { BROKERS } from "@/lib/brokers";
@@ -68,11 +69,14 @@ export default async function AccountsPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 text-white">
+                    <Link
+                      href={`/accounts/${account.id}`}
+                      className="flex items-center gap-2 text-white no-underline hover:opacity-80"
+                    >
                       <span className="font-semibold">{account.label}</span>
                       <span className="text-sm text-white/40">·</span>
                       <span className="text-sm text-white/70">{brokerName}</span>
-                    </div>
+                    </Link>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <span className={`rounded-full border px-2 py-0.5 text-xs ${typeMeta.classes}`}>
                         {typeMeta.emoji} {typeMeta.label}
