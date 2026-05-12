@@ -136,3 +136,19 @@ export type ProfileRow = {
   created_at: string;
   updated_at: string;
 };
+
+export type AccountType = 'live' | 'demo' | 'prop_firm';
+
+export interface BrokerAccount {
+  id: string;
+  user_id: string;
+  label: string;
+  broker_slug: string;
+  account_type: AccountType;
+  journal_mode: 'manual' | 'automated';
+  is_prop_firm: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  broker_account_id?: string;
+}

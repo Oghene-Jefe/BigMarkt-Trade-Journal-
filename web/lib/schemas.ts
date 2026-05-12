@@ -62,6 +62,16 @@ export const connectBybitSchema = z.object({
 });
 export type ConnectBybitInput = z.infer<typeof connectBybitSchema>;
 
+export const accountType = z.enum(["live", "demo", "prop_firm"]);
+
+export const brokerAccountSchema = z.object({
+  label: z.string().min(1).max(50).transform((s) => s.trim()),
+  broker_slug: z.string().min(1).max(50).transform((s) => s.trim()),
+  account_type: accountType,
+  journal_mode: journalMode,
+});
+export type BrokerAccountInput = z.infer<typeof brokerAccountSchema>;
+
 export const tradeSchema = z.object({
   pair: z.string().min(1).max(20),
   direction: z.enum(["BUY", "SELL"]),

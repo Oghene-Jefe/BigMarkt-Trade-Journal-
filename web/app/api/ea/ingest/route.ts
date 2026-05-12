@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   // 2. Look up token — must exist and not be revoked
   const { data: tokenRow } = await supabase
     .from("ea_tokens")
-    .select("id, user_id, revoked_at")
+    .select("id, user_id, revoked_at, broker_account_id")
     .eq("token_hash", hash)
     .single();
 
@@ -88,8 +88,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const brokerAccountId = (tokenRow.broker_account_id as string | null) ?? null;
+
   // 4. Translate EA field names → trades column names
-  const tradeRow = {
+  const tradeRow: Record<string, unknown> = {
     user_id:          userId,
     ticket:           payload.ticket,
     pair:             payload.symbol,
@@ -110,6 +112,7 @@ export async function POST(req: NextRequest) {
     core_fields_locked: true,
     auto_approved:    true,
   };
+  if (brokerAccountId) tradeRow.broker_account_id = brokerAccountId;
 
   // 5. Upsert on (user_id, ticket)
   const { error: upsertError } = await supabase

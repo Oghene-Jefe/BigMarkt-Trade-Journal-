@@ -10,6 +10,12 @@ export type EaTokenRow = {
   label: string;
   created_at: string;
   last_used_at: string | null;
+  broker_account_id: string | null;
+};
+
+export type BrokerAccountOption = {
+  id: string;
+  label: string;
 };
 
 export type WsStatus = {
@@ -40,12 +46,22 @@ export default async function EaSetupPage() {
 
   const { data: tokens } = await sb
     .from("ea_tokens")
-    .select("id, label, created_at, last_used_at")
+    .select("id, label, created_at, last_used_at, broker_account_id")
     .eq("user_id", user.id)
     .is("revoked_at", null)
     .order("created_at", { ascending: false });
 
-  const activeTokens: EaTokenRow[] = tokens ?? [];
+  const activeTokens: EaTokenRow[] = (tokens ?? []) as EaTokenRow[];
+
+  const { data: accountsData } = await sb
+    .from("broker_accounts")
+    .select("id, label")
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true });
+
+  const brokerAccounts: BrokerAccountOption[] = (accountsData ?? []) as BrokerAccountOption[];
+
   const wsStatus = await getWsStatus();
   const connectionLog = await getEaConnectionLogAction();
 
@@ -76,6 +92,7 @@ export default async function EaSetupPage() {
           tokens={activeTokens}
           wsStatus={wsStatus}
           connectionLog={connectionLog}
+          brokerAccounts={brokerAccounts}
         />
       </section>
 

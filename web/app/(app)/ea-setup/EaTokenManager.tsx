@@ -4,9 +4,10 @@ import { useState, useTransition } from "react";
 import {
   generateEaTokenAction,
   revokeEaTokenAction,
+  linkEaTokenToAccountAction,
   type EaConnectionLogEntry,
 } from "@/lib/actions/ea-tokens";
-import type { EaTokenRow, WsStatus } from "./page";
+import type { EaTokenRow, WsStatus, BrokerAccountOption } from "./page";
 
 const MAX_TOKENS = 5;
 
@@ -137,10 +138,12 @@ export default function EaTokenManager({
   tokens,
   wsStatus = null,
   connectionLog = [],
+  brokerAccounts = [],
 }: {
   tokens: EaTokenRow[];
   wsStatus?: WsStatus | null;
   connectionLog?: EaConnectionLogEntry[];
+  brokerAccounts?: BrokerAccountOption[];
 }) {
   const [label, setLabel] = useState("");
   const [freshToken, setFreshToken] = useState<string | null>(null);
@@ -259,30 +262,59 @@ export default function EaTokenManager({
         <p className="text-xs text-muted">No active tokens yet.</p>
       ) : (
         <ul className="space-y-2">
-          {tokens.map((t) => (
-            <li
-              key={t.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/30 p-3"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-white">
-                  {t.label}
-                </p>
-                <p className="text-[11px] text-muted">
-                  Created {formatDate(t.created_at)} · Last used{" "}
-                  {formatDate(t.last_used_at)}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onRevoke(t.id)}
-                disabled={pending}
-                className="rounded-md border border-rose-500/40 px-3 py-1 text-xs text-rose-300 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+          {tokens.map((t) => {
+            const linkedLabel =
+              brokerAccounts.find((a) => a.id === t.broker_account_id)?.label ?? null;
+            return (
+              <li
+                key={t.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/30 p-3"
               >
-                Revoke
-              </button>
-            </li>
-          ))}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-white">
+                    {t.label}
+                  </p>
+                  <p className="text-[11px] text-muted">
+                    Created {formatDate(t.created_at)} · Last used{" "}
+                    {formatDate(t.last_used_at)}
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted">
+                    {linkedLabel ? (
+                      <span className="text-white/80">Linked: {linkedLabel}</span>
+                    ) : (
+                      <span>No account linked</span>
+                    )}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <form action={linkEaTokenToAccountAction as unknown as (fd: FormData) => void}>
+                    <input type="hidden" name="token_id" value={t.id} />
+                    <select
+                      name="broker_account_id"
+                      defaultValue={t.broker_account_id ?? ""}
+                      onChange={(e) => e.currentTarget.form?.requestSubmit()}
+                      className="rounded-md border border-white/10 bg-black/40 px-2 py-1 text-xs text-white"
+                    >
+                      <option value="">— No account —</option>
+                      {brokerAccounts.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.label}
+                        </option>
+                      ))}
+                    </select>
+                  </form>
+                  <button
+                    type="button"
+                    onClick={() => onRevoke(t.id)}
+                    disabled={pending}
+                    className="rounded-md border border-rose-500/40 px-3 py-1 text-xs text-rose-300 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+                  >
+                    Revoke
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
 

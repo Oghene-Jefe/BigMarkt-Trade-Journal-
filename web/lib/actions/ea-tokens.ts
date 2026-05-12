@@ -22,7 +22,8 @@ function hashToken(raw: string): string {
  * Returns the raw token ONCE — it is never stored and cannot be retrieved again.
  */
 export async function generateEaTokenAction(
-  label: string
+  label: string,
+  broker_account_id?: string
 ): Promise<{ rawToken: string; id: string } | { error: string }> {
   const user = await requireUser();
   const supabase = await createClient();
@@ -41,13 +42,21 @@ export async function generateEaTokenAction(
   const raw = generateRawToken();
   const hash = hashToken(raw);
 
+  const insertPayload: {
+    user_id: string;
+    token_hash: string;
+    label: string;
+    broker_account_id?: string;
+  } = {
+    user_id: user.id,
+    token_hash: hash,
+    label: label.trim().slice(0, 60) || "My EA",
+  };
+  if (broker_account_id) insertPayload.broker_account_id = broker_account_id;
+
   const { data, error } = await supabase
     .from("ea_tokens")
-    .insert({
-      user_id: user.id,
-      token_hash: hash,
-      label: label.trim().slice(0, 60) || "My EA",
-    })
+    .insert(insertPayload)
     .select("id")
     .single();
 
@@ -127,4 +136,32 @@ export async function revokeEaTokenAction(
 
   revalidatePath("/ea-setup");
   return { success: true };
+}
+
+/**
+ * Link an existing EA token to a broker account (or clear the link).
+ * Pass an empty string for broker_account_id to unlink.
+ */
+export async function linkEaTokenToAccountAction(
+  formData: FormData
+): Promise<{ error: string } | void> {
+  const user = await requireUser();
+  const supabase = await createClient();
+
+  const tokenId = String(formData.get("token_id") ?? "").trim();
+  const accountIdRaw = String(formData.get("broker_account_id") ?? "").trim();
+
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRe.test(tokenId)) return { error: "Invalid token id" };
+  if (accountIdRaw && !uuidRe.test(accountIdRaw)) return { error: "Invalid account id" };
+
+  const { error } = await supabase
+    .from("ea_tokens")
+    .update({ broker_account_id: accountIdRaw || null })
+    .eq("id", tokenId)
+    .eq("user_id", user.id);
+
+  if (error) return { error: "Failed to link token to account." };
+
+  revalidatePath("/ea-setup");
 }
