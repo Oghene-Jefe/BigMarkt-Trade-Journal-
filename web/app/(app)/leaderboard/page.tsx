@@ -29,8 +29,8 @@ type LeaderboardScoreEntry = {
 
 const TAB_LABELS: Record<Tab, string> = {
   all: "ALL LEADERS",
-  pro: "PRO LEADERS",
-  active: "ACTIVE LEADERS",
+  pro: "PRO TRADERS",
+  active: "ACTIVE TRADERS",
 };
 
 const TAB_DESCRIPTIONS: Record<Tab, string> = {
