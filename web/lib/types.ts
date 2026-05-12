@@ -148,6 +148,8 @@ export interface BrokerAccount {
   journal_mode: 'manual' | 'automated';
   is_prop_firm: boolean;
   is_active: boolean;
+  account_number: string | null;
+  readonly_password: string | null;
   created_at: string;
   updated_at: string;
   broker_account_id?: string;

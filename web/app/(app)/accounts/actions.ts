@@ -43,6 +43,8 @@ export async function createBrokerAccountAction(
     account_type: parsed.data.account_type,
     journal_mode,
     is_prop_firm,
+    account_number: parsed.data.account_number || null,
+    readonly_password: parsed.data.readonly_password || null,
   });
 
   if (error) return { error: error.message };
@@ -54,6 +56,8 @@ const updateSchema = z.object({
   label: z.string().min(1).max(50).transform((s) => s.trim()),
   account_type: z.enum(["live", "demo", "prop_firm"]),
   journal_mode: z.enum(["manual", "automated"]),
+  account_number: z.string().max(60).optional().transform((s) => (s ? s.trim() : "")),
+  readonly_password: z.string().max(200).optional().transform((s) => (s ? s.trim() : "")),
 });
 
 export async function updateBrokerAccountAction(
@@ -74,6 +78,8 @@ export async function updateBrokerAccountAction(
       account_type: parsed.data.account_type,
       journal_mode,
       is_prop_firm,
+      account_number: parsed.data.account_number || null,
+      readonly_password: parsed.data.readonly_password || null,
     })
     .eq("id", parsed.data.id)
     .eq("user_id", user.id);

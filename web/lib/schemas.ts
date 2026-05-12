@@ -69,6 +69,8 @@ export const brokerAccountSchema = z.object({
   broker_slug: z.string().min(1).max(50).transform((s) => s.trim()),
   account_type: accountType,
   journal_mode: journalMode,
+  account_number: z.string().max(60).optional().transform((s) => (s ? s.trim() : "")),
+  readonly_password: z.string().max(200).optional().transform((s) => (s ? s.trim() : "")),
 });
 export type BrokerAccountInput = z.infer<typeof brokerAccountSchema>;
 
