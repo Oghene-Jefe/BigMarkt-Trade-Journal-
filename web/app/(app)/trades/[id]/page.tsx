@@ -2,31 +2,61 @@ import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
 
-const TRUST_BADGES: Record<string, { emoji: string; label: string }> = {
-  auto_verified: { emoji: "🔵", label: "AUTO" },
-  manual: { emoji: "🟡", label: "MANUAL" },
-  draft: { emoji: "⚪", label: "DRAFT" },
-  edited: { emoji: "🔴", label: "EDITED" },
-  prop_firm: { emoji: "🟠", label: "PROP" },
+const TRUST_BADGES: Record<
+  string,
+  { emoji: string; label: string; className: string }
+> = {
+  auto_verified: {
+    emoji: "🔵",
+    label: "AUTO",
+    className: "bg-blue-900 text-blue-200",
+  },
+  manual: {
+    emoji: "🟡",
+    label: "MANUAL",
+    className: "bg-yellow-900 text-yellow-200",
+  },
+  draft: {
+    emoji: "⚪",
+    label: "DRAFT",
+    className: "bg-gray-700 text-gray-300",
+  },
+  edited: {
+    emoji: "🔴",
+    label: "EDITED",
+    className: "bg-red-900 text-red-200",
+  },
+  prop_firm: {
+    emoji: "🟠",
+    label: "PROP",
+    className: "bg-orange-900 text-orange-200",
+  },
 };
 
 const SELECT_FIELDS =
   "id, pair, direction, lot_size, entry_price, exit_price, pnl, result, notes, ticket, open_time, close_time, swap, commission, magic, comment, trust_badge, capture_source, created_at";
 
-function fmtDateTime(value: string | null | undefined): string {
-  if (!value) return "—";
+function fmtDateTime(value: unknown): string {
+  if (!value || typeof value !== "string") return "—";
   return new Date(value).toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    dateStyle: "medium",
+    timeStyle: "short",
   });
 }
 
 function fmtValue(value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
+  if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
   return String(value);
+}
+
+function Field({ label, value, valueClass }: { label: string; value: string; valueClass?: string }) {
+  return (
+    <div>
+      <div className="text-gray-400 text-sm">{label}</div>
+      <div className={`text-white font-medium ${valueClass ?? ""}`}>{value}</div>
+    </div>
+  );
 }
 
 export default async function TradeDetailPage({
@@ -48,10 +78,10 @@ export default async function TradeDetailPage({
   if (error || !trade) {
     return (
       <div className="p-6 space-y-4">
-        <Link href="/trades" className="text-blue-600 hover:underline text-sm">
+        <Link href="/trades" className="text-gray-400 hover:text-white text-sm">
           ← Back to Trades
         </Link>
-        <div className="rounded border border-gray-300 bg-gray-50 p-6 text-center text-gray-600">
+        <div className="rounded-xl border border-gray-700 bg-gray-900 p-6 text-center text-gray-400">
           Trade not found.
         </div>
       </div>
@@ -61,65 +91,124 @@ export default async function TradeDetailPage({
   const t = trade as Record<string, unknown>;
   const badgeKey = typeof t.trust_badge === "string" ? t.trust_badge : null;
   const badge = badgeKey ? TRUST_BADGES[badgeKey] : null;
+
   const pnl = typeof t.pnl === "number" ? t.pnl : null;
   const pnlClass =
-    pnl === null ? "" : pnl > 0 ? "text-green-600" : pnl < 0 ? "text-red-600" : "";
+    pnl === null
+      ? "text-gray-500"
+      : pnl > 0
+        ? "text-green-400"
+        : pnl < 0
+          ? "text-red-400"
+          : "text-gray-300";
 
-  const rows: { label: string; value: string; className?: string }[] = [
-    { label: "Pair", value: fmtValue(t.pair) },
-    { label: "Direction", value: fmtValue(t.direction) },
-    { label: "Lot Size", value: fmtValue(t.lot_size) },
-    { label: "Entry Price", value: fmtValue(t.entry_price) },
-    { label: "Exit Price", value: fmtValue(t.exit_price) },
-    {
-      label: "P&L",
-      value: pnl !== null ? pnl.toFixed(2) : "—",
-      className: pnlClass,
-    },
-    { label: "Result", value: fmtValue(t.result) },
-    { label: "Swap", value: fmtValue(t.swap) },
-    { label: "Commission", value: fmtValue(t.commission) },
-    { label: "Ticket", value: fmtValue(t.ticket) },
-    { label: "Magic", value: fmtValue(t.magic) },
-    { label: "Comment", value: fmtValue(t.comment) },
-    { label: "Capture Source", value: fmtValue(t.capture_source) },
-    { label: "Open Time", value: fmtDateTime(t.open_time as string | null) },
-    { label: "Close Time", value: fmtDateTime(t.close_time as string | null) },
-    { label: "Created At", value: fmtDateTime(t.created_at as string | null) },
-    { label: "Notes", value: fmtValue(t.notes) },
-  ];
+  const direction = typeof t.direction === "string" ? t.direction.toUpperCase() : null;
+  const directionClass =
+    direction === "BUY"
+      ? "bg-green-900 text-green-300"
+      : direction === "SELL"
+        ? "bg-red-900 text-red-300"
+        : "bg-gray-700 text-gray-300";
+
+  const result = typeof t.result === "string" ? t.result.toUpperCase() : null;
+  const resultClass =
+    result === "WIN"
+      ? "bg-green-900 text-green-300"
+      : result === "LOSS"
+        ? "bg-red-900 text-red-300"
+        : "bg-gray-700 text-gray-300";
+
+  const hasExecution =
+    t.ticket != null ||
+    t.open_time != null ||
+    t.close_time != null ||
+    t.swap != null ||
+    t.commission != null ||
+    t.magic != null ||
+    (typeof t.comment === "string" && t.comment.length > 0);
+
+  const notes = typeof t.notes === "string" ? t.notes : "";
 
   return (
-    <div className="p-6 space-y-4">
-      <Link href="/trades" className="text-blue-600 hover:underline text-sm">
+    <div className="p-6">
+      <Link
+        href="/trades"
+        className="text-gray-400 hover:text-white text-sm mb-6 inline-block"
+      >
         ← Back to Trades
       </Link>
 
-      <div className="rounded-lg border bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b px-6 py-4">
-          <h1 className="text-xl font-bold">Trade Detail</h1>
-          {badge ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 text-xs font-medium whitespace-nowrap">
-              <span>{badge.emoji}</span>
-              <span>{badge.label}</span>
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <h1 className="text-3xl font-bold text-white">{fmtValue(t.pair)}</h1>
+        {direction ? (
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${directionClass}`}>
+            {direction}
+          </span>
+        ) : null}
+        {badge ? (
+          <span
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${badge.className}`}
+          >
+            <span>{badge.emoji}</span>
+            <span>{badge.label}</span>
+          </span>
+        ) : null}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-gray-900 border border-gray-700 rounded-xl p-5">
+          <div className="text-gray-400 text-sm">Trade Summary</div>
+          <div className={`text-4xl font-bold mt-1 ${pnlClass}`}>
+            {pnl !== null ? pnl.toFixed(2) : "—"}
+          </div>
+          {result ? (
+            <span
+              className={`inline-block mt-2 px-2 py-0.5 rounded-full text-xs font-semibold ${resultClass}`}
+            >
+              {result}
             </span>
           ) : null}
+
+          <div className="grid grid-cols-2 gap-4 mt-5">
+            <Field label="Entry Price" value={fmtValue(t.entry_price)} />
+            <Field label="Exit Price" value={fmtValue(t.exit_price)} />
+            <Field label="Lot Size" value={fmtValue(t.lot_size)} />
+            <Field label="RR Ratio" value={fmtValue(t.rr_ratio)} />
+          </div>
         </div>
 
-        <dl className="divide-y">
-          {rows.map((row) => (
-            <div
-              key={row.label}
-              className="grid grid-cols-2 gap-4 px-6 py-3 text-sm"
-            >
-              <dt className="text-gray-500">{row.label}</dt>
-              <dd className={`font-medium ${row.className ?? ""}`}>
-                {row.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <div className="bg-gray-900 border border-gray-700 rounded-xl p-5">
+          <div className="text-gray-400 text-sm mb-3">Trade Context</div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Pair" value={fmtValue(t.pair)} />
+            <Field label="Session" value={fmtValue(t.session)} />
+            <Field label="Strategy" value={fmtValue(t.strategy)} />
+            <Field label="Setup Grade" value={fmtValue(t.setup_grade)} />
+            <Field label="Emotions" value={fmtValue(t.emotions)} />
+            <Field label="Tags" value={fmtValue(t.tags)} />
+          </div>
+
+          {notes ? (
+            <div className="text-gray-300 text-sm mt-3 italic">{notes}</div>
+          ) : null}
+        </div>
       </div>
+
+      {hasExecution ? (
+        <div className="bg-gray-900 border border-gray-700 rounded-xl p-5 mt-4">
+          <div className="text-gray-400 text-sm mb-3">Execution Details</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Field label="Ticket" value={fmtValue(t.ticket)} />
+            <Field label="Open Time" value={fmtDateTime(t.open_time)} />
+            <Field label="Close Time" value={fmtDateTime(t.close_time)} />
+            <Field label="Swap" value={fmtValue(t.swap)} />
+            <Field label="Commission" value={fmtValue(t.commission)} />
+            <Field label="Magic" value={fmtValue(t.magic)} />
+            <Field label="Comment" value={fmtValue(t.comment)} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

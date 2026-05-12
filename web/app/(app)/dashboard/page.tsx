@@ -23,10 +23,10 @@ export default async function DashboardPage() {
 
   const modeBadge =
     journalMode === "automated"
-      ? { text: "🤖 Automated Mode", className: "bg-green-100 text-green-800" }
+      ? { text: "🤖 Automated Mode", className: "bg-green-900 text-green-300" }
       : journalMode === "manual"
-        ? { text: "✍️ Manual Mode", className: "bg-yellow-100 text-yellow-800" }
-        : { text: "⚪ Mode Not Set", className: "bg-gray-100 text-gray-800" };
+        ? { text: "✍️ Manual Mode", className: "bg-yellow-900 text-yellow-300" }
+        : { text: "⚪ Mode Not Set", className: "bg-gray-700 text-gray-300" };
 
   const wins = trades.filter((t) => t.result === "WIN").length;
   const losses = trades.filter((t) => t.result === "LOSS").length;
@@ -40,8 +40,8 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <h1 className="font-display text-3xl tracking-widest text-gold">DASHBOARD</h1>
 
-      <div>
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${modeBadge.className}`}>
+      <div className="inline-flex flex-col gap-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-gray-200">
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium w-fit ${modeBadge.className}`}>
           {modeBadge.text}
         </span>
         <div className="mt-1">

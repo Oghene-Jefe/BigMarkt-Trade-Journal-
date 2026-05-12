@@ -8,12 +8,35 @@ const FILTERS: { value: TradeFilter; label: string }[] = [
   { value: "draft", label: "Draft" },
 ];
 
-const TRUST_BADGES: Record<string, { emoji: string; label: string }> = {
-  auto_verified: { emoji: "🔵", label: "AUTO" },
-  manual: { emoji: "🟡", label: "MANUAL" },
-  draft: { emoji: "⚪", label: "DRAFT" },
-  edited: { emoji: "🔴", label: "EDITED" },
-  prop_firm: { emoji: "🟠", label: "PROP" },
+const TRUST_BADGES: Record<
+  string,
+  { emoji: string; label: string; className: string }
+> = {
+  auto_verified: {
+    emoji: "🔵",
+    label: "AUTO",
+    className: "bg-blue-900 text-blue-200",
+  },
+  manual: {
+    emoji: "🟡",
+    label: "MANUAL",
+    className: "bg-yellow-900 text-yellow-200",
+  },
+  draft: {
+    emoji: "⚪",
+    label: "DRAFT",
+    className: "bg-gray-700 text-gray-300",
+  },
+  edited: {
+    emoji: "🔴",
+    label: "EDITED",
+    className: "bg-red-900 text-red-200",
+  },
+  prop_firm: {
+    emoji: "🟠",
+    label: "PROP",
+    className: "bg-orange-900 text-orange-200",
+  },
 };
 
 function parseFilter(value: string | undefined): TradeFilter {
@@ -33,9 +56,11 @@ function formatDate(value: string | null): string {
 }
 
 function formatPnl(pnl: number | null): { text: string; className: string } {
-  if (pnl === null || pnl === undefined) return { text: "—", className: "" };
-  const className = pnl > 0 ? "text-green-600" : pnl < 0 ? "text-red-600" : "";
-  return { text: pnl.toFixed(2), className };
+  if (pnl === null || pnl === undefined)
+    return { text: "—", className: "text-gray-500" };
+  if (pnl > 0) return { text: pnl.toFixed(2), className: "text-green-400" };
+  if (pnl < 0) return { text: pnl.toFixed(2), className: "text-red-400" };
+  return { text: pnl.toFixed(2), className: "text-gray-500" };
 }
 
 export default async function TradesPage({
@@ -52,7 +77,7 @@ export default async function TradesPage({
   if ("error" in result) {
     return (
       <div className="p-6">
-        <div className="rounded border border-red-300 bg-red-50 p-4 text-red-700">
+        <div className="rounded border border-red-700 bg-red-950 p-4 text-red-200">
           Error: {result.error}
         </div>
       </div>
@@ -68,19 +93,19 @@ export default async function TradesPage({
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Trade Journal</h1>
+      <h1 className="text-2xl font-bold text-white">Trade Journal</h1>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         {FILTERS.map((f) => {
           const active = f.value === filter;
           const cls = active
-            ? "bg-primary text-white border-primary"
-            : "border-gray-300 text-gray-700 hover:bg-gray-50";
+            ? "bg-yellow-500 text-black font-semibold"
+            : "border border-gray-600 text-gray-300 hover:border-gray-400";
           return (
             <Link
               key={f.value}
               href={`/trades?filter=${f.value}&page=1`}
-              className={`px-3 py-1.5 rounded border text-sm ${cls}`}
+              className={`px-3 py-1.5 rounded text-sm ${cls}`}
             >
               {f.label}
             </Link>
@@ -88,26 +113,26 @@ export default async function TradesPage({
         })}
       </div>
 
-      <div className="overflow-x-auto border rounded">
+      <div className="overflow-x-auto bg-gray-900 border border-gray-700 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-left">
+          <thead className="bg-gray-800">
             <tr>
-              <th className="px-3 py-2">Pair</th>
-              <th className="px-3 py-2">Direction</th>
-              <th className="px-3 py-2">Lots</th>
-              <th className="px-3 py-2">Entry</th>
-              <th className="px-3 py-2">Exit</th>
-              <th className="px-3 py-2">P&amp;L</th>
-              <th className="px-3 py-2">Result</th>
-              <th className="px-3 py-2">Trust</th>
-              <th className="px-3 py-2">Opened</th>
-              <th className="px-3 py-2">Actions</th>
+              <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Pair</th>
+              <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Direction</th>
+              <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Lots</th>
+              <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Entry</th>
+              <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Exit</th>
+              <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">P&amp;L</th>
+              <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Result</th>
+              <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Trust</th>
+              <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Opened</th>
+              <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="bg-gray-900 divide-y divide-gray-700">
             {trades.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-3 py-6 text-center text-gray-500">
+                <td colSpan={10} className="text-gray-500 px-4 py-6 text-center text-sm">
                   No trades found
                 </td>
               </tr>
@@ -116,17 +141,19 @@ export default async function TradesPage({
                 const pnl = formatPnl(t.pnl);
                 const badge = t.trust_badge ? TRUST_BADGES[t.trust_badge] : null;
                 return (
-                  <tr key={t.id} className="border-t">
-                    <td className="px-3 py-2 font-medium">{t.pair}</td>
-                    <td className="px-3 py-2">{t.direction}</td>
-                    <td className="px-3 py-2">{t.lot_size ?? "—"}</td>
-                    <td className="px-3 py-2">{t.entry_price ?? "—"}</td>
-                    <td className="px-3 py-2">{t.exit_price ?? "—"}</td>
-                    <td className={`px-3 py-2 ${pnl.className}`}>{pnl.text}</td>
-                    <td className="px-3 py-2 capitalize">{t.result ?? "—"}</td>
-                    <td className="px-3 py-2">
+                  <tr key={t.id}>
+                    <td className="text-gray-100 px-4 py-3 text-sm font-medium">{t.pair}</td>
+                    <td className="text-gray-100 px-4 py-3 text-sm">{t.direction}</td>
+                    <td className="text-gray-100 px-4 py-3 text-sm">{t.lot_size ?? "—"}</td>
+                    <td className="text-gray-100 px-4 py-3 text-sm">{t.entry_price ?? "—"}</td>
+                    <td className="text-gray-100 px-4 py-3 text-sm">{t.exit_price ?? "—"}</td>
+                    <td className={`px-4 py-3 text-sm ${pnl.className}`}>{pnl.text}</td>
+                    <td className="text-gray-100 px-4 py-3 text-sm capitalize">{t.result ?? "—"}</td>
+                    <td className="text-gray-100 px-4 py-3 text-sm">
                       {badge ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 text-xs font-medium whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${badge.className}`}
+                        >
                           <span>{badge.emoji}</span>
                           <span>{badge.label}</span>
                         </span>
@@ -134,11 +161,11 @@ export default async function TradesPage({
                         "—"
                       )}
                     </td>
-                    <td className="px-3 py-2">{formatDate(t.open_time)}</td>
-                    <td className="px-3 py-2">
+                    <td className="text-gray-100 px-4 py-3 text-sm">{formatDate(t.open_time)}</td>
+                    <td className="text-gray-100 px-4 py-3 text-sm">
                       <Link
                         href={{ pathname: `/trades/${t.id}` }}
-                        className="text-blue-600 hover:underline"
+                        className="text-yellow-400 hover:text-yellow-300"
                       >
                         View
                       </Link>
@@ -152,7 +179,7 @@ export default async function TradesPage({
       </div>
 
       <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-gray-400">
           Page {page} of {totalPages}
         </div>
         <div className="flex gap-2">
@@ -160,10 +187,8 @@ export default async function TradesPage({
             href={`/trades?filter=${filter}&page=${prevPage}`}
             aria-disabled={isFirst}
             tabIndex={isFirst ? -1 : undefined}
-            className={`px-3 py-1.5 rounded border text-sm ${
-              isFirst
-                ? "pointer-events-none opacity-50 border-gray-200 text-gray-400"
-                : "border-gray-300 text-gray-700 hover:bg-gray-50"
+            className={`border border-gray-600 text-gray-300 px-4 py-2 rounded text-sm ${
+              isFirst ? "pointer-events-none opacity-40" : "hover:border-gray-400"
             }`}
           >
             Previous
@@ -172,10 +197,8 @@ export default async function TradesPage({
             href={`/trades?filter=${filter}&page=${nextPage}`}
             aria-disabled={isLast}
             tabIndex={isLast ? -1 : undefined}
-            className={`px-3 py-1.5 rounded border text-sm ${
-              isLast
-                ? "pointer-events-none opacity-50 border-gray-200 text-gray-400"
-                : "border-gray-300 text-gray-700 hover:bg-gray-50"
+            className={`border border-gray-600 text-gray-300 px-4 py-2 rounded text-sm ${
+              isLast ? "pointer-events-none opacity-40" : "hover:border-gray-400"
             }`}
           >
             Next
