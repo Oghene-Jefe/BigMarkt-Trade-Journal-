@@ -27,7 +27,13 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Field label="P&L ($)" name="pnl" type="number" step="0.01" defaultValue={trade?.pnl ?? 0} error={fe.pnl} />
-        <Field label="R:R" name="rr_ratio" type="number" step="0.01" defaultValue={trade?.rr_ratio ?? ""} error={fe.rr_ratio} />
+        <div className="block text-sm">
+          <span className="mb-1 block text-muted">R:R Ratio</span>
+          <div className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-white">
+            {trade?.rr_ratio ?? "—"}
+          </div>
+          <span className="mt-1 block text-gray-400 text-xs italic">Auto-calculated from entry, exit &amp; stop loss</span>
+        </div>
         <Field label="Lot size" name="lot_size" type="number" step="any" defaultValue={trade?.lot_size ?? ""} error={fe.lot_size} />
         <Field label="Setup grade" name="setup_grade" defaultValue={trade?.setup_grade ?? ""} placeholder="A / B / C" />
       </div>

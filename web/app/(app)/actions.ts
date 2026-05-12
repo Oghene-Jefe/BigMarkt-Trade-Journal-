@@ -92,7 +92,17 @@ export async function createTradeAction(_: TradeActionState, fd: FormData): Prom
   if (!parsed.success) return { error: "Check your inputs.", fieldErrors: fieldErrorsFromZod(parsed.error) };
 
   const { sb, user } = await requireUser();
-  const insertRow = { ...parsed.data, user_id: user.id, trade_visibility: parsed.data.visibility };
+
+  const { entry_price, exit_price, stop_loss, direction } = parsed.data;
+  void direction;
+  let rr_ratio: number | null = null;
+  if (entry_price != null && exit_price != null && stop_loss != null && stop_loss !== entry_price) {
+    const risk = Math.abs(entry_price - stop_loss);
+    const reward = Math.abs(exit_price - entry_price);
+    rr_ratio = parseFloat((reward / risk).toFixed(2));
+  }
+
+  const insertRow = { ...parsed.data, rr_ratio, user_id: user.id, trade_visibility: parsed.data.visibility };
   const { data: inserted, error } = await sb.from("trades").insert(insertRow).select("id").single();
   if (error || !inserted) return { error: error?.message ?? "Failed to save trade." };
 
@@ -116,7 +126,17 @@ export async function updateTradeAction(id: string, _: TradeActionState, fd: For
   if (!parsed.success) return { error: "Check your inputs.", fieldErrors: fieldErrorsFromZod(parsed.error) };
 
   const { sb, user } = await requireUser();
-  const updateRow: Record<string, unknown> = { ...parsed.data, trade_visibility: parsed.data.visibility };
+
+  const { entry_price, exit_price, stop_loss, direction } = parsed.data;
+  void direction;
+  let rr_ratio: number | null = null;
+  if (entry_price != null && exit_price != null && stop_loss != null && stop_loss !== entry_price) {
+    const risk = Math.abs(entry_price - stop_loss);
+    const reward = Math.abs(exit_price - entry_price);
+    rr_ratio = parseFloat((reward / risk).toFixed(2));
+  }
+
+  const updateRow: Record<string, unknown> = { ...parsed.data, rr_ratio, trade_visibility: parsed.data.visibility };
 
   const file = fd.get("chart") as File | null;
   if (file && file.size > 0) {
