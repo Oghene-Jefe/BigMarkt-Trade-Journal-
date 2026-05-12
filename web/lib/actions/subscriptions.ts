@@ -121,10 +121,10 @@ export async function getMySubscriptionsAction(): Promise<
   const user = await requireUser();
   const sb = await supabaseServer();
 
-  const { data, error } = await sb
+  const { data: subRows, error } = await sb
     .from("subscriptions")
     .select(
-      "id, leader_id, broker_account_id, mode, status, min_signal_grade, leader_also_follows, created_at, leader:profiles!subscriptions_leader_id_fkey(display_name, username, avatar_path)"
+      "id, leader_id, broker_account_id, mode, status, min_signal_grade, leader_also_follows, created_at"
     )
     .eq("follower_id", user.id)
     .neq("status", "cancelled")
@@ -132,7 +132,7 @@ export async function getMySubscriptionsAction(): Promise<
 
   if (error) return { error: error.message };
 
-  type Joined = {
+  type SubRow = {
     id: string;
     leader_id: string;
     broker_account_id: string;
@@ -141,15 +141,33 @@ export async function getMySubscriptionsAction(): Promise<
     min_signal_grade: MinSignalGrade;
     leader_also_follows: boolean;
     created_at: string;
-    leader:
-      | { display_name: string | null; username: string | null; avatar_path: string | null }
-      | { display_name: string | null; username: string | null; avatar_path: string | null }[]
-      | null;
   };
 
-  const rows = (data ?? []) as unknown as Joined[];
-  return rows.map((r) => {
-    const leader = Array.isArray(r.leader) ? r.leader[0] ?? null : r.leader;
+  const subs = (subRows ?? []) as SubRow[];
+  const leaderIds = Array.from(new Set(subs.map((s) => s.leader_id)));
+
+  type ProfileRow = {
+    id: string;
+    display_name: string | null;
+    username: string | null;
+    avatar_path: string | null;
+  };
+
+  let profileMap: Map<string, ProfileRow> = new Map();
+  if (leaderIds.length > 0) {
+    const { data: profileRows, error: profileErr } = await sb
+      .from("profiles")
+      .select("id, display_name, username, avatar_path")
+      .in("id", leaderIds);
+
+    if (profileErr) return { error: profileErr.message };
+    profileMap = new Map(
+      ((profileRows ?? []) as ProfileRow[]).map((p) => [p.id, p])
+    );
+  }
+
+  return subs.map((r) => {
+    const leader = profileMap.get(r.leader_id) ?? null;
     return {
       id: r.id,
       leader_id: r.leader_id,
