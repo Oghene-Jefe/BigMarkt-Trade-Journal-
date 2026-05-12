@@ -154,3 +154,50 @@ export interface BrokerAccount {
   updated_at: string;
   broker_account_id?: string;
 }
+
+export type ScoreTier = 'none' | 'active' | 'pro';
+
+export interface AccountScore {
+  id: string;
+  broker_account_id: string;
+  user_id: string;
+
+  active_expectancy_score: number;
+  active_winrate_score: number;
+  active_drawdown_score: number;
+  active_regularity_score: number;
+  active_score: number;
+  active_eligible: boolean;
+
+  pro_expectancy_score: number;
+  pro_sortino_score: number;
+  pro_drawdown_score: number;
+  pro_regularity_score: number;
+  pro_score: number;
+  pro_eligible: boolean;
+
+  score_tier: ScoreTier;
+
+  trade_count: number;
+  win_rate_pct: number;
+  avg_rr: number;
+  expectancy_pct: number;
+  sortino_ratio: number;
+  max_drawdown_pct: number;
+  max_drawdown_weeks: number;
+  weekly_trade_cv: number;
+  account_history_days: number;
+
+  gate_min_trades_active: boolean;
+  gate_min_days_active: boolean;
+  gate_positive_expectancy: boolean;
+  gate_automated_mode: boolean;
+  gate_live_account: boolean;
+  gate_min_trades_pro: boolean;
+  gate_min_days_pro: boolean;
+  gate_max_drawdown_pro: boolean;
+
+  last_scored_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
