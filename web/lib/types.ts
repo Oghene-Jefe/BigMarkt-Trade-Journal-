@@ -3,7 +3,7 @@
 // Session 2: username on profiles, followers_only on trades visibility
 
 export type TrustBadge = 'manual' | 'auto_verified' | 'draft' | 'edited' | 'prop_firm';
-export type CaptureSource = 'manual' | 'ea' | 'websocket';
+export type CaptureSource = 'manual' | 'ea' | 'websocket' | 'signal';
 export type JournalMode = 'manual' | 'automated';
 
 export type TradeRow = {

@@ -3,8 +3,9 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { signAvatar, signCharts } from "@/lib/storage";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import TrustBadge from "@/components/TrustBadge";
+import FollowButton from "@/components/FollowButton";
 import Link from "next/link";
-import type { PublicProfileFull, PublicTrade } from "@/lib/types";
+import type { PublicProfileFull, PublicTrade, Subscription } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,23 @@ export default async function UsernameProfilePage({
   const avatarUrl = profile.avatar_path ? await signAvatar(profile.avatar_path) : null;
   const chartPaths = trades.map((t) => t.chart_path).filter((p): p is string => !!p);
   const chartUrls = await signCharts(chartPaths);
+
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
+  const currentUserId = user?.id ?? null;
+
+  let existingSubscription: Subscription | null = null;
+  if (currentUserId && currentUserId !== profile.id) {
+    const { data: subRow } = await sb
+      .from("subscriptions")
+      .select("*")
+      .eq("follower_id", currentUserId)
+      .eq("leader_id", profile.id)
+      .neq("status", "cancelled")
+      .maybeSingle();
+    existingSubscription = (subRow as Subscription | null) ?? null;
+  }
 
   const journalModeLabel = profile.journal_mode === "automated"
     ? "🔵 AUTO-VERIFIED JOURNAL"
@@ -66,6 +84,15 @@ export default async function UsernameProfilePage({
               <p className="mt-1 text-xs font-mono text-blue-400">{journalModeLabel}</p>
             ) : null}
           </div>
+        </div>
+
+        <div className="mt-5">
+          <FollowButton
+            leaderId={profile.id}
+            leaderUsername={profile.username}
+            currentUserId={currentUserId}
+            existingSubscription={existingSubscription}
+          />
         </div>
 
         <div className="mt-6 grid grid-cols-3 gap-3">

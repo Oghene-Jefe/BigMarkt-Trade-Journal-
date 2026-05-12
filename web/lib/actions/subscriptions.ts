@@ -101,6 +101,37 @@ export async function toggleSubscriptionStatusFormAction(formData: FormData) {
   await updateSubscriptionAction(id, { status: next });
 }
 
+export type MyBrokerAccountOption = {
+  id: string;
+  display_name: string;
+  broker_name: string;
+};
+
+export async function getMyBrokerAccountsAction(): Promise<
+  MyBrokerAccountOption[] | { error: string }
+> {
+  const user = await requireUser();
+  const sb = await supabaseServer();
+
+  const { data, error } = await sb
+    .from("broker_accounts")
+    .select("id, label, broker_slug")
+    .eq("user_id", user.id)
+    .eq("flow_direction", "follower")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false });
+
+  if (error) return { error: error.message };
+
+  return ((data ?? []) as Array<{ id: string; label: string; broker_slug: string }>).map(
+    (a) => ({
+      id: a.id,
+      display_name: a.label,
+      broker_name: a.broker_slug,
+    })
+  );
+}
+
 export type MySubscriptionRow = {
   id: string;
   leader_id: string;

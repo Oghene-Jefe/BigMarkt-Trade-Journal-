@@ -32,10 +32,11 @@ export type GetTradesResult =
   | { error: string };
 
 export async function getTradesAction(
-  params: { page?: number; filter?: TradeFilter } = {}
+  params: { page?: number; filter?: TradeFilter; captureSource?: string } = {}
 ): Promise<GetTradesResult> {
   const page = params.page ?? 1;
   const filter = params.filter ?? "all";
+  const captureSource = params.captureSource;
 
   const user = await requireUser();
   const sb = await supabaseServer();
@@ -52,6 +53,10 @@ export async function getTradesAction(
     query = query.eq("trust_badge", filter);
   }
 
+  if (captureSource) {
+    query = query.eq("capture_source", captureSource);
+  }
+
   const { data, error } = await query
     .order("created_at", { ascending: false })
     .range(from, to);
@@ -65,6 +70,10 @@ export async function getTradesAction(
 
   if (filter !== "all") {
     countQuery = countQuery.eq("trust_badge", filter);
+  }
+
+  if (captureSource) {
+    countQuery = countQuery.eq("capture_source", captureSource);
   }
 
   const { count, error: countError } = await countQuery;
