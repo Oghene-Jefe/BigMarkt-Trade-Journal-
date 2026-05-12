@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { Route } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signAvatars } from "@/lib/storage";
-import { fmtDate } from "@/lib/format";
 import type { ScoreTier } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -50,11 +49,24 @@ function fmtNum(n: number | null | undefined, digits = 1): string {
   return n.toFixed(digits);
 }
 
-function rankAccent(rank: number): string {
-  if (rank === 0) return "border-l-4 border-l-yellow-400";
-  if (rank === 1) return "border-l-4 border-l-gray-300";
-  if (rank === 2) return "border-l-4 border-l-amber-700";
-  return "border-l border-l-white/10";
+function fmtRelative(iso: string | null): string {
+  if (!iso) return "—";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "—";
+  const diffMs = Date.now() - t;
+  const day = 86_400_000;
+  const days = Math.floor(diffMs / day);
+  if (days <= 0) return "scored today";
+  if (days < 7) return `scored ${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  return `scored ${weeks}w ago`;
+}
+
+function rankAccentStyle(rank: number): { className: string; style?: React.CSSProperties } {
+  if (rank === 0) return { className: "border-l-4 border-l-gold" };
+  if (rank === 1) return { className: "border-l-4", style: { borderLeftColor: "#94a3b8" } };
+  if (rank === 2) return { className: "border-l-4", style: { borderLeftColor: "#b45309" } };
+  return { className: "border-l border-l-white/10" };
 }
 
 export default async function LeaderboardPage({
@@ -113,79 +125,97 @@ export default async function LeaderboardPage({
           </p>
         </div>
       ) : (
-        <ol className="space-y-3">
+        <ol className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {rows.map((r, i) => {
             const isPro = r.score_tier === "pro";
             const primary = isPro ? r.pro_score : r.active_score;
+            const scoreLabel = isPro ? "PRO SCORE" : "ACTIVE SCORE";
             const href = (r.username ? `/@${r.username}` : `/p/${r.user_id}`) as Route;
             const avatarUrl = r.avatar_path ? avatars[r.avatar_path] : null;
+            const accent = rankAccentStyle(i);
+            const isTop3 = i < 3;
+            const rank = i + 1;
+
             return (
               <li
                 key={`${r.user_id}-${r.broker_account_id}`}
-                className={`rounded-xl border border-white/10 bg-panel p-4 ${rankAccent(i)}`}
+                style={accent.style}
+                className={`relative flex flex-col gap-4 rounded-2xl border border-white/10 bg-panel p-5 shadow-lg shadow-black/40 transition-colors hover:border-white/20 ${accent.className}`}
               >
-                <div className="flex items-start gap-4">
-                  <span className="w-10 shrink-0 text-center font-display text-2xl tracking-widest text-gold">
-                    #{i + 1}
-                  </span>
+                {/* Top row: rank + avatar */}
+                <div className="flex items-start justify-between">
+                  <div className="flex flex-col">
+                    <span
+                      className={`font-display text-4xl leading-none tracking-widest ${
+                        isTop3 ? "text-gold" : "text-white/70"
+                      }`}
+                    >
+                      #{rank}
+                    </span>
+                  </div>
 
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-black/40 text-sm font-medium text-muted">
+                  <div
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-black/60 ${
+                      isTop3 ? "border-gold/60" : "border-white/15"
+                    }`}
+                  >
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <span>{initials(r.display_name)}</span>
+                      <span className="font-display text-sm tracking-wider text-gold">
+                        {initials(r.display_name)}
+                      </span>
                     )}
                   </div>
+                </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={href}
-                        className="truncate font-medium hover:text-gold"
-                      >
-                        {r.display_name ?? "Anonymous"}
-                      </Link>
-                      <span
-                        className={`rounded-md border px-2 py-0.5 text-[10px] font-display tracking-widest ${
-                          isPro
-                            ? "border-blue-400/40 text-blue-300"
-                            : "border-green-400/40 text-green-300"
-                        }`}
-                      >
-                        {isPro ? "🔵 VERIFIED PRO" : "🟢 ACTIVE LEADER"}
-                      </span>
-                    </div>
-
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                      <span className="rounded-md border border-white/10 bg-black/30 px-2 py-1 text-muted">
-                        {r.trade_count ?? 0} trades
-                      </span>
-                      <span className="rounded-md border border-white/10 bg-black/30 px-2 py-1 text-muted">
-                        {fmtNum(r.win_rate_pct, 1)}% WR
-                      </span>
-                      <span className="rounded-md border border-white/10 bg-black/30 px-2 py-1 text-muted">
-                        {fmtNum(r.expectancy_pct, 2)}% EXP
-                      </span>
-                      <span className="rounded-md border border-white/10 bg-black/30 px-2 py-1 text-muted">
-                        {fmtNum(r.max_drawdown_pct, 1)}% DD
-                      </span>
-                    </div>
-
-                    {isPro ? (
-                      <p className="mt-2 text-xs text-muted">
-                        Sortino: <span className="text-white">{fmtNum(r.sortino_ratio, 2)}</span>
-                      </p>
-                    ) : null}
-                  </div>
-
-                  <div className="flex flex-col items-end justify-between gap-2">
-                    <span className="font-display text-3xl tracking-wider tabular-nums text-gold">
-                      {fmtNum(primary, 1)}
-                    </span>
-                    <span className="text-[10px] text-muted">
-                      {fmtDate(r.last_scored_at)}
+                {/* Name + tier */}
+                <div className="min-w-0">
+                  <Link
+                    href={href}
+                    className="block truncate text-lg font-bold text-white hover:text-gold"
+                  >
+                    {r.display_name ?? "Anonymous"}
+                  </Link>
+                  <div className="mt-1.5">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-display tracking-widest ${
+                        isPro
+                          ? "bg-blue-500/15 text-blue-300 ring-1 ring-inset ring-blue-400/30"
+                          : "bg-green-500/15 text-green-300 ring-1 ring-inset ring-green-400/30"
+                      }`}
+                    >
+                      {isPro ? "🔵 VERIFIED PRO" : "🟢 ACTIVE TRADER"}
                     </span>
                   </div>
+                </div>
+
+                {/* Score block */}
+                <div>
+                  <p className="text-[10px] font-display tracking-widest text-muted">
+                    {scoreLabel}
+                  </p>
+                  <p className="font-display text-5xl leading-none tracking-wider tabular-nums text-gold">
+                    {fmtNum(primary, 1)}
+                  </p>
+                </div>
+
+                {/* Metric pills */}
+                <div className="flex flex-wrap gap-1.5 text-[11px]">
+                  <MetricPill label="Trades" value={`${r.trade_count ?? 0}`} />
+                  <MetricPill label="WR" value={`${fmtNum(r.win_rate_pct, 1)}%`} />
+                  <MetricPill label="EXP" value={`${fmtNum(r.expectancy_pct, 2)}%`} />
+                  <MetricPill label="DD" value={`${fmtNum(r.max_drawdown_pct, 1)}%`} />
+                  {isPro ? (
+                    <MetricPill label="SR" value={fmtNum(r.sortino_ratio, 2)} />
+                  ) : null}
+                </div>
+
+                {/* Footer */}
+                <div className="mt-auto flex justify-end">
+                  <span className="text-[10px] text-muted">
+                    {fmtRelative(r.last_scored_at)}
+                  </span>
                 </div>
               </li>
             );
@@ -193,5 +223,14 @@ export default async function LeaderboardPage({
         </ol>
       )}
     </div>
+  );
+}
+
+function MetricPill({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-black/40 px-2 py-1">
+      <span className="font-display tracking-widest text-muted">{label}</span>
+      <span className="tabular-nums text-white">{value}</span>
+    </span>
   );
 }
