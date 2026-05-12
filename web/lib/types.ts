@@ -258,6 +258,54 @@ export interface SignalLog {
   created_at: string;
 }
 
+export type LeaderStatus = 'none' | 'active' | 'under_review' | 'suspended' | 'inactive';
+
+export type NotificationType =
+  | 'leader_suspended'
+  | 'leader_under_review'
+  | 'leader_inactive'
+  | 'leader_reinstated'
+  | 'score_updated'
+  | 'dispute_opened'
+  | 'dispute_resolved'
+  | 'subscription_cancelled';
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  link: string | null;
+  read: boolean;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export type DisputeReason =
+  | 'strategy_manipulation'
+  | 'entry_price_falsification'
+  | 'intentional_follower_harm'
+  | 'inactive_without_notice'
+  | 'other';
+
+export type DisputeStatus = 'open' | 'under_review' | 'resolved' | 'dismissed';
+
+export interface Dispute {
+  id: string;
+  raised_by: string;
+  leader_id: string;
+  reason: DisputeReason;
+  description: string;
+  evidence_url: string | null;
+  status: DisputeStatus;
+  resolution_notes: string | null;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface NewsEvent {
   id: string;
   title: string;

@@ -145,6 +145,12 @@ export default async function SubscriptionsPage() {
                       Unfollow
                     </ConfirmButton>
                   </form>
+                  <Link
+                    href={`/disputes/new?leaderId=${s.leader_id}` as Route}
+                    className="ml-auto text-xs text-muted underline-offset-2 hover:text-white hover:underline"
+                  >
+                    Raise dispute
+                  </Link>
                 </div>
               </li>
             );

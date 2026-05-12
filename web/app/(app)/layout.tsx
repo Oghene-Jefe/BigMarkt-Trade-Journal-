@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
+import { getUnreadNotificationCountAction } from "@/lib/actions/notifications";
 import { logoutAction } from "../(auth)/actions";
 
 // Auth gate for the app shell. Every page under (app) requires a session.
@@ -12,6 +13,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { data: { user } } = await sb.auth.getUser();
   if (!user) redirect("/login");
   const admin = await isAdmin();
+  const unreadRes = await getUnreadNotificationCountAction();
+  const unreadCount = ("count" in unreadRes ? unreadRes.count : 0) ?? 0;
 
   return (
     <div className="min-h-screen">
@@ -34,6 +37,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Link href="/exchanges" className="text-muted hover:text-white">Exchanges</Link>
             <Link href="/profile" className="text-muted hover:text-white">Profile</Link>
             {admin ? <Link href="/admin" className="text-gold hover:text-white">Admin</Link> : null}
+            <Link href="/notifications" className="relative text-muted hover:text-white" aria-label="Notifications">
+              <span className="text-base">🔔</span>
+              {unreadCount > 0 ? (
+                <span className="absolute -right-2 -top-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              ) : null}
+            </Link>
             <span className="hidden text-xs text-muted md:inline">{user.email}</span>
             <form action={logoutAction}>
               <button className="rounded-md border border-white/20 px-3 py-1 text-xs">Log out</button>
