@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import { getUnreadNotificationCountAction } from "@/lib/actions/notifications";
-import { logoutAction } from "../(auth)/actions";
+import DrawerNav from "./DrawerNav";
 
 // Auth gate for the app shell. Every page under (app) requires a session.
 // Admin link only renders if is_admin(auth.uid()) — non-admins never see
@@ -23,33 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/dashboard" className="font-display text-2xl tracking-widest text-gold">
             BIGMARKT
           </Link>
-          <nav className="flex items-center gap-5 text-sm">
-            <Link href="/dashboard" className="text-muted hover:text-white">Dashboard</Link>
-            <Link href="/journal" className="text-muted hover:text-white">Journal</Link>
-            <Link href="/trades" className="text-muted hover:text-white">Trades</Link>
-            <Link href="/analytics" className="text-muted hover:text-white">Analytics</Link>
-            <Link href="/challenges" className="text-muted hover:text-white">Challenges</Link>
-            <Link href="/leaderboard" className="text-muted hover:text-white">Leaderboard</Link>
-            <Link href="/subscriptions" className="text-muted hover:text-white">Subscriptions</Link>
-            <Link href="/brokers" className="text-muted hover:text-white">Broker Guide</Link>
-            <Link href="/accounts" className="text-muted hover:text-white">Accounts</Link>
-            <Link href="/ea-setup" className="text-muted hover:text-white">EA Setup</Link>
-            <Link href="/exchanges" className="text-muted hover:text-white">Exchanges</Link>
-            <Link href="/profile" className="text-muted hover:text-white">Profile</Link>
-            {admin ? <Link href="/admin" className="text-gold hover:text-white">Admin</Link> : null}
-            <Link href="/notifications" className="relative text-muted hover:text-white" aria-label="Notifications">
-              <span className="text-base">🔔</span>
-              {unreadCount > 0 ? (
-                <span className="absolute -right-2 -top-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              ) : null}
-            </Link>
-            <span className="hidden text-xs text-muted md:inline">{user.email}</span>
-            <form action={logoutAction}>
-              <button className="rounded-md border border-white/20 px-3 py-1 text-xs">Log out</button>
-            </form>
-          </nav>
+          <DrawerNav admin={admin} unreadCount={unreadCount} userEmail={user.email ?? ""} />
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
