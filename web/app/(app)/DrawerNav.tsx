@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logoutAction } from "../(auth)/actions";
@@ -11,7 +12,7 @@ type Props = {
   userEmail: string;
 };
 
-const LINKS: { href: string; label: string }[] = [
+const LINKS: { href: Route; label: string }[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/journal", label: "Journal" },
   { href: "/trades", label: "Trades" },

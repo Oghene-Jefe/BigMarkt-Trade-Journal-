@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "bigmarkt_banner_dismissed";
@@ -70,7 +71,7 @@ export default function Banners({ journalMode, brokerAccountCount, tradeCount }:
           key={b.key}
           className="flex items-center justify-between gap-3 rounded-lg border border-gold/30 bg-gold/10 px-4 py-3"
         >
-          <Link href={b.href} className="text-sm text-gold hover:underline">
+          <Link href={b.href as Route} className="text-sm text-gold hover:underline">
             {b.text}
           </Link>
           <button

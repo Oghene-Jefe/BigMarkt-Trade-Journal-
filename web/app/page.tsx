@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -285,7 +286,7 @@ function EcoCard({
     </>
   );
   if (internal) {
-    return <Link href={href} className={className}>{inner}</Link>;
+    return <Link href={href as Route} className={className}>{inner}</Link>;
   }
   return (
     <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
