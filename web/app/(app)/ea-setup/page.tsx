@@ -189,7 +189,7 @@ export default async function EaSetupPage() {
             </span>{" "}
             Open <em>Tools → Options → Expert Advisors</em>, tick{" "}
             <em>Allow WebRequest for listed URL</em>, and add:
-            <pre className="mt-2 rounded bg-black/50 p-2 text-xs font-mono text-emerald-300">
+            <pre className="mt-2 overflow-x-auto rounded bg-black/50 p-2 text-xs font-mono text-emerald-300">
               https://journal.bigmarkt.co
             </pre>
           </li>

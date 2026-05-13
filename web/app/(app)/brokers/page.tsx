@@ -76,12 +76,12 @@ export default function BrokersPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by broker name or platform (MT4, MT5, WebSocket…)"
-          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm"
+          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-base"
         />
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value as BrokerCategory | "all")}
-          className="rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm"
+          className="rounded-md border border-white/10 bg-black/40 px-3 py-2 text-base"
         >
           {ALL_CATEGORIES.map((c) => (
             <option key={c} value={c}>
@@ -92,7 +92,7 @@ export default function BrokersPage() {
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value as BrokerStatus | "all")}
-          className="rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm"
+          className="rounded-md border border-white/10 bg-black/40 px-3 py-2 text-base"
         >
           {ALL_STATUSES.map((s) => (
             <option key={s} value={s}>

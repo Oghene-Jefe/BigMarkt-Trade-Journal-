@@ -69,7 +69,7 @@ export default function DisputeForm({ leaderId }: { leaderId: string }) {
         <select
           value={reason}
           onChange={(e) => setReason(e.target.value as DisputeReason)}
-          className="w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm text-white"
+          className="w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 text-base text-white"
         >
           {REASONS.map((r) => (
             <option key={r.value} value={r.value}>
@@ -89,7 +89,7 @@ export default function DisputeForm({ leaderId }: { leaderId: string }) {
           rows={6}
           maxLength={1000}
           placeholder="Describe what happened in detail (minimum 50 characters)..."
-          className="w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm text-white"
+          className="w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 text-base text-white"
         />
         <p className={`mt-1 text-xs ${descValid ? "text-muted" : "text-amber-300"}`}>
           {descLen}/1000 — minimum 50 characters
@@ -105,7 +105,7 @@ export default function DisputeForm({ leaderId }: { leaderId: string }) {
           value={evidenceUrl}
           onChange={(e) => setEvidenceUrl(e.target.value)}
           placeholder="https://..."
-          className="w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm text-white"
+          className="w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 text-base text-white"
         />
       </div>
 

@@ -84,6 +84,7 @@ function Section({ title, buckets }: { title: string; buckets: Bucket[] }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-panel p-4">
       <h2 className="font-display text-lg tracking-widest text-gold">{title.toUpperCase()}</h2>
+      <div className="overflow-x-auto">
       <table className="mt-3 w-full text-sm">
         <thead className="text-xs uppercase tracking-wider text-muted">
           <tr>
@@ -110,6 +111,7 @@ function Section({ title, buckets }: { title: string; buckets: Bucket[] }) {
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

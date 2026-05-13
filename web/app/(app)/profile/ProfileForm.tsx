@@ -90,7 +90,7 @@ export default function ProfileForm({
           required
           maxLength={40}
           defaultValue={profile?.display_name ?? profile?.name?.split(" ")[0] ?? ""}
-          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-base"
         />
         <span className="mt-1 block text-xs text-muted">Shown on the leaderboard and your public page. Email is never exposed.</span>
       </label>
@@ -104,7 +104,7 @@ export default function ProfileForm({
             maxLength={30}
             defaultValue={profile?.username ?? ""}
             placeholder="jefe_xau"
-            className="flex-1 bg-transparent px-2 py-2 outline-none"
+            className="flex-1 bg-transparent px-2 py-2 outline-none text-base"
           />
         </div>
         <span className="mt-1 block text-xs text-muted">
@@ -118,7 +118,7 @@ export default function ProfileForm({
           name="journal_mode"
           value={journalMode}
           onChange={handleJournalModeChange}
-          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-base"
         >
           <option value="manual">MANUAL — log trades yourself after the fact</option>
           <option value="automated">AUTOMATED — EA captures every trade in real time</option>
@@ -158,7 +158,7 @@ export default function ProfileForm({
         <select
           name="visibility"
           defaultValue={profile?.visibility ?? "private"}
-          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-base"
         >
           <option value="private">private — only you see your profile and stats</option>
           <option value="community">community — appear on leaderboard, no public share page</option>
@@ -174,7 +174,7 @@ export default function ProfileForm({
           step="0.01"
           min="0"
           defaultValue={profile?.starting_balance ?? ""}
-          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-base"
         />
         <span className="mt-1 block text-xs text-muted">Used to compute growth %. Required for the quality leaderboard.</span>
       </label>

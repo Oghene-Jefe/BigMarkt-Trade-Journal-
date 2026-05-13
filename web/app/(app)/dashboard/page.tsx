@@ -89,9 +89,9 @@ export default async function DashboardPage() {
 function Stat({ label, value, tone }: { label: string; value: string; tone?: "win" | "loss" }) {
   const colour = tone === "win" ? "text-win" : tone === "loss" ? "text-loss" : "text-white";
   return (
-    <div className="rounded-2xl border border-white/10 bg-panel p-4">
+    <div className="min-w-0 rounded-2xl border border-white/10 bg-panel p-4">
       <p className="text-xs uppercase tracking-wider text-muted">{label}</p>
-      <p className={`mt-1 font-display text-2xl tracking-wider ${colour}`}>{value}</p>
+      <p className={`mt-1 truncate font-display text-2xl tracking-wider ${colour}`}>{value}</p>
     </div>
   );
 }
