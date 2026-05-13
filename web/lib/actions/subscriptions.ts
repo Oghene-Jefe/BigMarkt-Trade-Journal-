@@ -2,7 +2,20 @@
 
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
+import { createNotification } from "@/lib/actions/create-notification";
 import type { SubscriptionMode, MinSignalGrade, SubscriptionStatus } from "@/lib/types";
+
+async function followerDisplayName(
+  sb: Awaited<ReturnType<typeof supabaseServer>>,
+  userId: string,
+): Promise<string> {
+  const { data } = await sb
+    .from("profiles")
+    .select("display_name")
+    .eq("id", userId)
+    .maybeSingle();
+  return data?.display_name ?? "Someone";
+}
 
 export async function followLeaderAction(
   leaderId: string,
@@ -50,12 +63,28 @@ export async function followLeaderAction(
 
   if (insertErr) return { error: insertErr.message };
 
+  const name = await followerDisplayName(sb, user.id);
+  await createNotification(
+    sb,
+    leaderId,
+    "new_follower",
+    "New follower",
+    `${name} is now following you.`,
+  );
+
   return { success: true as const };
 }
 
 export async function unfollowLeaderAction(subscriptionId: string) {
   const user = await requireUser();
   const sb = await supabaseServer();
+
+  const { data: sub } = await sb
+    .from("subscriptions")
+    .select("leader_id")
+    .eq("id", subscriptionId)
+    .eq("follower_id", user.id)
+    .maybeSingle();
 
   const { error } = await sb
     .from("subscriptions")
@@ -64,6 +93,18 @@ export async function unfollowLeaderAction(subscriptionId: string) {
     .eq("follower_id", user.id);
 
   if (error) return { error: error.message };
+
+  if (sub?.leader_id) {
+    const name = await followerDisplayName(sb, user.id);
+    await createNotification(
+      sb,
+      sub.leader_id,
+      "subscription_cancelled",
+      "Follower left",
+      `${name} unfollowed you.`,
+    );
+  }
+
   return { success: true as const };
 }
 

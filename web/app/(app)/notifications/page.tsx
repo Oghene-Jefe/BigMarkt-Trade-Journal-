@@ -18,6 +18,7 @@ const ICONS: Record<NotificationType, string> = {
   dispute_opened: "⚖️",
   dispute_resolved: "⚖️",
   subscription_cancelled: "🔔",
+  new_follower: "👤",
 };
 
 async function markAllAction() {

@@ -268,7 +268,8 @@ export type NotificationType =
   | 'score_updated'
   | 'dispute_opened'
   | 'dispute_resolved'
-  | 'subscription_cancelled';
+  | 'subscription_cancelled'
+  | 'new_follower';
 
 export interface Notification {
   id: string;

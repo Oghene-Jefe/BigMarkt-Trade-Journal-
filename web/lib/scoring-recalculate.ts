@@ -1,5 +1,38 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { calculateScore, type ScoringTrade } from "@/lib/scoring";
+import { calculateScore, type ScoringTrade, type ScoreTier } from "@/lib/scoring";
+import { createNotification } from "@/lib/actions/create-notification";
+
+function tierChangeNotification(
+  oldTier: ScoreTier,
+  newTier: ScoreTier,
+): { title: string; body: string } | null {
+  if (oldTier === newTier) return null;
+  if (oldTier === "none" && newTier === "active") {
+    return {
+      title: "You reached Active tier on the leaderboard",
+      body: "Your verified score has crossed the Active threshold.",
+    };
+  }
+  if (oldTier === "active" && newTier === "pro") {
+    return {
+      title: "You reached PRO tier — congratulations",
+      body: "Your verified score has crossed the PRO threshold.",
+    };
+  }
+  if (oldTier === "pro" && newTier === "active") {
+    return {
+      title: "Your score tier has dropped to Active",
+      body: "Your verified score no longer meets the PRO threshold.",
+    };
+  }
+  if (oldTier !== "none" && newTier === "none") {
+    return {
+      title: "Your verified score has dropped — check your recent performance",
+      body: "Your account no longer meets leaderboard eligibility.",
+    };
+  }
+  return null;
+}
 
 // Shared score-recalc core. Accepts any Supabase client (session-scoped from
 // a server action, or service-role from the EA ingest route). The caller is
@@ -50,6 +83,13 @@ export async function recalculateAccountScoreWithClient(
 
   const result = calculateScore(trades, isAutomated, isLive);
 
+  const { data: prior } = await sb
+    .from("account_scores")
+    .select("score_tier")
+    .eq("broker_account_id", accountId)
+    .maybeSingle();
+  const oldTier: ScoreTier = (prior?.score_tier as ScoreTier | undefined) ?? "none";
+
   const { error: upsertErr } = await sb
     .from("account_scores")
     .upsert(
@@ -64,6 +104,11 @@ export async function recalculateAccountScoreWithClient(
 
   if (upsertErr) {
     return { error: upsertErr.message };
+  }
+
+  const change = tierChangeNotification(oldTier, result.score_tier);
+  if (change) {
+    await createNotification(sb, userId, "score_updated", change.title, change.body);
   }
 
   return { success: true };

@@ -2,6 +2,7 @@
 
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
+import { createNotification } from "@/lib/actions/create-notification";
 import type { Dispute, DisputeReason } from "@/lib/types";
 
 export async function raiseDisputeAction(
@@ -41,6 +42,15 @@ export async function raiseDisputeAction(
   });
 
   if (insertErr) return { error: insertErr.message };
+
+  await createNotification(
+    sb,
+    leaderId,
+    "dispute_opened",
+    "Dispute filed against you",
+    "A dispute has been raised against your account. Our team will review it.",
+  );
+
   return { success: true as const };
 }
 
