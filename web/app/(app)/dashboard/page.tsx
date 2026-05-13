@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { TradeRow } from "@/lib/types";
 import { fmtMoney, fmtDate, fmtPct } from "@/lib/format";
+import Banners from "./Banners";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +11,16 @@ export default async function DashboardPage() {
   const { data: { user } } = await sb.auth.getUser();
   // Layout already redirects unauthed users; user is guaranteed to exist here.
 
-  const [{ data: tradesData }, { data: profileData }] = await Promise.all([
-    sb.from("trades").select("*").order("created_at", { ascending: false }),
-    sb.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
-  ]);
+  const [{ data: tradesData }, { data: profileData }, { count: brokerAccountCountRaw }] =
+    await Promise.all([
+      sb.from("trades").select("*").order("created_at", { ascending: false }),
+      sb.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
+      sb
+        .from("broker_accounts")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user!.id),
+    ]);
+  const brokerAccountCount = brokerAccountCountRaw ?? 0;
   const trades = (tradesData ?? []) as TradeRow[];
   const startBal = profileData?.starting_balance ?? null;
   const journalMode = (profileData?.journal_mode ?? null) as
@@ -39,6 +46,12 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-display text-3xl tracking-widest text-gold">DASHBOARD</h1>
+
+      <Banners
+        journalMode={journalMode}
+        brokerAccountCount={brokerAccountCount}
+        tradeCount={trades.length}
+      />
 
       <div className="inline-flex flex-col gap-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-gray-200">
         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium w-fit ${modeBadge.className}`}>

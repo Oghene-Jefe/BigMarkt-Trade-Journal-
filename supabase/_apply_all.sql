@@ -1119,7 +1119,7 @@ grant execute on function public.admin_purge_user_data(uuid) to authenticated;
 comment on function public.admin_purge_user_data is
   'Removes all public.* rows belonging to target_id. Leaves auth.users row intact.';
 -- =============================================================================
--- 0012_exchange_schema.sql
+-- 0012b_exchange_schema.sql
 -- Phase A of the Bybit auto-journaling feature.
 --
 -- Adds five tables for exchange connections, sync runs, raw imported data,

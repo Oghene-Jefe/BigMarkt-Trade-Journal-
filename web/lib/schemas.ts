@@ -34,6 +34,26 @@ export const usernameSchema = z
   .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores")
   .transform((s) => s.toLowerCase().trim());
 
+// Onboarding-only variant: spec calls for lowercase letters / digits / hyphens.
+// Kept distinct from usernameSchema so the existing settings page (which uses
+// underscores) continues to validate the same way it always has.
+export const onboardingUsernameSchema = z
+  .string()
+  .min(3)
+  .max(30)
+  .transform((s) => s.toLowerCase().trim())
+  .pipe(
+    z
+      .string()
+      .regex(/^[a-z0-9-]+$/, "Use only lowercase letters, numbers, and hyphens"),
+  );
+
+export const onboardingDisplayNameSchema = z
+  .string()
+  .min(1)
+  .max(80)
+  .transform((s) => s.trim());
+
 export const balanceResetSchema = z.object({
   new_balance: z.number().finite().positive().max(10_000_000),
   reason: z.string().max(200).nullable().optional(),

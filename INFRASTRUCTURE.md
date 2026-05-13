@@ -459,6 +459,7 @@ These are the things the rebuild guarantees. Each maps to a verification we ran 
 | Backlog | Edge Function for full `auth.users` deletion (admin "Purge data" currently leaves the auth row) |
 | Backlog | Streak / badge automation in `challenges` (columns exist, no logic yet) |
 | Backlog | Domain pre-warm / fewer-cold-start cache strategy |
+| Done (2026-05-13) | Renamed `0012_exchange_schema.sql` → `0012b_exchange_schema.sql` to resolve numbering collision with `0012_visibility_trust_badges.sql`. Lexical ordering preserved; no SQL behavior change. |
 
 ---
 
