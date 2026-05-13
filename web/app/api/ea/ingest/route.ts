@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { recalculateAccountScoreWithClient } from "@/lib/scoring-recalculate";
 
 // ── types ────────────────────────────────────────────────────────────────────
 
@@ -129,6 +130,14 @@ export async function POST(req: NextRequest) {
     .from("ea_tokens")
     .update({ last_used_at: new Date().toISOString() })
     .eq("id", tokenRow.id);
+
+  // 7. Recalculate account score (best-effort; do not fail ingest on error)
+  if (brokerAccountId) {
+    const scoreResult = await recalculateAccountScoreWithClient(supabase, userId, brokerAccountId);
+    if ("error" in scoreResult) {
+      console.error("EA ingest score recalc error:", scoreResult.error);
+    }
+  }
 
   return NextResponse.json({ ok: true }, { status: 200 });
 }
