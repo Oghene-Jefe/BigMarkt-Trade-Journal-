@@ -1,65 +1,145 @@
-import Image from "next/image";
+import Link from "next/link";
+import Ticker from "./_components/Ticker";
 
-export default function Home() {
+const tracks = [
+  { icon: "💰", name: "Money Foundations", desc: "Build the financial base nobody taught you" },
+  { icon: "📈", name: "Investing Fundamentals", desc: "Stocks, bonds, ETFs and long-term wealth" },
+  { icon: "₿", name: "Crypto & Digital Assets", desc: "Blockchain, DeFi and the digital economy" },
+  { icon: "🏢", name: "Business Finance", desc: "How money moves inside companies" },
+  { icon: "🌍", name: "Global Markets", desc: "Macroeconomics, geopolitics and market forces" },
+  { icon: "📊", name: "Trading Track", desc: "Technical analysis, risk management and live markets" },
+];
+
+const stats = [
+  { value: "6", label: "Learning Tracks" },
+  { value: "13", label: "Course Modules" },
+  { value: "Free", label: "To Join" },
+  { value: "Pioneer", label: "Cohort Now Forming" },
+];
+
+const tiers = [
+  { name: "Explorer", price: "Free", body: "Access to community, tracks overview, announcements.", status: "Open" },
+  { name: "Builder", price: "Free — Founding Phase", body: "Full track access, assignments, mentorship matching.", status: "Founding Members Only" },
+  { name: "Leader", price: "Merit Only", body: "Chapter leadership, capital programme access, industry connections.", status: "By Selection" },
+];
+
+const testimonials = [
+  { q: "BigMarkt Club changed how I think about money completely.", a: "Amara O., University of Lagos" },
+  { q: "The Trading Track gave me skills my finance degree never covered.", a: "Kwame A., KNUST Ghana" },
+  { q: "I joined knowing nothing. Now I actually understand markets.", a: "Fatima S., University of Nairobi" },
+];
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <>
+      <section className="relative min-h-[calc(100vh-4rem)] overflow-hidden border-b border-[#1f1f1f]">
+        <div className="absolute inset-0 gold-dots opacity-60" aria-hidden />
+        <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl flex-col justify-center px-6 py-24">
+          <h1 className="text-5xl font-bold leading-[1.05] tracking-tight md:text-7xl">
+            BigMarkt Club.
+            <br />
+            Learn money.
+            <br />
+            <span className="text-[#C9A84C]">For real this time.</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="mt-8 max-w-2xl text-lg text-white/80 md:text-xl">
+            Financial literacy. Trading skills. Industry mentorship. Real capital opportunities.
           </p>
+          <p className="mt-3 max-w-2xl text-white/60">
+            Free to join. Built for students who want more than a degree.
+          </p>
+          <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+            <Link href="/join" className="bg-[#C9A84C] px-8 py-4 text-center text-sm font-semibold text-black transition hover:bg-[#d8b955]">
+              Join Free
+            </Link>
+            <Link href="/about" className="border border-[#C9A84C] px-8 py-4 text-center text-sm font-semibold text-[#C9A84C] transition hover:bg-[#C9A84C] hover:text-black">
+              Explore the Club
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      <Ticker />
+
+      <section className="border-b border-[#1f1f1f] px-6 py-24">
+        <div className="mx-auto max-w-7xl">
+          <h2 className="text-3xl font-bold tracking-tight md:text-5xl">
+            Universities teach you economics. Nobody teaches you money.
+          </h2>
+          <div className="mt-12 grid gap-12 md:grid-cols-2">
+            <p className="text-white/70 md:text-lg">
+              Most graduates enter the workforce with zero practical financial knowledge. No
+              investing skills. No trading knowledge. No understanding of how money actually
+              works. BigMarkt Club exists to change that.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              {stats.map((s) => (
+                <div key={s.label} className="border border-[#1f1f1f] bg-[#111111] p-6">
+                  <div className="text-3xl font-bold text-[#C9A84C] md:text-4xl">{s.value}</div>
+                  <div className="mt-2 text-sm text-white/70">{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+
+      <section className="border-b border-[#1f1f1f] px-6 py-24">
+        <div className="mx-auto max-w-7xl">
+          <h2 className="text-3xl font-bold tracking-tight md:text-5xl">
+            Six tracks. One platform. Your choice.
+          </h2>
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {tracks.map((t) => (
+              <Link key={t.name} href="/tracks" className="block border border-[#1f1f1f] bg-[#111111] p-6 transition hover:border-[#C9A84C]">
+                <div className="text-3xl">{t.icon}</div>
+                <h3 className="mt-4 text-lg font-semibold text-[#C9A84C]">{t.name}</h3>
+                <p className="mt-2 text-sm text-white/70">{t.desc}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-[#1f1f1f] px-6 py-24">
+        <div className="mx-auto max-w-7xl">
+          <h2 className="text-3xl font-bold tracking-tight md:text-5xl">The Progression</h2>
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            {tiers.map((t) => (
+              <div key={t.name} className="border border-[#1f1f1f] bg-[#111111] p-6">
+                <h3 className="text-xl font-semibold text-[#C9A84C]">{t.name}</h3>
+                <p className="mt-1 text-xs uppercase tracking-widest text-white/40">{t.price}</p>
+                <p className="mt-4 text-sm text-white/70">{t.body}</p>
+                <p className="mt-6 text-xs font-semibold uppercase tracking-widest text-[#C9A84C]">Status: {t.status}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-[#1f1f1f] px-6 py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-6 md:grid-cols-3">
+            {testimonials.map((t) => (
+              <div key={t.a} className="border border-[#1f1f1f] bg-[#111111] p-6">
+                <p className="italic text-white/80">&ldquo;{t.q}&rdquo;</p>
+                <p className="mt-6 text-sm font-semibold text-[#C9A84C]">— {t.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#C9A84C] px-6 py-20">
+        <div className="mx-auto flex max-w-7xl flex-col items-start gap-8 md:flex-row md:items-center md:justify-between">
+          <h2 className="text-3xl font-bold tracking-tight text-black md:text-4xl">
+            Your campus has a library. It does not have this.
+          </h2>
+          <Link href="/join" className="bg-black px-8 py-4 text-sm font-semibold text-[#C9A84C] transition hover:bg-[#1a1a1a]">
+            Join BigMarkt Club — Free
+          </Link>
+        </div>
+      </section>
+    </>
   );
 }
