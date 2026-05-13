@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 // ── types ────────────────────────────────────────────────────────────────────
 
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing authorization token" }, { status: 401 });
   }
 
-  const supabase = await createClient();
+  const supabase = supabaseAdmin();
   const hash = hashToken(raw);
 
   // 2. Look up token — must exist and not be revoked
