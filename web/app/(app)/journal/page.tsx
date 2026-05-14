@@ -35,20 +35,18 @@ export default async function JournalPage({
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="font-display text-3xl tracking-widest text-gold">JOURNAL</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/journal/imports"
-            className="rounded-md border border-white/20 px-3 py-2 text-xs uppercase tracking-widest text-muted hover:bg-white/5"
-          >
-            Imports
-          </Link>
-          <Link
-            href="/journal/new"
-            className="rounded-md bg-gold px-5 py-2 font-display tracking-widest text-black"
-          >
-            NEW TRADE
-          </Link>
-        </div>
+        {/*
+          "Imports" button intentionally hidden alongside the Bybit
+          exchange feature (see DrawerNav comment). /journal/imports
+          still works via direct URL. See INFRASTRUCTURE.md → Hidden
+          features.
+        */}
+        <Link
+          href="/journal/new"
+          className="rounded-md bg-gold px-5 py-2 font-display tracking-widest text-black"
+        >
+          NEW TRADE
+        </Link>
       </div>
 
       <div className="flex flex-wrap gap-2">

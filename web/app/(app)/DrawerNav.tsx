@@ -53,7 +53,11 @@ const GROUPS: { label: string; items: LinkItem[] }[] = [
       { href: "/brokers", label: "Broker Guide" },
       { href: "/accounts", label: "Accounts" },
       { href: "/ea-setup", label: "EA Setup" },
-      { href: "/exchanges", label: "Exchanges" },
+      // "Exchanges" (Bybit) is intentionally hidden from the nav while
+      // the Vercel → Bybit geo-block is unresolved. Routes stay live
+      // (/exchanges, /exchanges/new) for direct-URL access by admins
+      // and ops. See INFRASTRUCTURE.md → Hidden features.
+      // { href: "/exchanges", label: "Exchanges" },
     ],
   },
 ];
