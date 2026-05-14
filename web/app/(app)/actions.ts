@@ -126,6 +126,13 @@ export async function updateTradeAction(id: string, _: TradeActionState, fd: For
   if (!parsed.success) return { error: "Check your inputs.", fieldErrors: fieldErrorsFromZod(parsed.error) };
 
   const { sb, user } = await requireUser();
+  const { data: existingTrade, error: existingTradeError } = await sb.from("trades")
+    .select("core_fields_locked")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (existingTradeError) return { error: existingTradeError.message };
+  if (!existingTrade) return { error: "Trade not found." };
 
   const { entry_price, exit_price, stop_loss, direction } = parsed.data;
   void direction;
@@ -136,7 +143,19 @@ export async function updateTradeAction(id: string, _: TradeActionState, fd: For
     rr_ratio = parseFloat((reward / risk).toFixed(2));
   }
 
-  const updateRow: Record<string, unknown> = { ...parsed.data, rr_ratio, trade_visibility: parsed.data.visibility };
+  const editableMetadata = {
+    session: parsed.data.session,
+    emotions: parsed.data.emotions,
+    strategy: parsed.data.strategy,
+    setup_grade: parsed.data.setup_grade,
+    tags: parsed.data.tags,
+    notes: parsed.data.notes,
+    visibility: parsed.data.visibility,
+    trade_visibility: parsed.data.visibility,
+  };
+  const updateRow: Record<string, unknown> = existingTrade.core_fields_locked
+    ? editableMetadata
+    : { ...parsed.data, rr_ratio, trade_visibility: parsed.data.visibility };
 
   const file = fd.get("chart") as File | null;
   if (file && file.size > 0) {

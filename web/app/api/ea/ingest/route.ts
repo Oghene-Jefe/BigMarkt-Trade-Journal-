@@ -27,17 +27,16 @@ function hashToken(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
 }
 
-function deriveResult(profit?: number, closeTime?: string): string {
-  if (!closeTime) return "open";
-  if (!profit || profit === 0) return "breakeven";
-  return profit > 0 ? "win" : "loss";
+function deriveResult(profit?: number): "WIN" | "LOSS" | "BE" {
+  if (!profit || profit === 0) return "BE";
+  return profit > 0 ? "WIN" : "LOSS";
 }
 
-function deriveDirection(type: string): string {
+function deriveDirection(type: string): "BUY" | "SELL" | null {
   const t = type.toLowerCase();
-  if (t.includes("buy")) return "long";
-  if (t.includes("sell")) return "short";
-  return t;
+  if (t.includes("buy")) return "BUY";
+  if (t.includes("sell")) return "SELL";
+  return null;
 }
 
 // ── handler ──────────────────────────────────────────────────────────────────
@@ -89,6 +88,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const direction = deriveDirection(payload.type);
+  if (!direction) {
+    return NextResponse.json({ error: "Trade type must include buy or sell" }, { status: 400 });
+  }
+
   const brokerAccountId = (tokenRow.broker_account_id as string | null) ?? null;
 
   // 4. Translate EA field names → trades column names
@@ -96,7 +100,7 @@ export async function POST(req: NextRequest) {
     user_id:          userId,
     ticket:           payload.ticket,
     pair:             payload.symbol,
-    direction:        deriveDirection(payload.type),
+    direction,
     lot_size:         payload.lots,
     entry_price:      payload.open_price,
     exit_price:       payload.close_price ?? null,
@@ -107,7 +111,7 @@ export async function POST(req: NextRequest) {
     commission:       payload.commission ?? null,
     magic:            payload.magic ?? null,
     comment:          payload.comment ?? null,
-    result:           deriveResult(payload.profit, payload.close_time),
+    result:           deriveResult(payload.profit),
     capture_source:   "ea",
     trust_badge:      "auto_verified",
     core_fields_locked: true,

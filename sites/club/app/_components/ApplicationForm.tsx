@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { submitApplication, type ApplicationState } from "../actions";
 
@@ -25,14 +25,11 @@ type AppType = (typeof TYPE_VALUES)[number];
 export default function ApplicationForm() {
   const [state, formAction, pending] = useActionState(submitApplication, initial);
   const params = useSearchParams();
-  const [appType, setAppType] = useState<AppType>("member");
-
-  useEffect(() => {
-    const t = params.get("type");
-    if (t && (TYPE_VALUES as readonly string[]).includes(t)) {
-      setAppType(t as AppType);
-    }
-  }, [params]);
+  const requestedType = params.get("type");
+  const initialType = TYPE_VALUES.includes(requestedType as AppType)
+    ? (requestedType as AppType)
+    : "member";
+  const [appType, setAppType] = useState<AppType>(initialType);
 
   if (state.ok) {
     return (
