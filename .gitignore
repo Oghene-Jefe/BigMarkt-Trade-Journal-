@@ -12,6 +12,12 @@ service-role-key*
 .supabase/
 supabase/.temp/
 
+# Apply-all concatenations are forbidden — they drift silently from the
+# real migrations folder. Run each migration file in order via psql or
+# `supabase db push` instead. See INFRASTRUCTURE.md → Operational runbook.
+supabase/_apply_all.sql
+supabase/_apply*.sql
+
 # ── Dependencies / build artefacts ──────────────────────────────────────
 node_modules/
 .next/

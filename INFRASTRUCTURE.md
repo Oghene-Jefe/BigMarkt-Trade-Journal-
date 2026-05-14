@@ -399,6 +399,28 @@ PGPASSWORD='<DB password>' \
 
 Or paste into Supabase dashboard SQL editor.
 
+### Bring a fresh staging project up to date
+Run each migration file in order. **Never** concatenate them into a single
+`_apply_all.sql`-style blob — that file has drifted before and silently
+shipped incomplete schemas. The `.gitignore` enforces this.
+
+```bash
+for f in supabase/migrations/00*.sql; do
+  echo "→ $f"
+  PGPASSWORD='<DB password>' /opt/homebrew/opt/libpq/bin/psql \
+    "postgresql://postgres.<ref>@aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require" \
+    -v ON_ERROR_STOP=1 -f "$f" || exit 1
+done
+```
+
+Or with the Supabase CLI (after `supabase link --project-ref <ref>`):
+
+```bash
+supabase db push
+```
+
+Both methods read `supabase/migrations/` directly and so cannot drift.
+
 ### Promote a user to admin
 ```sql
 insert into public.admin_users (user_id, note)
