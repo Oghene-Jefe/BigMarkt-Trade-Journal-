@@ -43,6 +43,21 @@ describe("bybitBaseUrl", () => {
     expect(bybitBaseUrl("mainnet")).toBe("https://api.bybit.com");
     expect(bybitBaseUrl("testnet")).toBe("https://api-testnet.bybit.com");
   });
+
+  it("uses optional base URL overrides for proxy egress", () => {
+    const oldMainnet = process.env.BYBIT_MAINNET_BASE_URL;
+    const oldTestnet = process.env.BYBIT_TESTNET_BASE_URL;
+    process.env.BYBIT_MAINNET_BASE_URL = "https://proxy.example/mainnet/";
+    process.env.BYBIT_TESTNET_BASE_URL = "https://proxy.example/testnet/";
+
+    expect(bybitBaseUrl("mainnet")).toBe("https://proxy.example/mainnet");
+    expect(bybitBaseUrl("testnet")).toBe("https://proxy.example/testnet");
+
+    if (oldMainnet == null) delete process.env.BYBIT_MAINNET_BASE_URL;
+    else process.env.BYBIT_MAINNET_BASE_URL = oldMainnet;
+    if (oldTestnet == null) delete process.env.BYBIT_TESTNET_BASE_URL;
+    else process.env.BYBIT_TESTNET_BASE_URL = oldTestnet;
+  });
 });
 
 describe("signBybitRequest", () => {
