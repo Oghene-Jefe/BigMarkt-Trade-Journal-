@@ -46,7 +46,15 @@ export async function connectBybitAction(
       return { error: `Bybit rejected the key: ${e.retMsg} (code ${e.retCode})` };
     }
     if (e instanceof BybitHttpError) {
-      return { error: `Bybit returned HTTP ${e.status}. Try again in a moment.` };
+      const reason = e.message.replace(/^Bybit HTTP \d+:\s*/, "");
+      if (e.status === 403) {
+        return {
+          error:
+            `Bybit blocked the request with HTTP 403: ${reason}. ` +
+            `This usually means Bybit rejected BigMarkt's server IP/region or the key is IP-bound to a different address.`,
+        };
+      }
+      return { error: `Bybit returned HTTP ${e.status}: ${reason}` };
     }
     return {
       error:
