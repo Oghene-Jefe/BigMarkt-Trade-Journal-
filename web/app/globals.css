@@ -39,6 +39,17 @@ html, body {
 /* Solid white text — flip to slate-900 */
 :root.light .text-white { color: rgb(15 23 42); }
 
+/* State-variant utilities (hover/focus/active) generate separate CSS
+   classes from their base — `.hover\:text-white:hover` is a different
+   selector from `.text-white`. So every `hover:text-white` in the
+   codebase needed its own light override or the text disappeared on
+   hover in light mode. Same for hover bg/border. */
+:root.light .hover\:text-white:hover { color: rgb(15 23 42); }
+:root.light .hover\:bg-white\/5:hover { background-color: rgb(0 0 0 / 0.04); }
+:root.light .hover\:bg-white\/10:hover { background-color: rgb(0 0 0 / 0.06); }
+:root.light .hover\:border-white\/20:hover { border-color: rgb(0 0 0 / 0.18); }
+:root.light .hover\:border-white\/30:hover { border-color: rgb(0 0 0 / 0.25); }
+
 /* White-with-opacity text — flip to black-with-same-opacity. These
    were invisible in light mode (white-on-white) until covered here.
    46 occurrences across the codebase, all 7 opacity steps used. */
