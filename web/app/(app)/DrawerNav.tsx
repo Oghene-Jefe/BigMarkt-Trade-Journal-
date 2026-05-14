@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { logoutAction } from "../(auth)/actions";
 
 type Props = {
@@ -12,47 +12,109 @@ type Props = {
   userEmail: string;
 };
 
-const LINKS: { href: Route; label: string }[] = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/journal", label: "Journal" },
-  { href: "/trades", label: "Trades" },
-  { href: "/analytics", label: "Analytics" },
-  { href: "/challenges", label: "Challenges" },
-  { href: "/leaderboard", label: "Leaderboard" },
-  { href: "/subscriptions", label: "Subscriptions" },
-  { href: "/brokers", label: "Broker Guide" },
-  { href: "/accounts", label: "Accounts" },
-  { href: "/ea-setup", label: "EA Setup" },
-  { href: "/exchanges", label: "Exchanges" },
-  { href: "/profile", label: "Profile" },
+// Desktop nav is grouped into four click-to-open dropdown menus + a
+// profile menu. Reduces the visible top-bar count from 12 to 4, while
+// keeping every destination one extra click away (better than 12 items
+// fighting for space and visual hierarchy).
+//
+// Groupings:
+//   Trading  — your own activity (dashboard, journal, trades, analytics, challenges)
+//   Compete  — other traders (leaderboard, subscriptions)
+//   Connect  — external data sources (brokers, accounts, ea setup, exchanges)
+//   Profile  — your account (profile, admin-if-admin, logout)
+//
+// Mobile drawer is unchanged — it's already a scrollable list of all 12+
+// destinations, and the hamburger replaces the top-bar density problem
+// at narrow widths.
+
+type LinkItem = { href: Route; label: string };
+
+const GROUPS: { label: string; items: LinkItem[] }[] = [
+  {
+    label: "Trading",
+    items: [
+      { href: "/dashboard", label: "Dashboard" },
+      { href: "/journal", label: "Journal" },
+      { href: "/trades", label: "Trades" },
+      { href: "/analytics", label: "Analytics" },
+      { href: "/challenges", label: "Challenges" },
+    ],
+  },
+  {
+    label: "Compete",
+    items: [
+      { href: "/leaderboard", label: "Leaderboard" },
+      { href: "/subscriptions", label: "Subscriptions" },
+    ],
+  },
+  {
+    label: "Connect",
+    items: [
+      { href: "/brokers", label: "Broker Guide" },
+      { href: "/accounts", label: "Accounts" },
+      { href: "/ea-setup", label: "EA Setup" },
+      { href: "/exchanges", label: "Exchanges" },
+    ],
+  },
 ];
+
+// Mobile drawer uses the flat list (everything in one scrollable column).
+const MOBILE_LINKS: LinkItem[] = GROUPS.flatMap((g) => g.items).concat([
+  { href: "/profile", label: "Profile" },
+]);
 
 export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
-  // Escape to close
+  // Escape to close drawer
   useEffect(() => {
-    if (!open) return;
+    if (!drawerOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") setDrawerOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [drawerOpen]);
+
+  // Escape closes desktop dropdown too
+  useEffect(() => {
+    if (!openMenu) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenMenu(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [openMenu]);
+
+  // Click-outside closes the open dropdown
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!openMenu) return;
+    const onClick = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setOpenMenu(null);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [openMenu]);
 
   // Lock body scroll while drawer is open
   useEffect(() => {
-    if (!open) return;
+    if (!drawerOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [open]);
+  }, [drawerOpen]);
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
+
+  const groupHasActive = (items: LinkItem[]) => items.some((i) => isActive(i.href));
 
   const Bell = ({ onNavigate }: { onNavigate?: () => void }) => (
     <Link
@@ -72,26 +134,43 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
 
   return (
     <>
-      {/* Desktop nav — unchanged from the original layout */}
-      <nav className="hidden items-center gap-5 text-sm md:flex">
-        <Link href="/dashboard" className="text-muted hover:text-white">Dashboard</Link>
-        <Link href="/journal" className="text-muted hover:text-white">Journal</Link>
-        <Link href="/trades" className="text-muted hover:text-white">Trades</Link>
-        <Link href="/analytics" className="text-muted hover:text-white">Analytics</Link>
-        <Link href="/challenges" className="text-muted hover:text-white">Challenges</Link>
-        <Link href="/leaderboard" className="text-muted hover:text-white">Leaderboard</Link>
-        <Link href="/subscriptions" className="text-muted hover:text-white">Subscriptions</Link>
-        <Link href="/brokers" className="text-muted hover:text-white">Broker Guide</Link>
-        <Link href="/accounts" className="text-muted hover:text-white">Accounts</Link>
-        <Link href="/ea-setup" className="text-muted hover:text-white">EA Setup</Link>
-        <Link href="/exchanges" className="text-muted hover:text-white">Exchanges</Link>
-        <Link href="/profile" className="text-muted hover:text-white">Profile</Link>
-        {admin ? <Link href="/admin" className="text-gold hover:text-white">Admin</Link> : null}
+      {/* Desktop nav — grouped dropdowns */}
+      <nav ref={navRef} className="hidden items-center gap-2 text-sm md:flex">
+        {GROUPS.map((g) => (
+          <DesktopMenu
+            key={g.label}
+            label={g.label}
+            items={g.items}
+            isOpen={openMenu === g.label}
+            onToggle={() => setOpenMenu(openMenu === g.label ? null : g.label)}
+            onClose={() => setOpenMenu(null)}
+            active={groupHasActive(g.items)}
+            isActive={isActive}
+          />
+        ))}
+
+        {/* Profile menu — separate from the four content groups */}
+        <DesktopMenu
+          label={admin ? "Profile ★" : "Profile"}
+          items={[{ href: "/profile", label: "Profile" }, ...(admin ? [{ href: "/admin" as Route, label: "Admin" }] : [])]}
+          isOpen={openMenu === "__profile"}
+          onToggle={() => setOpenMenu(openMenu === "__profile" ? null : "__profile")}
+          onClose={() => setOpenMenu(null)}
+          active={isActive("/profile") || isActive("/admin")}
+          isActive={isActive}
+          footer={
+            <>
+              <div className="px-3 py-2 text-xs text-muted">{userEmail}</div>
+              <form action={logoutAction} className="border-t border-white/10 px-3 py-2">
+                <button className="w-full rounded-md border border-white/20 px-3 py-1.5 text-xs">
+                  Log out
+                </button>
+              </form>
+            </>
+          }
+        />
+
         <Bell />
-        <span className="hidden text-xs text-muted md:inline">{userEmail}</span>
-        <form action={logoutAction}>
-          <button className="rounded-md border border-white/20 px-3 py-1 text-xs">Log out</button>
-        </form>
       </nav>
 
       {/* Mobile header right cluster */}
@@ -100,9 +179,9 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
         <button
           type="button"
           aria-label="Open menu"
-          aria-expanded={open}
+          aria-expanded={drawerOpen}
           aria-controls="mobile-drawer"
-          onClick={() => setOpen(true)}
+          onClick={() => setDrawerOpen(true)}
           className="text-2xl leading-none text-white"
         >
           ☰
@@ -110,11 +189,11 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
       </div>
 
       {/* Drawer overlay + panel (mobile only) */}
-      {open ? (
+      {drawerOpen ? (
         <>
           <div
             className="fixed inset-0 z-40 bg-black/60 md:hidden"
-            onClick={() => setOpen(false)}
+            onClick={() => setDrawerOpen(false)}
             aria-hidden="true"
           />
           <aside
@@ -125,22 +204,22 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
             className="fixed right-0 top-0 z-50 flex h-full w-72 max-w-[85vw] flex-col border-l border-white/10 bg-panel md:hidden"
           >
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-              <Bell onNavigate={() => setOpen(false)} />
+              <Bell onNavigate={() => setDrawerOpen(false)} />
               <button
                 type="button"
                 aria-label="Close menu"
-                onClick={() => setOpen(false)}
+                onClick={() => setDrawerOpen(false)}
                 className="text-2xl leading-none text-white"
               >
                 ✕
               </button>
             </div>
             <nav className="flex-1 overflow-y-auto py-2">
-              {LINKS.map((l) => (
+              {MOBILE_LINKS.map((l) => (
                 <Link
                   key={l.href}
                   href={l.href}
-                  onClick={() => setOpen(false)}
+                  onClick={() => setDrawerOpen(false)}
                   className={`flex min-h-[48px] w-full items-center px-4 ${
                     isActive(l.href) ? "text-gold" : "text-muted hover:text-white"
                   }`}
@@ -151,7 +230,7 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
               {admin ? (
                 <Link
                   href="/admin"
-                  onClick={() => setOpen(false)}
+                  onClick={() => setDrawerOpen(false)}
                   className={`flex min-h-[48px] w-full items-center px-4 ${
                     isActive("/admin") ? "text-gold" : "text-gold/80 hover:text-white"
                   }`}
@@ -171,5 +250,69 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
         </>
       ) : null}
     </>
+  );
+}
+
+// Single dropdown menu — used for each of the 4 groups + the profile menu.
+// Click the trigger to open, click outside or press Escape to close, click
+// a child link to navigate (which also closes via onClose).
+function DesktopMenu({
+  label,
+  items,
+  isOpen,
+  onToggle,
+  onClose,
+  active,
+  isActive,
+  footer,
+}: {
+  label: string;
+  items: LinkItem[];
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  active: boolean;
+  isActive: (href: string) => boolean;
+  footer?: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-sm ${
+          active ? "text-gold" : "text-muted hover:text-white"
+        }`}
+      >
+        {label}
+        <span className="text-xs">▾</span>
+      </button>
+      {isOpen ? (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-40 mt-1 w-56 overflow-hidden rounded-md border border-white/10 bg-panel shadow-lg"
+        >
+          <ul className="py-1">
+            {items.map((i) => (
+              <li key={i.href}>
+                <Link
+                  href={i.href}
+                  onClick={onClose}
+                  role="menuitem"
+                  className={`block px-3 py-2 text-sm ${
+                    isActive(i.href) ? "text-gold" : "text-muted hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  {i.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {footer}
+        </div>
+      ) : null}
+    </div>
   );
 }
