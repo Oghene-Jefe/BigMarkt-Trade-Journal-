@@ -6,21 +6,38 @@ import { connectBybitAction, type ConnectActionState } from "./actions";
 
 // Client component for the Bybit connect form.
 //
-// Two non-obvious things about this form:
+// Defeating password-manager autofill turned out to need four layered
+// defences because each manager respects different signals:
 //
-// 1. NO TYPE="PASSWORD" ANYWHERE. Browsers (and 1Password / LastPass /
-//    Chrome's built-in manager) detect a credential-login form by the
-//    presence of <input type="password"> next to a username-shaped field.
-//    Using type="text" with CSS-based masking sidesteps that heuristic
-//    entirely so the save-passwords-prompt and autofill suggestions never
-//    appear. Field names are also renamed away from "apiKey"/"apiSecret"
-//    (which Chrome heuristics also flag) to non-credential-shaped slugs.
+//   1. NO TYPE="PASSWORD" ANYWHERE.
+//      Chrome / 1Password / LastPass / Bitwarden classify a form as a
+//      "login" by the presence of <input type="password"> next to a
+//      text input. Removing type="password" entirely makes the
+//      heuristic miss. Secret is masked via CSS (`-webkit-text-security`)
+//      instead.
 //
-// 2. CONTROLLED INPUTS. React 19's Server Action progressive enhancement
-//    resets uncontrolled forms after submission completion, even when the
-//    action returns an error state. To preserve the user's input across
-//    a Bybit rejection (so they don't have to re-paste the secret), every
-//    field is controlled by useState.
+//   2. NON-CREDENTIAL `name` ATTRIBUTES.
+//      "apiKey", "username", "email", "password" trigger name-based
+//      heuristics in Chrome and Safari. The visible `name=` is
+//      `x_external_id` / `x_external_token` — neutral, opaque. The
+//      server action accepts both old + new keys for backward compat.
+//
+//   3. autoComplete="one-time-code".
+//      Apple Keychain in particular ignores `autoComplete="off"` and
+//      every `data-*-ignore` attribute. It DOES respect "one-time-code"
+//      (designed for SMS verification codes) as a strong signal that
+//      this field is not a credential. Most reliable Safari fix.
+//
+//   4. readOnly + onFocus removal.
+//      Belt-and-braces for Safari: any input that starts `readonly`
+//      doesn't trigger autofill because Safari's check fires on focus
+//      of an editable input. Removing the attribute on first focus
+//      means the field becomes editable AFTER Safari has already
+//      decided not to offer autofill. JS-only, costs nothing.
+//
+// Plus controlled inputs (useState) so React 19's Server Action form-
+// reset behaviour doesn't wipe the API key + secret when the Bybit
+// probe returns an error.
 
 export default function ConnectForm() {
   const [state, formAction, pending] = useActionState<ConnectActionState, FormData>(
@@ -96,18 +113,21 @@ export default function ConnectForm() {
       <label className="block text-sm">
         <span className="mb-1 block text-muted">API Key</span>
         <input
-          // Hidden name="apiKey" matches the server action; visible name on
-          // the input is a non-credential-shaped slug so Chrome heuristics
-          // don't flag the field.
-          name="apiKey"
-          id="bm_external_id"
+          name="x_external_id"
+          id="x_external_id"
           required
           minLength={8}
           maxLength={128}
           type="text"
+          aria-autocomplete="none"
+          readOnly
+          onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
           {...noAutofill}
+          // After the spread so it wins over noAutofill's autoComplete="off".
+          // "one-time-code" is Apple Keychain's documented "not a login" hint.
+          autoComplete="one-time-code"
           className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs"
         />
       </label>
@@ -116,8 +136,8 @@ export default function ConnectForm() {
         <span className="mb-1 block text-muted">API Secret</span>
         <div className="relative">
           <input
-            name="apiSecret"
-            id="bm_external_token"
+            name="x_external_token"
+            id="x_external_token"
             required
             minLength={8}
             maxLength={128}
@@ -125,10 +145,15 @@ export default function ConnectForm() {
             // No type="password" anywhere on this form means password managers
             // see no login pattern and stay quiet.
             type="text"
+            aria-autocomplete="none"
+            readOnly
+            onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
             value={apiSecret}
             onChange={(e) => setApiSecret(e.target.value)}
             {...noAutofill}
             {...maskedInput}
+            // After the spread so it wins over noAutofill's autoComplete="off".
+            autoComplete="one-time-code"
             className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 pr-16 font-mono text-xs"
           />
           <button
