@@ -52,6 +52,15 @@ export default function ConnectForm() {
   const [apiSecret, setApiSecret] = useState("");
   const [showSecret, setShowSecret] = useState(false);
 
+  // readOnly state per real field. React's controlled-input re-renders
+  // would otherwise restore readOnly on every keystroke (because the JSX
+  // says readOnly is true). State-tracking it means the attribute is
+  // removed permanently after the first focus, so subsequent typing works
+  // but Safari's autofill decision at initial focus saw a readonly field
+  // and didn't offer anything.
+  const [keyReadOnly, setKeyReadOnly] = useState(true);
+  const [secretReadOnly, setSecretReadOnly] = useState(true);
+
   // Common attributes that signal "this is NOT a login form" to password
   // managers. Browsers respect different subsets of these; piling them
   // on is the only reliable suppression.
@@ -74,6 +83,24 @@ export default function ConnectForm() {
 
   return (
     <form action={formAction} className="space-y-5 rounded-2xl bg-panel p-6" autoComplete="off">
+      {/*
+        Honeypot autofill absorbers. Browsers (especially Safari/iCloud
+        Keychain) will autofill the *first* username+password pair they
+        find on the page; these hidden decoys catch the autofill before
+        it reaches the real fields below. Server action ignores the
+        username/password keys entirely.
+
+        display:none specifically — `aria-hidden` + `tabIndex=-1` keeps
+        screen readers + keyboard navigation out, and the empty values
+        are never submitted to the server because the action's Zod
+        schema doesn't read them. Position absolute / off-screen alone
+        is not enough — modern Safari requires display:none to skip
+        screen-reader announcement of the decoy.
+      */}
+      <div aria-hidden="true" style={{ display: "none" }}>
+        <input type="text" name="username" autoComplete="username" tabIndex={-1} defaultValue="" />
+        <input type="password" name="password" autoComplete="current-password" tabIndex={-1} defaultValue="" />
+      </div>
       <div>
         <h2 className="font-display text-xl tracking-widest text-gold">CONNECT BYBIT</h2>
         <p className="mt-1 text-xs text-muted">
@@ -120,8 +147,8 @@ export default function ConnectForm() {
           maxLength={128}
           type="text"
           aria-autocomplete="none"
-          readOnly
-          onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
+          readOnly={keyReadOnly}
+          onFocus={() => setKeyReadOnly(false)}
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
           {...noAutofill}
@@ -146,8 +173,8 @@ export default function ConnectForm() {
             // see no login pattern and stay quiet.
             type="text"
             aria-autocomplete="none"
-            readOnly
-            onFocus={(e) => e.currentTarget.removeAttribute("readonly")}
+            readOnly={secretReadOnly}
+            onFocus={() => setSecretReadOnly(false)}
             value={apiSecret}
             onChange={(e) => setApiSecret(e.target.value)}
             {...noAutofill}
