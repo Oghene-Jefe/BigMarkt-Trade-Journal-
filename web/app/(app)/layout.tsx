@@ -18,7 +18,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-white/10 bg-panel">
+      {/*
+        Sticky so the brand + drawer-trigger stay reachable while
+        scrolling long journal / trade / leaderboard lists. z-30 sits
+        below the DrawerNav backdrop (z-40) and panel (z-50) so the
+        drawer correctly overlays the header when it opens.
+      */}
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-panel">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <Link href="/dashboard" className="font-display text-2xl tracking-widest text-gold">
             BIGMARKT
