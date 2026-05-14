@@ -5,6 +5,7 @@ import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { logoutAction } from "../(auth)/actions";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type Props = {
   admin: boolean;
@@ -164,7 +165,11 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
           isActive={isActive}
           footer={
             <>
-              <div className="px-3 py-2 text-xs text-muted">{userEmail}</div>
+              <div className="border-t border-white/10 px-3 py-2">
+                <p className="mb-1.5 text-[10px] uppercase tracking-wider text-muted">Theme</p>
+                <ThemeToggle variant="stacked" />
+              </div>
+              <div className="border-t border-white/10 px-3 py-2 text-xs text-muted">{userEmail}</div>
               <form action={logoutAction} className="border-t border-white/10 px-3 py-2">
                 <button className="w-full rounded-md border border-white/20 px-3 py-1.5 text-xs">
                   Log out
@@ -243,7 +248,11 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
                 </Link>
               ) : null}
             </nav>
-            <div className="border-t border-white/10 p-4">
+            <div className="space-y-3 border-t border-white/10 p-4">
+              <div>
+                <p className="mb-1.5 text-[10px] uppercase tracking-wider text-muted">Theme</p>
+                <ThemeToggle variant="stacked" />
+              </div>
               <form action={logoutAction}>
                 <button className="w-full rounded-md border border-white/20 px-3 py-2 text-sm">
                   Log out
