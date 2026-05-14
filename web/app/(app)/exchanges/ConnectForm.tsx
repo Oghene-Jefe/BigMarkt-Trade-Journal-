@@ -73,12 +73,14 @@ export default function ConnectForm() {
     "data-bwignore": "true",         // Bitwarden alt
   } as const;
 
-  // CSS-based password masking. `-webkit-text-security: disc` masks chars
-  // in WebKit/Blink (Chrome/Safari/Edge/Brave). Firefox doesn't support it
-  // — for FF users the secret stays readable, which is fine for an opt-in
-  // field they're pasting from somewhere else anyway.
+  // Visual masking for the secret. We deliberately avoid
+  // `-webkit-text-security: disc` — Safari's autofill heuristic checks
+  // that CSS property as a credential-field signal and pops the
+  // Keychain UI even without type="password". `filter: blur(6px)`
+  // achieves the same visual effect (you can't read the secret over a
+  // shoulder) without tripping any password-manager detector.
   const maskedInput = !showSecret
-    ? { style: { WebkitTextSecurity: "disc" } as React.CSSProperties }
+    ? { style: { filter: "blur(6px)" } as React.CSSProperties }
     : {};
 
   return (
