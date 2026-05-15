@@ -99,3 +99,12 @@ html, body {
 :root.light input[type="file"]::file-selector-button {
   color: rgb(122 102 32);  /* darker gold for legibility on white */
 }
+
+/* BigMarkt wordmark: the source PNG is white text + gold accent, which
+   disappears on the white light-mode page background. invert(1) flips
+   white→black; hue-rotate(180deg) then rotates the gold's inverted hue
+   back to roughly its original colour. Net effect in light mode: black
+   wordmark, gold accent preserved. */
+:root.light .bigmarkt-logo {
+  filter: invert(1) hue-rotate(180deg);
+}

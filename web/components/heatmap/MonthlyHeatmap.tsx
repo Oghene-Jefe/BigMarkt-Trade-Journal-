@@ -128,11 +128,14 @@ export default function MonthlyHeatmap({
       <div className="grid grid-cols-7 gap-1">
         {days.map((d, idx) => {
           if (!d.isCurrentMonth) {
+            // Off-month placeholder. bg-white/5 is already mapped in
+            // globals.css under :root.light (dark tint on white) and is a
+            // subtle light tint in dark mode — readable in both. Previous
+            // hardcoded #0a0a0a was unreadable on the white light panel.
             return (
               <div
                 key={`${d.date}-${idx}`}
-                className="h-10 w-full rounded-sm"
-                style={{ backgroundColor: "#0a0a0a" }}
+                className="h-10 w-full rounded-sm bg-white/5"
               />
             );
           }
@@ -148,6 +151,10 @@ export default function MonthlyHeatmap({
           const isSelected = selectedDate === d.date;
           const isToday = d.date === today;
           const dayNum = Number(d.date.split("-")[2]);
+          // "No trades" cells fall back to a theme-adaptive Tailwind tint;
+          // every other state (profit/loss/breakeven) uses the vivid hex
+          // from getDayColor and reads correctly in both themes.
+          const isNoTrades = !hasTrades;
           return (
             <button
               key={`${d.date}-${idx}`}
@@ -155,18 +162,27 @@ export default function MonthlyHeatmap({
               onClick={() => onDayClick(isSelected ? null : d.date)}
               className={`relative h-10 w-full cursor-pointer rounded-sm text-left transition ${
                 isSelected ? "ring-2 ring-[#D4AF37]" : ""
-              }`}
-              style={{ backgroundColor: bg }}
+              } ${isNoTrades ? "bg-white/10" : ""}`}
+              style={isNoTrades ? undefined : { backgroundColor: bg }}
               title={
                 hasTrades
                   ? `${d.date} · ${stats!.total} trade${stats!.total === 1 ? "" : "s"} · ${stats!.pnl >= 0 ? "+" : ""}${stats!.pnl.toFixed(2)}`
                   : d.date
               }
             >
+              {/* Inline color on the day number so it stays readable
+                  regardless of theme: on vivid trade tiles a near-white
+                  reads on both modes; on the empty/off-month tints we
+                  switch to the themed muted token. */}
               <span
-                className={`absolute left-1 top-0.5 text-[10px] font-medium ${
-                  isToday ? "text-[#D4AF37]" : "text-white/80"
-                }`}
+                className="absolute left-1 top-0.5 text-[10px] font-medium"
+                style={{
+                  color: isToday
+                    ? "#D4AF37"
+                    : isNoTrades
+                      ? "rgb(var(--color-muted))"
+                      : "rgba(255,255,255,0.85)",
+                }}
               >
                 {dayNum}
               </span>
@@ -179,7 +195,7 @@ export default function MonthlyHeatmap({
         <LegendSwatch color="#22c55e" label="Profit" />
         <LegendSwatch color="#ef4444" label="Loss" />
         <LegendSwatch color="#D4AF37" label="Breakeven" />
-        <LegendSwatch color="#141414" label="No trades" />
+        <LegendSwatch swatchClass="bg-white/10" label="No trades" />
       </div>
 
       <div className="text-center text-xs text-gold/70">
@@ -198,12 +214,20 @@ export default function MonthlyHeatmap({
   );
 }
 
-function LegendSwatch({ color, label }: { color: string; label: string }) {
+function LegendSwatch({
+  color,
+  swatchClass,
+  label,
+}: {
+  color?: string;
+  swatchClass?: string;
+  label: string;
+}) {
   return (
     <span className="inline-flex items-center gap-1.5">
       <span
-        className="inline-block h-3 w-3 rounded-sm"
-        style={{ backgroundColor: color }}
+        className={`inline-block h-3 w-3 rounded-sm ${swatchClass ?? ""}`}
+        style={color ? { backgroundColor: color } : undefined}
       />
       {label}
     </span>

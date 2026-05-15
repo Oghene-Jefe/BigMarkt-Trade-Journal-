@@ -14,6 +14,9 @@ type Props = {
   className?: string;
 };
 
+// The "bigmarkt-logo" class is targeted by a CSS rule in globals.css that
+// flips luminance under :root.light. Without it, the white wordmark sits
+// invisibly on the white light-mode page background.
 export default function Logo({ size = "md", className }: Props) {
   const { width, height } = DIMENSIONS[size];
   return (
@@ -23,7 +26,7 @@ export default function Logo({ size = "md", className }: Props) {
       width={width}
       height={height}
       priority
-      className={className}
+      className={`bigmarkt-logo${className ? ` ${className}` : ""}`}
     />
   );
 }
