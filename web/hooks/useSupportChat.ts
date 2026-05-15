@@ -99,21 +99,20 @@ export function useSupportChat(userId: string, isOpen: boolean) {
   }, [isOpen, conversation, supabase]);
 
   // EFFECT 3 — mark admin messages read when the widget opens.
+  // Goes through the mark_support_messages_read RPC (migration 0035) rather
+  // than a direct .update() on support_messages — RLS no longer permits
+  // arbitrary user-side message UPDATEs, only this narrow read-flag flip.
   useEffect(() => {
     if (!isOpen || !conversation) return;
     (async () => {
-      const nowIso = new Date().toISOString();
       await Promise.all([
         supabase
           .from("support_conversations")
           .update({ unread_by_user: false })
           .eq("id", conversation.id),
-        supabase
-          .from("support_messages")
-          .update({ read_at: nowIso })
-          .eq("conversation_id", conversation.id)
-          .eq("sender_role", "admin")
-          .is("read_at", null),
+        supabase.rpc("mark_support_messages_read", {
+          p_conversation_id: conversation.id,
+        }),
       ]);
       setUnreadCount(0);
     })();
