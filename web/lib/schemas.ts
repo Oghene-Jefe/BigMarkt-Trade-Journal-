@@ -14,6 +14,16 @@ export const signupSchema = z.object({
   password: passwordSchema,
   name: z.string().min(1).max(80).transform((s) => s.trim()),
   website: z.string().optional(),
+  // Optional referral code. The profile referral codes are 12-char base64
+  // slices of a UUID, so any allowed code matches /^[A-Za-z0-9+/]{1,32}$/.
+  // Empty string normalizes to undefined.
+  referred_by: z
+    .string()
+    .trim()
+    .max(32)
+    .regex(/^[A-Za-z0-9+/]*$/, "Invalid referral code")
+    .optional()
+    .transform((s) => (s && s.length > 0 ? s : undefined)),
 });
 export type SignupInput = z.infer<typeof signupSchema>;
 

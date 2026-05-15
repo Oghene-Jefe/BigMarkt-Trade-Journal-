@@ -32,16 +32,21 @@ export async function signupAction(_: ActionState, formData: FormData): Promise<
     password: formData.get("password"),
     name: formData.get("name"),
     website: formData.get("website"), // honeypot
+    referred_by: formData.get("referred_by"),
   });
   if (!parsed.success) return { error: "Check your inputs and try again." };
   // Honeypot tripped → silently succeed (don't tell bots).
   if (parsed.data.website && parsed.data.website.length > 0) return { error: "Bot detected" };
 
   const sb = await supabaseServer();
+  // referred_by goes into raw_user_meta_data; the handle_new_user trigger
+  // (migration 0032) copies it into profiles.referred_by at insert time.
+  const meta: Record<string, string> = { name: parsed.data.name };
+  if (parsed.data.referred_by) meta.referred_by = parsed.data.referred_by;
   const { data, error } = await sb.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
-    options: { data: { name: parsed.data.name } },
+    options: { data: meta },
   });
   if (error) {
     if (error.message.toLowerCase().includes("registered"))
