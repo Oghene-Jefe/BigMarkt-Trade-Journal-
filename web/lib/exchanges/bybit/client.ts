@@ -61,8 +61,13 @@ async function call<T>(
 
   // Bybit's edge (Cloudflare) drops requests with no User-Agent. Set a
   // simple identifier so geo/edge filters see us as a real client.
+  const proxyToken = process.env.BYBIT_PROXY_TOKEN;
   const res = await fetch(url, {
-    headers: { ...headers, "User-Agent": "BigMarkt/1.0 (+https://journal.bigmarkt.co)" },
+    headers: {
+      ...headers,
+      "User-Agent": "BigMarkt/1.0 (+https://journal.bigmarkt.co)",
+      ...(proxyToken ? { "X-BIGMARKT-PROXY-TOKEN": proxyToken } : {}),
+    },
     cache: "no-store",
   });
   if (!res.ok) {

@@ -2,42 +2,12 @@ import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { recalculateAccountScoreWithClient } from "@/lib/scoring-recalculate";
-
-// ── types ────────────────────────────────────────────────────────────────────
-
-interface EaTradePayload {
-  ticket: number;
-  symbol: string;
-  type: string;
-  lots: number;
-  open_price: number;
-  close_price?: number;
-  open_time: string;
-  close_time?: string;
-  profit?: number;
-  swap?: number;
-  commission?: number;
-  magic?: number;
-  comment?: string;
-}
+import { buildEaTradeRow, type EaTradePayload } from "@/lib/ea/normalize";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function hashToken(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
-}
-
-function deriveResult(profit?: number, closeTime?: string): string {
-  if (!closeTime) return "open";
-  if (!profit || profit === 0) return "breakeven";
-  return profit > 0 ? "win" : "loss";
-}
-
-function deriveDirection(type: string): string {
-  const t = type.toLowerCase();
-  if (t.includes("buy")) return "long";
-  if (t.includes("sell")) return "short";
-  return t;
 }
 
 // ── handler ──────────────────────────────────────────────────────────────────
@@ -92,36 +62,38 @@ export async function POST(req: NextRequest) {
   const brokerAccountId = (tokenRow.broker_account_id as string | null) ?? null;
 
   // 4. Translate EA field names → trades column names
-  const tradeRow: Record<string, unknown> = {
-    user_id:          userId,
-    ticket:           payload.ticket,
-    pair:             payload.symbol,
-    direction:        deriveDirection(payload.type),
-    lot_size:         payload.lots,
-    entry_price:      payload.open_price,
-    exit_price:       payload.close_price ?? null,
-    open_time:        payload.open_time,
-    close_time:       payload.close_time ?? null,
-    pnl:              payload.profit ?? null,
-    swap:             payload.swap ?? null,
-    commission:       payload.commission ?? null,
-    magic:            payload.magic ?? null,
-    comment:          payload.comment ?? null,
-    result:           deriveResult(payload.profit, payload.close_time),
-    capture_source:   "ea",
-    trust_badge:      "auto_verified",
-    core_fields_locked: true,
-    auto_approved:    true,
-  };
-  if (brokerAccountId) tradeRow.broker_account_id = brokerAccountId;
+  const built = buildEaTradeRow({ payload, userId, brokerAccountId });
+  if ("error" in built) {
+    return NextResponse.json({ error: built.error }, { status: 400 });
+  }
+  const tradeRow = built.row;
 
-  // 5. Upsert on (user_id, ticket)
-  const { error: upsertError } = await supabase
+  // 5. Save by explicit lookup + insert/update. The database has a partial
+  // unique index on (user_id, ticket) where ticket is not null; PostgREST
+  // upsert cannot reliably target partial indexes via onConflict.
+  const { data: existingTrade, error: lookupError } = await supabase
     .from("trades")
-    .upsert(tradeRow, { onConflict: "user_id,ticket" });
+    .select("id")
+    .eq("user_id", userId)
+    .eq("ticket", payload.ticket)
+    .maybeSingle();
 
-  if (upsertError) {
-    console.error("EA ingest upsert error:", upsertError);
+  if (lookupError) {
+    console.error("EA ingest lookup error:", lookupError);
+    return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
+  }
+
+  const saveResult = existingTrade?.id
+    ? await supabase.from("trades").update(tradeRow).eq("id", existingTrade.id).eq("user_id", userId)
+    : await supabase.from("trades").insert(tradeRow);
+
+  if (saveResult.error) {
+    console.error("EA ingest save error:", {
+      message: saveResult.error.message,
+      code: saveResult.error.code,
+      details: saveResult.error.details,
+      hint: saveResult.error.hint,
+    });
     return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
   }
 

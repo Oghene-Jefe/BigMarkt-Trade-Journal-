@@ -34,7 +34,18 @@ const TRUST_BADGES: Record<
 };
 
 const SELECT_FIELDS =
-  "id, pair, direction, lot_size, entry_price, exit_price, pnl, result, notes, ticket, open_time, close_time, swap, commission, magic, comment, trust_badge, capture_source, created_at";
+  "id, pair, direction, lot_size, entry_price, exit_price, stop_loss, take_profit, pnl, rr_ratio, result, session, strategy, setup_grade, emotions, tags, notes, ticket, open_time, close_time, swap, commission, magic, comment, trust_badge, capture_source, created_at";
+
+// Mirrors the formula in TradeForm.tsx — keep in sync.
+function getPnlMultiplier(pair: string): number {
+  const p = pair.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (p.startsWith("XAU")) return 100;
+  if (p.startsWith("XAG")) return 5000;
+  const cryptoPrefixes = ["BTC", "ETH", "XRP", "SOL", "ADA", "DOT", "LINK", "DOGE", "MATIC", "BNB", "LTC", "AVAX", "ATOM"];
+  if (cryptoPrefixes.some((c) => p.startsWith(c))) return 1;
+  if (/^(US30|NAS100|US500|UK100|GER40|DAX|SPX500|NDX|DOW|FTSE|CAC|NIKKEI)/.test(p)) return 1;
+  return 10;
+}
 
 function fmtDateTime(value: unknown): string {
   if (!value || typeof value !== "string") return "—";
@@ -92,17 +103,53 @@ export default async function TradeDetailPage({
   const badgeKey = typeof t.trust_badge === "string" ? t.trust_badge : null;
   const badge = badgeKey ? TRUST_BADGES[badgeKey] : null;
 
-  const pnl = typeof t.pnl === "number" ? t.pnl : null;
+  // Core numeric fields needed for fallback calculations.
+  const entryNum = typeof t.entry_price === "number" ? t.entry_price : null;
+  const exitNum = typeof t.exit_price === "number" ? t.exit_price : null;
+  const stopNum = typeof t.stop_loss === "number" ? t.stop_loss : null;
+  const lotNum = typeof t.lot_size === "number" ? t.lot_size : null;
+  const pairStr = typeof t.pair === "string" ? t.pair : "";
+  const dirStr = typeof t.direction === "string" ? t.direction.toUpperCase() : null;
+
+  // PnL: use stored value; recalculate when null or when stored as 0 but prices
+  // are present (incorrectly stored default). Genuine breakevens (entry === exit)
+  // will still produce 0 after recalculation, so they display correctly.
+  const storedPnl = typeof t.pnl === "number" ? t.pnl : null;
+  let displayPnl = storedPnl;
+  if (
+    (displayPnl == null || displayPnl === 0) &&
+    entryNum != null && entryNum !== 0 &&
+    exitNum != null && exitNum !== 0 &&
+    lotNum != null && dirStr != null
+  ) {
+    const mult = getPnlMultiplier(pairStr);
+    const sign = dirStr === "BUY" ? 1 : -1;
+    displayPnl = +(sign * (exitNum - entryNum) * lotNum * mult).toFixed(2);
+  }
+
+  // RR: use stored value; recalculate when null or when stored as 0 but prices
+  // are present (incorrectly stored default).
+  const storedRR = typeof t.rr_ratio === "number" ? t.rr_ratio : null;
+  let rrDisplay = "—";
+  if (storedRR != null && storedRR !== 0) {
+    rrDisplay = storedRR.toFixed(2);
+  } else if (entryNum != null && exitNum != null && stopNum != null) {
+    const risk = Math.abs(entryNum - stopNum);
+    if (risk > 0) {
+      rrDisplay = (Math.abs(exitNum - entryNum) / risk).toFixed(2);
+    }
+  }
+
   const pnlClass =
-    pnl === null
+    displayPnl == null
       ? "text-gray-500"
-      : pnl > 0
+      : displayPnl > 0
         ? "text-green-400"
-        : pnl < 0
+        : displayPnl < 0
           ? "text-red-400"
           : "text-gray-300";
 
-  const direction = typeof t.direction === "string" ? t.direction.toUpperCase() : null;
+  const direction = dirStr;
   const directionClass =
     direction === "BUY"
       ? "bg-green-900 text-green-300"
@@ -159,7 +206,7 @@ export default async function TradeDetailPage({
         <div className="bg-gray-900 border border-gray-700 rounded-xl p-5">
           <div className="text-gray-400 text-sm">Trade Summary</div>
           <div className={`text-4xl font-bold mt-1 ${pnlClass}`}>
-            {pnl !== null ? pnl.toFixed(2) : "—"}
+            {displayPnl !== null ? displayPnl.toFixed(2) : "—"}
           </div>
           {result ? (
             <span
@@ -172,8 +219,10 @@ export default async function TradeDetailPage({
           <div className="grid grid-cols-2 gap-4 mt-5">
             <Field label="Entry Price" value={fmtValue(t.entry_price)} />
             <Field label="Exit Price" value={fmtValue(t.exit_price)} />
+            <Field label="Stop Loss" value={fmtValue(t.stop_loss)} />
             <Field label="Lot Size" value={fmtValue(t.lot_size)} />
-            <Field label="RR Ratio" value={fmtValue(t.rr_ratio)} />
+            <Field label="RR Ratio" value={rrDisplay} />
+            <Field label="Take Profit" value={fmtValue(t.take_profit)} />
           </div>
         </div>
 

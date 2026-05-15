@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/news-feed",
+      "schedule": "0 0 * * *"
+    },
+    {
       "path": "/api/cron/recalculate-scores",
       "schedule": "0 2 * * *"
     }

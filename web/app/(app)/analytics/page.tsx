@@ -34,6 +34,21 @@ function aggregate(trades: TradeRow[], pick: (t: TradeRow) => string | null): Bu
 export default async function AnalyticsPage() {
   const sb = await supabaseServer();
   const { data, error } = await sb.from("trades").select("*");
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="font-display text-3xl tracking-widest text-gold">ANALYTICS</h1>
+        </div>
+        <div className="rounded-2xl border border-loss/30 bg-loss/10 p-8 text-center">
+          <p className="font-display text-lg tracking-widest text-loss">FAILED TO LOAD</p>
+          <p className="mt-2 text-sm text-muted">Failed to load analytics data. Please refresh the page.</p>
+        </div>
+      </div>
+    );
+  }
+
   const trades = (data ?? []) as TradeRow[];
 
   const byPair = aggregate(trades, (t) => t.pair);
@@ -50,8 +65,6 @@ export default async function AnalyticsPage() {
           Computed from your trades only. Trades marked `exclude` are skipped.
         </p>
       </div>
-
-      {error ? <p className="text-sm text-loss">{error.message}</p> : null}
 
       {trades.length === 0 ? (
         <div className="rounded-2xl border border-white/10 bg-panel p-12 text-center">

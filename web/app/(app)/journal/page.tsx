@@ -33,8 +33,14 @@ export default async function JournalPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="font-display text-3xl tracking-widest text-gold">JOURNAL</h1>
+        {/*
+          "Imports" button intentionally hidden alongside the Bybit
+          exchange feature (see DrawerNav comment). /journal/imports
+          still works via direct URL. See INFRASTRUCTURE.md → Hidden
+          features.
+        */}
         <Link
           href="/journal/new"
           className="rounded-md bg-gold px-5 py-2 font-display tracking-widest text-black"
@@ -91,6 +97,15 @@ async function TradesView({
   const paths = trades.map((t) => t.chart_path).filter((p): p is string => !!p);
   const chartUrls = await signCharts(paths);
 
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-loss/30 bg-loss/10 p-8 text-center">
+        <p className="font-display text-lg tracking-widest text-loss">FAILED TO LOAD</p>
+        <p className="mt-2 text-sm text-muted">Failed to load trades. Please refresh the page.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       {view === "signals" ? (
@@ -98,9 +113,6 @@ async function TradesView({
           Signals received from leaders you follow. These trades are excluded
           from your performance score.
         </p>
-      ) : null}
-      {error ? (
-        <p className="text-sm text-loss">Couldn't load trades: {error.message}</p>
       ) : null}
       <JournalTable trades={trades} chartUrls={chartUrls} />
     </div>
@@ -124,9 +136,15 @@ async function NewsView({
 
   if (error) {
     return (
-      <p className="text-sm text-loss">
-        Couldn't load news events: {error.message}
-      </p>
+      <div className="rounded-2xl border border-loss/30 bg-loss/10 p-8 text-center space-y-3">
+        <p className="text-sm text-muted">Could not load news. Try again later.</p>
+        <a
+          href="/journal?view=news"
+          className="inline-block rounded-md border border-white/10 bg-panel px-5 py-2 font-display text-xs tracking-widest text-gold hover:bg-white/5"
+        >
+          RETRY
+        </a>
+      </div>
     );
   }
 

@@ -46,6 +46,11 @@ export function buildBybitQueryString(
 }
 
 export function bybitBaseUrl(env: ExchangeEnvironment): string {
+  const override =
+    env === "testnet"
+      ? process.env.BYBIT_TESTNET_BASE_URL
+      : process.env.BYBIT_MAINNET_BASE_URL;
+  if (override) return override.replace(/\/+$/, "");
   return env === "testnet" ? "https://api-testnet.bybit.com" : "https://api.bybit.com";
 }
 

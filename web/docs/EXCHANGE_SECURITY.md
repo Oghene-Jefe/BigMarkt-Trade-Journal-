@@ -93,6 +93,35 @@ For the MVP slice, the rotation route does not exist yet. Add it before the firs
 - `error_message` columns on `exchange_sync_runs` and `exchange_connections.last_error` may store Bybit error messages but never request bodies, headers, or the credentials themselves.
 - The `raw_payload` jsonb columns on `exchange_closed_pnl` and `exchange_fills` store the Bybit *response* — which never includes the API secret. Acceptable.
 
+## Bybit egress proxy
+
+Vercel's serverless egress can be blocked by Bybit/CloudFront depending on
+region. When that happens, Bybit returns HTTP 403 before the normal JSON API
+response. BigMarkt supports an optional egress proxy:
+
+```bash
+BYBIT_MAINNET_BASE_URL=https://<worker>/mainnet
+BYBIT_TESTNET_BASE_URL=https://<worker>/testnet
+BYBIT_PROXY_TOKEN=<shared secret>
+```
+
+The proxy lives at `infra/bybit-proxy-worker.js`. The application still signs
+every request with the user's encrypted API key/secret before calling the
+proxy. The proxy only forwards signed GET requests to:
+
+- `https://api.bybit.com/v5/...`
+- `https://api-testnet.bybit.com/v5/...`
+
+Proxy rules:
+- Only accept `GET`.
+- Require `X-BIGMARKT-PROXY-TOKEN`.
+- Forward only `X-BAPI-*` auth headers and `User-Agent`.
+- Do not log request headers, query strings, or bodies.
+- Set `Cache-Control: no-store`.
+
+This solves the hosting-region block without putting exchange credentials in
+the browser and without letting the proxy create or alter signatures.
+
 ## Why we reject non-read-only keys
 
 Two layers of defence:

@@ -1,393 +1,388 @@
 # BigMarkt Trade Journal — Infrastructure
 
-Comprehensive reference for the rebuild shipped 2026-05-09 → 2026-05-10. Single source of truth for what's deployed, where, and why.
+Single source of truth for what's deployed, where, and why. Covers the full ecosystem — journal app, marketing sites, EA, WebSocket server, Bybit proxy, schema.
 
-The previous static HTML/JS app is preserved at the repo root for rollback (`index.html`, `js/`, `css/`, `assets/`, `manifest.json`) but is **not deployed** — Vercel's Root Directory points at `web/`. Plan to delete the legacy files ~1 week after stable cutover.
+Started as a Next.js rebuild of a static SPA in May 2026. Has since grown into four Next.js apps + an MT5 Expert Advisor + a WebSocket server + a Cloudflare Worker, all backed by one Supabase project with 28 migrations.
 
 ---
 
 ## Live URLs
 
-| Surface | URL |
-|---|---|
-| Production app | https://journal.bigmarkt.co |
-| Vercel auto-domain | https://big-markt-trade-journal-git-main-bigmarkts-projects.vercel.app |
-| Supabase project | https://awvrylniqppybwaiwzse.supabase.co (region `eu-west-1`) |
-| GitHub repo | https://github.com/Oghene-Jefe/BigMarkt-Trade-Journal- |
-| Vercel project | https://vercel.com/bigmarkts-projects/big-markt-trade-journal |
+| Surface | URL | What lives there |
+|---|---|---|
+| Journal app | https://journal.bigmarkt.co | Authed trading journal, leaderboard, broker connections, EA setup |
+| Marketing | https://bigmarkt.co | Protocol / token / ecosystem |
+| Academy | https://fts.bigmarkt.co | Bootcamp, warroom, course material |
+| Campus club | https://club.bigmarkt.co | Student trader chapters, application |
+| Supabase | https://awvrylniqppybwaiwzse.supabase.co (eu-west-1) | Backend for the journal |
+| Bybit egress proxy | Cloudflare Worker (private URL) | Routes Bybit traffic around geo-blocks |
+| WebSocket server | private host | Real-time EA heartbeat status |
+| GitHub | https://github.com/Oghene-Jefe/BigMarkt-Trade-Journal- | Single monorepo |
 
 ---
 
 ## Stack
 
-| Layer | Choice | Why |
+| Layer | Choice | Notes |
 |---|---|---|
-| Framework | Next.js 15.5 + React 19 + Turbopack | App Router, Server Components, Server Actions |
-| Language | TypeScript 5.6, strict mode | |
-| Styling | Tailwind CSS 3.4 | Brand tokens (gold/black/win/loss) lifted from old static app |
-| Auth | Supabase Auth via `@supabase/ssr` | Cookie-based; RLS works in Server Components without extra plumbing |
-| Database | Supabase Postgres | Schema versioned in `supabase/migrations/` |
+| Framework | Next.js 15.5 + React 19 + Turbopack | App Router, RSC, Server Actions |
+| Language | TypeScript 5.6, strict | |
+| Styling | Tailwind 3.4 | Gold/black BigMarkt brand tokens |
+| Auth | Supabase Auth via `@supabase/ssr` | Cookie-based; RLS auto-applies |
+| Database | Supabase Postgres | 28 versioned migrations in `supabase/migrations/` |
 | Storage | Supabase Storage, private buckets | Signed URLs only, no permanent public links |
 | Validation | Zod | Shared client + server schemas |
-| Tests | Vitest 3.x | Privacy + rendering suites |
-| CI | GitHub Actions | Typecheck + build on push to `main` and on every PR |
-| Hosting | Vercel | Root Directory = `web`, Framework Preset = Next.js |
+| Tests | Vitest 3.x | Unit suites; one privacy suite hits real Supabase |
+| CI | GitHub Actions | typecheck + test + build on push |
+| Hosting | Vercel | All four Next apps deploy independently |
+| Bybit proxy | Cloudflare Worker | Token-gated egress for the journal's Bybit traffic |
+| Realtime | Custom Node/`ws` server | EA WebSocket heartbeat + trade push |
+| Trade ingest | MT5 Expert Advisor (MQL5) | Pushes fills to the journal as they happen |
 
 ---
 
 ## Repository layout
 
 ```
-BigMarkt-Trade-Journal/
-├── INFRASTRUCTURE.md         ← this file
-├── CUTOVER.md                ← Vercel deployment guide
-├── README.md                 ← upstream's original (legacy)
-├── .gitignore                ← root, blocks .env*.local + secrets
-├── .github/workflows/ci.yml  ← typecheck + build on push
+BigMarkt-Trade-Journal/                    ← monorepo root
+├── INFRASTRUCTURE.md                       ← this file
+├── CUTOVER.md                              ← initial Vercel cutover guide
+├── README.md                               ← legacy README
+├── SESSION_5_COMPLETE.md                   ← session log
+├── .github/workflows/ci.yml                ← typecheck + test + build
 ├── index.html, js/, css/, assets/, manifest.json   ← LEGACY static app, not deployed
 │
-├── supabase/migrations/
-│   ├── 0001_baseline_schema.sql
-│   ├── 0002_rls_policies.sql
-│   ├── 0003_leaderboard_rpc.sql
-│   ├── 0004_storage_policies.sql
-│   ├── 0005_consolidate_visibility.sql
-│   ├── 0006_chart_path.sql
-│   ├── 0007_avatar_path.sql
-│   ├── 0008_public_trades_rpc.sql
-│   ├── 0009_profile_on_signup.sql
-│   ├── 0010_admin_rpcs.sql
-│   ├── 0011_admin_purge_user_data.sql
-│   └── _apply_all.sql        ← concatenation helper for one-paste application
+├── supabase/migrations/                    ← 28 SQL files, idempotent, additive
 │
-└── web/                      ← Vercel's Root Directory
-    ├── package.json
-    ├── tsconfig.json
-    ├── next.config.mjs
-    ├── tailwind.config.ts
-    ├── middleware.ts
+├── infra/
+│   └── bybit-proxy-worker.js               ← Cloudflare Worker (egress proxy)
+│
+├── mql5/
+│   └── BigMarkt_EA.mq5                     ← MT5 Expert Advisor source
+│
+├── websocket-server/                       ← Node + ws server
+│   ├── package.json, tsconfig.json
+│   └── src/{server.ts, types.ts}
+│
+├── sites/                                  ← Three independent Next.js marketing apps
+│   ├── marketing/                          ← bigmarkt.co
+│   ├── fts/                                ← fts.bigmarkt.co
+│   └── club/                               ← club.bigmarkt.co
+│
+└── web/                                    ← The journal app (journal.bigmarkt.co)
+    ├── package.json, tsconfig.json, next.config.mjs, tailwind.config.ts
+    ├── middleware.ts                       ← session refresh + @username rewrite + onboarding gate
     ├── app/
     │   ├── layout.tsx, page.tsx, globals.css
-    │   ├── (auth)/             ← public auth pages
-    │   │   ├── actions.ts        ← login / signup / reset / setPassword / logout
-    │   │   ├── login/page.tsx
-    │   │   ├── signup/page.tsx
-    │   │   ├── reset/page.tsx, reset/confirm/page.tsx
-    │   ├── (app)/              ← authed shell, requires session
-    │   │   ├── layout.tsx        ← session gate + nav
-    │   │   ├── actions.ts        ← trade CRUD server actions
-    │   │   ├── dashboard/page.tsx
-    │   │   ├── journal/page.tsx, new/, [id]/edit/
-    │   │   ├── analytics/page.tsx
-    │   │   ├── challenges/page.tsx, NewChallengeForm.tsx, actions.ts
-    │   │   ├── leaderboard/page.tsx
-    │   │   ├── profile/page.tsx, ProfileForm.tsx, BalanceResetForm.tsx, Referrals.tsx, actions.ts
-    │   │   ├── balance/actions.ts
-    │   │   └── admin/page.tsx, actions.ts
-    │   ├── auth/callback/route.ts ← OAuth/email-link return
-    │   └── p/[id]/page.tsx       ← public share page (no auth)
+    │   ├── (auth)/                           ← login, signup, reset, callbacks
+    │   ├── (app)/                            ← all authed routes (see Routes)
+    │   ├── (public)/[username]/              ← public profile by slug
+    │   ├── p/[id]/                           ← public profile by UUID (legacy)
+    │   ├── onboarding/                       ← post-signup wizard
+    │   ├── auth/callback/route.ts            ← OAuth/email-link exchange
+    │   └── api/
+    │       ├── ea/ingest/route.ts            ← EA bearer-token trade ingest
+    │       └── cron/recalculate-scores/      ← daily score recalc
+    ├── lib/                                  ← see Module Inventory
     ├── components/
-    │   ├── TradeForm.tsx
-    │   ├── JournalTable.tsx
-    │   ├── ConfirmButton.tsx
-    │   └── CompressedFileInput.tsx ← canvas downscale + JPEG q82 before upload
-    ├── lib/
-    │   ├── supabase/{client,server,middleware}.ts
-    │   ├── schemas.ts            ← Zod, shared client + server
-    │   ├── types.ts              ← DB row shapes (manually mirrored)
-    │   ├── format.ts             ← fmtMoney, fmtDate, fmtPct
-    │   ├── storage.ts            ← signCharts, signAvatars (server-only)
-    │   └── admin.ts              ← isAdmin(), requireAdmin()
-    └── tests/
-        ├── privacy.spec.ts       ← anon-can't-read, RLS, admin gating (skipped without staging env)
-        └── rendering.spec.tsx    ← XSS-safe rendering pin
+    ├── docs/EXCHANGE_SECURITY.md             ← Bybit credential encryption design
+    ├── tests/                                ← Vitest specs
+    └── scripts/                              ← one-off tsx smoke + seed scripts
 ```
 
 ---
 
-## Database schema (live in prod)
+## Database schema (28 migrations)
 
-### `public.profiles` — user data, mostly private
-```
-id                uuid     primary key, FK → auth.users(id) ON DELETE CASCADE
-email             text     not null    PRIVATE; never returned by any anon-callable RPC
-name              text                 legacy; use display_name
-display_name      text                 shown publicly
-source            text     'signup'    'signup' | 'google' | 'backfill'
-referred_by       text                 ref code of referring user
-ref_code          text                 (legacy column; new app derives from id)
-starting_balance  numeric              for growth % calculation
-daily_loss_limit  numeric  default 3
-timezone          text     'Africa/Lagos'
-experience        text
-preferred_pairs   text                 free-text
-avatar_url        text                 LEGACY public storage URL, deprecated
-avatar_path       text                 storage object key, signed-URL minted on read
-visibility        text     'private'   'private' | 'community' | 'public'
-created_at        timestamptz default now()
-updated_at        timestamptz not null default now()  ← updated by trigger
-```
+Migrations are **idempotent and additive**. Re-applying any of them against the live schema is a safe no-op (notice messages only). Detailed table-by-table column reference lives in the original write-up; this index links each migration to what it shipped.
 
-### `public.trades`
-```
-id                uuid     primary key default uuid_generate_v4()
-user_id           uuid     not null, FK → auth.users(id) ON DELETE CASCADE
-pair, direction, result    text not null   (BUY/SELL, WIN/LOSS/BE)
-entry_price, exit_price, stop_loss, take_profit, lot_size   numeric
-pnl               numeric  default 0
-rr_ratio          numeric
-session, emotions, strategy, setup_grade, tags, notes   text
-image_url         text     LEGACY public URL or inline base64 data URL, deprecated
-chart_path        text     storage object key (<user_id>/<trade_id>/chart-<ts>.<ext>)
-trade_visibility  text     'public'    LEGACY (read by old static app)
-visibility        text     not null default 'private'   'private' | 'public' | 'exclude'
-created_at        timestamptz default now()
-```
+### Core (Slice 1)
+| # | Purpose |
+|---|---|
+| 0001 | Baseline schema for `profiles`, `trades`, `balance_resets`, `challenges`, `admin_users` matching the original static app's prod schema |
+| 0002 | Strict RLS — anon reads nothing from base tables |
+| 0003 | `get_leaderboard(mode, lim)` SECURITY DEFINER RPC; no email returned, respects visibility |
+| 0004 | Private storage buckets (`avatars`, `trade-charts`) with per-user path policies |
 
-### `public.balance_resets`
-```
-id                uuid     primary key default gen_random_uuid()
-user_id           uuid     FK → auth.users(id) ON DELETE CASCADE
-previous_balance  numeric              snapshot of profiles.starting_balance at reset time
-new_balance       numeric
-reason            text                 free-text label
-reset_date        date
-created_at        timestamptz default now()
-```
+### Privacy + storage hardening (Slices 2–4)
+| # | Purpose |
+|---|---|
+| 0005 | Backfill `trades.visibility` from legacy `trade_visibility` |
+| 0006 | `trades.chart_path` for signed-URL minting |
+| 0007 | `profiles.avatar_path` (private bucket replacement for `avatar_url`) |
+| 0008 | `get_public_trades(profile_id)` for `/p/[id]` share page |
+| 0009 | Trigger ensures every signup creates a `profiles` row |
+| 0010 | Admin RPCs (`admin_overview`, `admin_recent_*`, `admin_top_pairs`) |
+| 0011 | `admin_purge_user_data(target_id)` — explicit cascade-style delete, leaves auth.users |
 
-### `public.challenges`
-```
-id              uuid     primary key default gen_random_uuid()
-user_id         uuid     FK → auth.users(id) ON DELETE CASCADE
-goal_type       text     not null     used as title in UI
-goal_target     numeric  not null
-start_date, end_date    date not null
-status          text     'active'     'active' | 'completed' | 'failed' | 'abandoned'
-current_streak  integer  default 0    not yet wired into UI
-longest_streak  integer  default 0
-badge_earned    text
-created_at      timestamptz default now()
-completed_at    timestamptz
-```
+### Trust + journal modes (Sessions 1–3)
+| # | Purpose |
+|---|---|
+| 0012 | `profiles.journal_mode`; `trades.{trust_badge, capture_source, core_fields_locked, auto_approved}` |
+| 0012b | 5-table Bybit auto-journaling schema (`exchange_connections`, `_sync_runs`, `_closed_pnl`, `_fills`, `_import_mappings`) |
+| 0013 | `profiles.username` slug + `followers_only` visibility option |
+| 0014 | Drop hybrid mode — `journal_mode` constrained to `'manual' \| 'automated'` only |
+| 0015 | `profiles.tos_automation_accepted_at` |
 
-### `public.admin_users` — admin gate
-```
-user_id     uuid     primary key, FK → auth.users(id) ON DELETE CASCADE
-granted_by  uuid     FK → auth.users(id)
-granted_at  timestamptz not null default now()
-note        text
-```
-Only `sylvesterejemah@gmail.com` is currently in this table. Read via `is_admin(uuid)` SQL function (SECURITY DEFINER), never via direct table access — RLS has no SELECT policy so direct reads return zero rows for everyone.
+### EA / broker auto-capture (Sessions 4–7)
+| # | Purpose |
+|---|---|
+| 0016 | `broker_submissions` — anonymous user submissions of unlisted brokers |
+| 0017 | `ea_tokens` — bearer tokens for the MT5 EA (sha256-hashed) |
+| 0018 | `trades.{mt_ticket, mt_account, …}` + unique upsert index for EA dedupe |
+| 0019 | `ea_connection_log` — WS connect/disconnect audit trail |
+| 0020 | `broker_accounts` table; `account_type` enum (`live`/`demo`/`prop_firm`) |
+| 0021 | `ea_tokens.broker_account_id` FK — one token per account |
+| 0022 | Optional `broker_accounts.{account_number, readonly_password}` |
 
-### `public.profiles_public` — sanitized view
-```
-id, display_name, avatar_path, visibility, created_at
-```
-Email-stripped projection of `profiles`. `security_invoker = true` so the underlying RLS still applies — only used by RPC bodies, not by anon HTTP.
+### Scoring + social + ops (Sessions 8–12)
+| # | Purpose |
+|---|---|
+| 0023 | Dual-tier performance scores; `score_tier` enum (`none`/`active`/`pro`) |
+| 0024 | `notifications.type` CHECK gains `new_follower` |
+| 0025 | `get_platform_stats()` anon-callable aggregate counts for marketing homepage |
+| 0026 | `bootcamp_applications` (used by fts.bigmarkt.co) |
+| 0027 | `club_applications` (used by club.bigmarkt.co) |
+
+### Tables now in production
+`profiles`, `trades`, `balance_resets`, `challenges`, `admin_users`, `subscriptions`, `notifications`, `disputes`, `ea_tokens`, `ea_connection_log`, `broker_accounts`, `broker_submissions`, `performance_scores`, `exchange_connections`, `exchange_sync_runs`, `exchange_closed_pnl`, `exchange_fills`, `exchange_import_mappings`, `bootcamp_applications`, `club_applications` + a sanitized view `profiles_public`.
+
+All FK-cascade from `auth.users` on delete; all base tables have RLS enabled with self-only policies.
 
 ---
 
-## Foreign keys
-
-All four user-data tables cascade-delete from `auth.users`:
-
-```
-profiles.id         → auth.users(id)  ON DELETE CASCADE
-trades.user_id      → auth.users(id)  ON DELETE CASCADE
-balance_resets.user_id → auth.users(id)  ON DELETE CASCADE
-challenges.user_id  → auth.users(id)  ON DELETE CASCADE
-admin_users.user_id → auth.users(id)  ON DELETE CASCADE
-admin_users.granted_by → auth.users(id)
-```
-
-**Note:** these FKs are visible in `pg_constraint` but **not** in `information_schema.table_constraints` (Postgres hides cross-schema refs to schemas the caller can't read). Always introspect via `pg_constraint` for accuracy.
-
----
-
-## RLS policies
-
-Every user-owned table has RLS enabled. Anonymous clients can read **nothing** from base tables.
-
-```
-profiles
-  profiles_self_select       authenticated, id = auth.uid()
-  profiles_self_insert       authenticated, id = auth.uid()
-  profiles_self_update       authenticated, id = auth.uid()
-  (no DELETE policy — purge goes through admin_purge_user_data RPC)
-
-trades
-  trades_self_select         authenticated, user_id = auth.uid()
-  trades_self_insert         authenticated, user_id = auth.uid()
-  trades_self_update         authenticated, user_id = auth.uid()
-  trades_self_delete         authenticated, user_id = auth.uid()
-
-balance_resets
-  resets_self_select         authenticated, user_id = auth.uid()
-  resets_self_insert         authenticated, user_id = auth.uid()
-
-challenges
-  challenges_self_all        authenticated, user_id = auth.uid()  (CRUD)
-
-admin_users                  RLS enabled, no policies → no direct access
-```
-
-Public discovery happens through SECURITY DEFINER RPCs (next section), not policies on these tables.
-
----
-
-## RPCs
-
-All admin RPCs gate with `is_admin(auth.uid())` and either `RAISE EXCEPTION '42501 not authorized'` (plpgsql) or `WHERE is_admin(...)` (sql). Both are leak-free; `raise` is preferred for new code.
-
-| Function | Caller | Purpose |
-|---|---|---|
-| `is_admin(uid uuid)` | authenticated | True if uid in admin_users |
-| `get_leaderboard(mode text, lim int)` | anon, authenticated | Sanitized leaderboard. No email returned. Excludes private profiles. |
-| `get_public_profile(profile_id uuid)` | anon, authenticated | Aggregate stats for a community/public profile. No email. |
-| `get_public_trades(profile_id uuid, lim int)` | anon, authenticated | List of trades where BOTH profile.visibility ∈ {community,public} AND trade.visibility = 'public'. |
-| `get_referral_stats(ref_code text)` | anon, authenticated | Pre-existing RPC, returns { count } JSON. |
-| `admin_overview()` | authenticated (admins only) | Aggregate stats: users, trades, P&L, top pair |
-| `admin_list_users()` | authenticated (admins only) | All profiles with trade counts + total PnL |
-| `admin_recent_signups(lim)` | authenticated (admins only) | Last N signups |
-| `admin_recent_trades(lim)` | authenticated (admins only) | Last N trades joined with profile |
-| `admin_top_pairs(lim)` | authenticated (admins only) | Top traded pairs by count |
-| `admin_purge_user_data(target_id uuid)` | authenticated (admins only) | Deletes all public.* rows for target_id. Leaves `auth.users` row intact (use Supabase dashboard to finalise). |
-| `handle_new_user()` | trigger on auth.users INSERT | Creates a profiles row on signup |
-| `tg_set_updated_at()` | trigger on profiles UPDATE | Bumps updated_at |
-
----
-
-## Storage
-
-Two private buckets, both forced to `public = false`:
-
-| Bucket | Path convention | Sharing |
-|---|---|---|
-| `avatars` | `<user_id>/avatar-<ts>.<ext>` | Server mints signed URL on each render |
-| `trade-charts` | `<user_id>/<trade_id>/chart-<ts>.<ext>` | Same |
-
-Storage RLS policies (`storage.objects`):
-
-```
-bm_avatars_owner_rw   authenticated, (storage.foldername(name))[1] = auth.uid()::text
-bm_charts_owner_rw    authenticated, (storage.foldername(name))[1] = auth.uid()::text
-```
-
-The path convention IS the access control. A user uploading to `someone-else-id/whatever.png` is rejected at INSERT time. Anon LIST returns 401.
-
-Server-side helpers in `lib/storage.ts`:
-- `signCharts(paths[], ttl=3600)` / `signChart(path, ttl=3600)`
-- `signAvatars(paths[], ttl=3600)` / `signAvatar(path, ttl=3600)`
-
-URLs expire in 1 hour. Pages use `dynamic = "force-dynamic"` so URLs are minted fresh on every render.
-
----
-
-## Routes
+## Routes (web/app/)
 
 ### Public (no auth)
 | Route | Purpose |
 |---|---|
-| `/` | Brand splash; redirects to `/dashboard` if authed |
-| `/login` | Email + password form |
-| `/signup` | Includes hidden honeypot field |
-| `/reset` | Request password reset link |
-| `/reset/confirm` | Set new password (after clicking email link) |
-| `/auth/callback` | OAuth/email-link return; exchanges code for session |
-| `/p/[id]` | Public profile share page; uses `get_public_profile` + `get_public_trades` RPCs |
+| `/` | Marketing landing for the journal app — hero, feature cards, leaderboard preview, ecosystem cards |
+| `/login`, `/signup`, `/reset`, `/reset/confirm` | Auth flows |
+| `/auth/callback` | Supabase email/OAuth code exchange |
+| `/onboarding` | Post-signup wizard (gated by `display_name is null`) |
+| `/p/[id]` | Public profile share by UUID (legacy) |
+| `/(public)/[username]` | Public profile by username slug — `/@alice` rewrites here via middleware |
 
-### Authed (under `(app)` route group, gate in `layout.tsx`)
+### Authed (under `(app)/`, gate in middleware)
 | Route | Purpose |
 |---|---|
-| `/dashboard` | Stats + recent trades |
-| `/journal` | Full trade table with chart thumbnails |
-| `/journal/new` | Create trade (TradeForm) |
-| `/journal/[id]/edit` | Edit trade with existing chart preview |
-| `/analytics` | By-pair / session / emotion / setup-grade / strategy aggregations |
-| `/challenges` | Active + history, create new |
-| `/leaderboard` | `?mode=quality` or `?mode=earners`, signed avatars |
-| `/profile` | Display name, visibility, starting balance, avatar upload, balance resets list, referrals |
-| `/admin` | Server-side gated by `requireAdmin()` redirecting non-admins to `/dashboard` |
+| `/dashboard` | Stats + recent trades + onboarding banners |
+| `/journal`, `/journal/new`, `/journal/[id]/edit` | Manual trade CRUD |
+| `/trades`, `/trades/[id]` | Trade list + detail view (separate from journal — single-trade focus) |
+| `/analytics` | Per-pair / session / emotion aggregations |
+| `/challenges` | Active + finished challenges |
+| `/leaderboard` | Pro Traders / Active Traders tabs |
+| `/subscriptions` | People you follow + signal feed |
+| `/brokers` | Broker directory + unlisted submission form |
+| `/accounts`, `/accounts/[id]` | Broker accounts list + detail |
+| `/ea-setup` | Generate EA token, download EA, see connection status |
+| `/exchanges`, `/exchanges/new` | Bybit API key management |
+| `/profile` | Display name, visibility, balance resets, referrals, avatar |
+| `/notifications` | Inbox (follows, disputes, score-tier changes) |
+| `/disputes/new` | Raise a dispute on a trade |
+| `/admin` | Server-side gated admin console |
 
----
-
-## Server actions
-
-All mutations go through Server Actions (no client `_sb.from(...).insert(...)` ever). Each action:
-1. Calls `requireUser()` (or `requireAdmin()` for admin actions)
-2. Parses + validates form data with Zod
-3. Calls Supabase with the user's session — RLS enforces ownership
-4. Adds explicit `.eq("user_id", user.id)` on writes (defence-in-depth)
-5. `revalidatePath()` for any affected route
-
-Action inventory:
-
-| File | Actions |
+### API
+| Route | Purpose |
 |---|---|
-| `app/(auth)/actions.ts` | loginAction, signupAction, logoutAction, requestResetAction, setNewPasswordAction |
-| `app/(app)/actions.ts` | createTradeAction, updateTradeAction, deleteTradeAction, setTradeVisibilityAction |
-| `app/(app)/profile/actions.ts` | updateProfileAction (also handles avatar upload) |
-| `app/(app)/balance/actions.ts` | createBalanceResetAction (atomically updates profiles.starting_balance) |
-| `app/(app)/challenges/actions.ts` | createChallengeAction, setChallengeStatusAction, deleteChallengeAction |
-| `app/(app)/admin/actions.ts` | adminPurgeUserDataAction (also cleans up storage objects before calling RPC) |
+| `/api/ea/ingest` | POST endpoint the MT5 EA pushes trades to; bearer-token auth via `ea_tokens` (sha256-hashed); uses service-role to bypass RLS by design |
+| `/api/cron/recalculate-scores` | Daily 02:00 UTC; recomputes performance scores; cron-triggered |
 
 ---
 
-## Auth flow
+## web/lib/ module inventory
 
-1. `@supabase/ssr` `createBrowserClient` reads/writes the session **cookie** (not localStorage like the old app).
-2. `lib/supabase/middleware.ts` refreshes the access token on every request.
-3. Server Components and Server Actions use `supabaseServer()` which reads the same cookie — Postgres sees `auth.uid()`, RLS works end-to-end.
-4. `(app)/layout.tsx` calls `getUser()` and redirects to `/login` if no session.
-5. `(app)/admin/page.tsx` additionally calls `requireAdmin()` (which calls the `is_admin()` RPC).
+### `lib/exchanges/`
+- `types.ts` — Bybit types, encrypted-blob shape
+- `crypto.ts` — HKDF-SHA256 + AES-256-GCM envelope encryption (Phase A)
+- `bybit/signing.ts` — HMAC-SHA256; **proxy-aware** `bybitBaseUrl()`
+- `bybit/client.ts` — REST client; **proxy-aware** with `X-BIGMARKT-PROXY-TOKEN`
+- `bybit/normalize.ts` — string→number, ms→ISO conversions
+- `bybit/permissions.ts` — readOnly + fund-movement deny validator
+- `bybit/windows.ts` — ≤7-day window splitter for closed-PnL backfills
+- `bybit/sync.ts` — paginated fetch + upsert with composite-key dedupe
+
+### `lib/ea/`
+- `normalize.ts` — MT4/MT5 EA payload → `trades` row (`buildEaTradeRow`, `deriveEaDirection`, `deriveEaResult`)
+
+### `lib/supabase/`
+- `client.ts`, `server.ts`, `middleware.ts`, `admin.ts` (service-role, server-only)
+
+### `lib/auth/`
+- `require-user.ts` — `redirect("/login")` if no session
+
+### `lib/actions/`
+- `trades.ts`, `disputes.ts`, `ea-tokens.ts`, `notifications.ts`, `create-notification.ts`, `subscriptions.ts`, `scores.ts`
+
+### Top-level lib
+- `admin.ts`, `brokers.ts`, `format.ts`, `schemas.ts`, `scoring.ts`, `scoring-recalculate.ts`, `storage.ts`, `types.ts`
 
 ---
 
-## Cutover from the static app
+## EA (Expert Advisor) architecture
 
-The old static `index.html` SPA at the repo root loaded Supabase JS in the browser, kept tokens in localStorage, and read profiles + trades anonymously (RLS was disabled before this rebuild). The rebuild left the static files in place for rollback insurance, and writes from the new Next.js app populate **both** the new columns (`visibility`, `chart_path`, `avatar_path`) **and** the legacy columns (`trade_visibility`, `image_url`, `avatar_url`). This means a Vercel rollback to "Root Directory unset" would resurrect the static app reading correct data.
+The primary auto-capture path. Bybit is supported but **EA is what most users will use** because it works with any MT4/MT5 broker, not just exchanges.
 
-In ~1 week of stable cutover, run a final migration `0012_drop_legacy_columns.sql` to:
-- Drop `profiles.avatar_url`, `profiles.name` (use `display_name` everywhere)
-- Drop `trades.image_url`, `trades.trade_visibility`
-- Stop the dual-write in `app/(app)/actions.ts` and `profile/actions.ts`
-- Delete `index.html`, `js/`, `css/`, `assets/`, `manifest.json` from repo
+### Flow
+
+```
+User's MT5 terminal
+   │
+   │ BigMarkt_EA.mq5 captures every fill
+   │
+   ▼
+POST /api/ea/ingest                                            (web/app/api/ea/ingest)
+   │  headers: Authorization: Bearer <ea-token>
+   │  body: { mt_ticket, symbol, direction, open_time, ... }
+   │
+   ├── token sha256-lookup against ea_tokens (revoked? expired?)
+   ├── service-role client (bypasses RLS by design — no user cookie)
+   ├── buildEaTradeRow() normalises payload
+   └── upsert into trades on (user_id, mt_ticket, mt_account)
+        ├── trade_visibility: defaults from profile
+        ├── trust_badge: 'verified'
+        ├── capture_source: 'ea'
+        └── core_fields_locked: true   ← user can't tamper with these fields
+```
+
+### Realtime status
+The user's MT5 EA also opens a WebSocket to `websocket-server/` for heartbeat + status. `ea_connection_log` records connect/disconnect events with timestamps. `/ea-setup` shows the connection's last-ping age.
+
+### Token lifecycle
+- Generate: `web/lib/actions/ea-tokens.ts` mints a random token, stores `sha256(token)` in `ea_tokens`, returns plaintext once
+- Revoke: row stays for audit trail but `revoked_at` is set; ingest rejects
+- One token per `broker_account` (since 0021)
+
+### Why service-role for ingest
+The EA has no Supabase session cookie — it's a desktop process posting from the user's home network. Service-role lets the ingest route write `trades` for whichever `user_id` the token resolves to, after authenticating the token itself. This is the **one** place in the app that bypasses RLS; documented and constrained.
 
 ---
 
-## Vercel configuration
+## Bybit egress proxy
 
-| Setting | Value |
+Vercel's serverless functions run in AWS regions that Bybit blocks (HTTP 403 from CloudFront). Solution: a Cloudflare Worker as egress proxy.
+
+### Flow
+
+```
+Vercel Server Action (journal.bigmarkt.co)
+   │  GET https://<worker>/{mainnet|testnet}/v5/...
+   │  + X-BAPI-* signing headers
+   │  + X-BIGMARKT-PROXY-TOKEN: <shared secret>
+   ▼
+Cloudflare Worker (infra/bybit-proxy-worker.js)
+   │  - verifies X-BIGMARKT-PROXY-TOKEN against env.BYBIT_PROXY_TOKEN
+   │  - rewrites path → api.bybit.com or api-testnet.bybit.com
+   │  - forwards only [X-BAPI-API-KEY, X-BAPI-TIMESTAMP, X-BAPI-RECV-WINDOW, X-BAPI-SIGN, User-Agent]
+   │  - cacheTtl: 0 — no caching of authenticated responses
+   ▼
+api.bybit.com / api-testnet.bybit.com (responds normally — CF is allow-listed)
+```
+
+### Env wiring
+`web/lib/exchanges/bybit/signing.ts`'s `bybitBaseUrl(env)` returns `BYBIT_{MAINNET,TESTNET}_BASE_URL` if set, else the direct host. So you can run unproxied locally (`unset` the var) and proxied in prod by setting it. Same code path either way.
+
+### Vercel env vars
+```
+BYBIT_MAINNET_BASE_URL=https://<worker>/mainnet
+BYBIT_TESTNET_BASE_URL=https://<worker>/testnet
+BYBIT_PROXY_TOKEN=<shared secret>
+```
+
+### Worker env (Cloudflare side)
+```
+BYBIT_PROXY_TOKEN=<same shared secret>
+```
+
+---
+
+## Sister sites
+
+Three Next.js apps under `sites/`. Each is an **independent** Next project — its own `node_modules`, `package.json`, deploy. They share no code with `web/` or each other, by design (marketing iteration should never block journal work).
+
+| Path | Domain | Pages |
+|---|---|---|
+| `sites/marketing/` | `bigmarkt.co` | `/`, `/ecosystem`, `/protocol`, `/token` |
+| `sites/fts/` | `fts.bigmarkt.co` | `/`, `/about`, `/bootcamp`, `/warroom` |
+| `sites/club/` | `club.bigmarkt.co` | `/`, `/about`, `/chapters`, `/join`, `/mentorship`, `/tracks` |
+
+Application forms on `fts` and `club` insert into `bootcamp_applications` / `club_applications` (migrations 0026, 0027) via anon Supabase client — RLS allows anonymous inserts, admin-only reads.
+
+---
+
+## WebSocket server
+
+`websocket-server/` is a tiny Node + `ws` ESM service hosted separately from the Next.js apps (Vercel doesn't support long-lived WebSocket connections on Hobby tier).
+
+- Port: `WS_PORT` (default 8080)
+- Auth: each connection sends a bearer token; server sha256-hashes and looks up in `ea_tokens` via service-role
+- On connect: inserts `ea_connection_log` row with `event='connected'`
+- On disconnect: same with `event='disconnected'`
+- `lastPing` tracked per connection; 60s staleness threshold
+- Inserts incoming `TradePayload` messages into `trades` via service-role (same shape as `/api/ea/ingest`)
+
+`/ea-setup` queries `ea_connection_log` to show the user "your EA is connected" or "last seen 5 minutes ago."
+
+---
+
+## RLS posture (unchanged from rebuild)
+
+| Table | Policy |
 |---|---|
-| Root Directory | `web` |
-| Framework Preset | Next.js |
-| Build Command | (auto from preset) `next build` |
-| Output Directory | (auto) `.next` |
-| Install Command | (auto) `npm install` |
-| Production Branch | `main` |
-| Environment Variables | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Production + Preview) |
-| **Never in Vercel** | `SUPABASE_SERVICE_ROLE_KEY`, DB password, PAT |
+| `profiles` | self-only SELECT/INSERT/UPDATE |
+| `trades` | self-only CRUD |
+| `balance_resets`, `challenges` | self-only |
+| `subscriptions`, `notifications`, `disputes` | self-only on `user_id` |
+| `exchange_*` (5 tables) | self-only on `user_id` |
+| `ea_tokens` | self-only |
+| `broker_accounts` | self-only |
+| `broker_submissions` | anon INSERT allowed, no SELECT/UPDATE/DELETE for anon (service-role only) |
+| `bootcamp_applications`, `club_applications` | anon INSERT allowed, admin SELECT |
+| `admin_users` | RLS enabled, no policies → no direct access; reads via `is_admin()` |
+| Public discovery | `get_leaderboard`, `get_public_profile`, `get_public_trades`, `get_platform_stats` SECURITY DEFINER RPCs |
 
-Anything outside `web/` is silently ignored by Vercel — old static files stay in the repo without affecting deploys.
+---
+
+## Middleware (web/middleware.ts)
+
+Three jobs, in order:
+
+1. **`/@username` rewrite** — any path starting `/@` rewrites to `/<slug>` (the public profile route group)
+2. **Session refresh** — `updateSession()` exchanges the cookie state with Supabase, writes refreshed tokens back
+3. **Onboarding gate** — for paths under any app-route prefix (`/dashboard`, `/journal`, etc.), if `user` exists but `profile.display_name` is null, redirect to `/onboarding`
+
+Matcher excludes `_next/static`, `_next/image`, `favicon.ico`, `/p/`, and image extensions.
 
 ---
 
 ## CI
 
-`.github/workflows/ci.yml`:
-- Runs on push to `main` and on every PR
-- Node 20, npm ci
-- Steps: typecheck, build
-- Uses dummy `NEXT_PUBLIC_*` env vars (no real secrets)
+`.github/workflows/ci.yml` runs on push to `main` + every PR:
+- Node 20
+- `npm ci`
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
 
-Vitest privacy + rendering suites are not yet wired into CI because the privacy suite needs a staging Supabase project. To run locally:
+With dummy `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and a placeholder `EXCHANGE_CREDENTIAL_ENCRYPTION_KEY` (32 zero bytes) so the crypto suite has a valid master key.
 
-```bash
-cd web
-SUPABASE_SERVICE_ROLE_KEY=... npm test
-```
+Privacy spec (`tests/privacy.spec.ts`) self-skips without `SUPABASE_SERVICE_ROLE_KEY`. To run it, point a separate staging project at `npm test` with the real key.
 
-Without the service-role key, the privacy spec self-skips (9 tests skipped, rendering 2 pass).
+---
+
+## Tests
+
+| File | Pins |
+|---|---|
+| `bybit-signing.spec.ts` | HMAC-SHA256 signing matches openssl fixture; query canonicalization; header presence |
+| `bybit-permissions.spec.ts` | `readOnly === 1` gate; fund-movement deny-list; empty-unknown-group allowed |
+| `bybit-normalize.spec.ts` | String → number, empty → null, ms → ISO, raw preservation |
+| `bybit-windows.spec.ts` | ≤7-day window splitter, contiguity, no-overshoot |
+| `exchange-crypto.spec.ts` | Encrypt round-trip, no plaintext substring, tamper, wrong-user, wrong-salt |
+| `ea-normalize.spec.ts` | MT buy/sell direction, EA trade row builder |
+| `rendering.spec.tsx` | React text rendering escapes user content (XSS pin) |
+| `privacy.spec.ts` | Real-Supabase RLS coverage (skipped without service-role) |
+| `server-only-stub.ts` | Vitest helper that stubs the `server-only` package |
 
 ---
 
@@ -399,31 +394,55 @@ PGPASSWORD='<DB password>' \
   /opt/homebrew/opt/libpq/bin/psql \
   "postgresql://postgres.awvrylniqppybwaiwzse@aws-0-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require" \
   -v ON_ERROR_STOP=1 \
-  -f supabase/migrations/0012_*.sql
+  -f supabase/migrations/00XX_*.sql
 ```
 
-Or via Dashboard SQL editor: paste contents, Run.
+Or paste into Supabase dashboard SQL editor.
+
+### Bring a fresh staging project up to date
+Run each migration file in order. **Never** concatenate them into a single
+`_apply_all.sql`-style blob — that file has drifted before and silently
+shipped incomplete schemas. The `.gitignore` enforces this.
+
+```bash
+for f in supabase/migrations/00*.sql; do
+  echo "→ $f"
+  PGPASSWORD='<DB password>' /opt/homebrew/opt/libpq/bin/psql \
+    "postgresql://postgres.<ref>@aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require" \
+    -v ON_ERROR_STOP=1 -f "$f" || exit 1
+done
+```
+
+Or with the Supabase CLI (after `supabase link --project-ref <ref>`):
+
+```bash
+supabase db push
+```
+
+Both methods read `supabase/migrations/` directly and so cannot drift.
 
 ### Promote a user to admin
 ```sql
 insert into public.admin_users (user_id, note)
 values ('<auth.users.id>', 'why this user');
 ```
-Never via API — `admin_users` has no INSERT policy.
 
-### Smoke-test a deploy
-```bash
-curl -sS https://journal.bigmarkt.co/login | grep "ENTER THE MARKET"
-curl -sS https://journal.bigmarkt.co/p/<community-profile-id> | grep "PUBLIC TRADES"
-curl -sS "$URL/rest/v1/profiles?select=email" -H "apikey: $ANON" | jq length    # must be 0
+### Mint an EA token (for testing)
+Use `/ea-setup` in the UI. Or via SQL:
+```sql
+-- Insert with sha256-hash of the secret you want
+insert into public.ea_tokens (user_id, broker_account_id, token_hash, label)
+values ('<user_id>', '<broker_account_id>', encode(sha256('your-token'::bytea), 'hex'), 'manual test');
 ```
 
-### Rollback
-1. Vercel dashboard → Settings → Build and Deployment → Root Directory → clear → Save
-2. Trigger redeploy. Static `index.html` is now the deploy.
-3. The legacy columns are still populated, so it reads correct data.
+### Smoke-test prod
+```bash
+curl -sS https://journal.bigmarkt.co/login | grep "ENTER THE MARKET"
+curl -sS "https://journal.bigmarkt.co/p/<community-profile-id>" | grep "PUBLIC TRADES"
+curl -sS "$SUPABASE_URL/rest/v1/profiles?select=email" -H "apikey: $ANON" | jq length   # must be 0
+```
 
-### Local dev
+### Local dev (journal)
 ```bash
 cd web
 cp .env.example .env.local      # fill in values
@@ -431,20 +450,88 @@ npm install
 npm run dev                     # http://localhost:3000
 ```
 
+### Local dev (a sister site)
+```bash
+cd sites/marketing              # or sites/fts, sites/club
+npm install
+npm run dev
+```
+
+### Run sync against a real connection
+```bash
+cd web
+node --import tsx scripts/smoke-sync.mts <connection_id>
+```
+
+### Run Bybit smoke (connect verification)
+```bash
+cd web
+BYBIT_TEST_KEY=... BYBIT_TEST_SECRET=... \
+  node --import tsx scripts/smoke-bybit.mts <user_id>
+```
+
+### Seed synthetic closed-PnL rows for UI work
+```bash
+cd web
+node --import tsx scripts/seed-closed-pnl.mts <connection_id>
+```
+
 ---
 
-## Security invariants (acceptance tests)
+## Security invariants
 
-These are the things the rebuild guarantees. Each maps to a verification we ran during the rebuild.
+The architecture preserves these across all changes:
 
-1. **Anonymous clients cannot read profiles/trades base tables** → `curl -H "apikey: $ANON" /rest/v1/profiles` returns `[]`. Verified after Slice 1.
-2. **No email addresses appear in any anon HTTP response** → `grep -i "@gmail" $(curl ...)` returns empty on `/p/[id]`, leaderboard RPC, public profile RPC. Verified after Slice 4.
-3. **User-generated text renders as text, not HTML** → React text rendering pinned by `tests/rendering.spec.tsx`. Manually verified Slice 2 with stored `<img onerror=alert(1)>` payload.
-4. **Trade screenshots and avatars never have permanent public URLs** → buckets are `public = false`, only signed URLs minted server-side, TTL 1h. Verified Slice 3 + Slice 4.
-5. **Admin operations require server-side `is_admin(auth.uid())`** → no client allowlist anywhere; admin nav link is cosmetic, the gate is on the page + the RPC. Verified Slice 5.
-6. **Cross-user data is unreachable** → user A reading user B's trades returns `[]`; user A trying to update user B's profile affects 0 rows. Pin in `tests/privacy.spec.ts` (skipped without staging env, manually verified live).
-7. **Schema lives in version control** → 11 migrations, all idempotent, applied to prod. Fresh staging project + migrations 0001..0011 produces an identical schema (post Slice-5 codex fix).
-8. **Admin "Purge" deletes all of a user's public.* data** → trades, balance_resets, challenges, profiles, plus storage objects (charts + avatar). The `auth.users` row remains for platform-level deletion via dashboard.
+1. **Anonymous clients cannot read profiles/trades base tables.** Verified after every migration that touches RLS.
+2. **No email addresses in anon HTTP responses.** Public RPCs strip email; share pages render only `display_name`.
+3. **User-generated text renders as text, never HTML.** Pinned by `rendering.spec.tsx`.
+4. **Trade screenshots + avatars are never permanent public URLs.** Private buckets; signed URLs server-minted with 1h TTL.
+5. **API credentials never stored in plaintext.** Envelope-encrypted with per-row salt + per-user HKDF info. `EXCHANGE_SECURITY.md` documents threat model.
+6. **EA tokens never stored in plaintext.** Only `sha256(token)` lands in `ea_tokens.token_hash`.
+7. **Admin operations require server-side `is_admin(auth.uid())`.** No client allowlist anywhere.
+8. **Cross-user data is unreachable.** RLS + defence-in-depth `.eq("user_id", auth.uid())` on every mutation.
+9. **Schema lives in version control.** 28 migrations, idempotent, applied to prod.
+10. **Service-role key never imported from `app/` or `components/`.** Only `lib/supabase/admin.ts` exposes it, used by `/api/ea/ingest` (token-authed) and `tests/privacy.spec.ts`.
+
+---
+
+## Sessions log (high-level)
+
+| Session(s) | Theme | Highlights |
+|---|---|---|
+| Rebuild slices 1-6 | Foundation | Schema, RLS, signed URLs, leaderboard, admin, polish — see git log around `41d4ede` … `f974174` |
+| Bybit Phases A-D | Auto-journaling | Schema, crypto, Bybit V5 client, connect flow, manual sync |
+| Codex review | Hardening | Schema drift fix, admin_purge rename, test runtime fix |
+| Session 1 | Trust + visibility | Trust badges, journal mode selector, per-trade visibility override |
+| Sessions 2-3 | Public profiles + brokers | `/@username` routing, broker directory, broker submission, TOS modal |
+| Session 4 | EA framework | `ea_tokens`, EA ingest route, MT5 EA file, EA setup UI |
+| Session 5 | EA realtime | WebSocket server, heartbeat tracking, connection log |
+| Session 6 | Trade detail | List page, detail page, journal mode indicator, RR auto-calc |
+| Sessions 7-8 | Multi-account + scoring | `broker_accounts`, dual-tier ACTIVE/PRO scoring |
+| Session 9 | Leaderboard rebuild | Pro/Active tabs, branded card design |
+| Session 10 | Subscriptions | Follow system, subscriptions page |
+| Session 11 | Social signals | Follow button, signal feed filter, news view |
+| Session 12 | Disputes + notifications | Suspension triggers, dispute panel, notifications inbox |
+| Sessions A-C | Stabilization | EA service-role swap, daily cron, notification auto-write, new_follower type |
+| Session D | Mobile | Hamburger drawer, full mobile audit |
+| Session E | Onboarding | Post-signup wizard, migration 0012 rename |
+| Session F | Homepage refresh | Live stats RPC, leaderboard preview, ecosystem cards |
+| Sessions G-I | Sister sites | bigmarkt.co marketing, fts.bigmarkt.co academy, club.bigmarkt.co campus |
+| Latest 3 | Hardening | Verified trade edits, EA ingest + Bybit error stabilization, Bybit egress proxy |
+
+---
+
+## Hidden features
+
+Features that are **built and deployed** but **not surfaced in the
+nav**. They remain reachable by direct URL for ops + maintainers, and
+all data + schema stays in place. Re-enabling is a 2-line code change
+per item plus removing this row from the table when you do.
+
+| Feature | Hidden because | What still works | What's hidden | Re-enable steps |
+|---|---|---|---|---|
+| **Bybit exchange connect + sync** | Vercel → Bybit geo-block surfaces as HTTP 403. The Cloudflare Worker proxy in `infra/bybit-proxy-worker.js` solves it but isn't yet deployed/configured for production. UX showing a feature that 403s on real use is worse than not surfacing it. | `/exchanges`, `/exchanges/new`, `/exchanges/[id]` routes; `exchange_connections` + 4 related tables; all Phase A–D code in `web/lib/exchanges/`; `connectBybitAction`, `syncBybitAction`, all RPCs and migrations 0012b/0017/etc.; Cloudflare Worker source in `infra/`; smoke scripts in `web/scripts/smoke-{bybit,sync}.mts` | "Exchanges" link removed from the Connect dropdown in `web/app/(app)/DrawerNav.tsx` (and from the mobile drawer, which derives from the same source) | (1) Deploy `infra/bybit-proxy-worker.js` to Cloudflare Workers and set `BYBIT_PROXY_TOKEN` secret. (2) Set `BYBIT_MAINNET_BASE_URL`, `BYBIT_TESTNET_BASE_URL`, `BYBIT_PROXY_TOKEN` in Vercel Production + Preview env. (3) Smoke-test from prod: `journal.bigmarkt.co/exchanges/new` with a real key. (4) Uncomment the `{ href: "/exchanges", label: "Exchanges" }` line in `DrawerNav.tsx` GROUPS array. |
+| **Bybit imports review (`/journal/imports`)** | Tightly coupled to the Bybit feature above — without working sync, there are no pending closed-PnL rows to review (other than synthetic dev seeds). | Route + UI fully functional; approving still creates `trades` rows + `exchange_import_mappings` links | "Imports" button removed from `/journal` header in `web/app/(app)/journal/page.tsx` | Restore the `<Link href="/journal/imports">Imports</Link>` button block. (Will likely re-enable together with the Bybit feature above.) |
 
 ---
 
@@ -452,34 +539,13 @@ These are the things the rebuild guarantees. Each maps to a verification we ran 
 
 | Priority | Item |
 |---|---|
-| Low (1 week) | `0012_drop_legacy_columns.sql` — drop `trade_visibility`, `image_url`, `avatar_url` once cutover stable |
-| Low | Delete static files (`index.html`, `js/`, `css/`, `assets/`, `manifest.json`) once legacy columns dropped |
-| Low | Run `npm test` against a staging Supabase project (creates 9 currently-skipped privacy tests) |
-| Low | Generated Supabase types (`supabase gen types typescript`). Currently blocked on Docker requirement; manual `lib/types.ts` mirrors prod accurately |
+| Low | Delete legacy static files at repo root (`index.html`, `js/`, `css/`, `assets/`, `manifest.json`) — Vercel ignores them but they clutter |
+| Low | `/journal/imports` — review UX for `exchange_closed_pnl` pending rows; Bybit auto-import is currently sync-only with no UI to promote to journal trades |
+| Low | Generated Supabase types via `supabase gen types typescript` — currently blocked on Docker requirement, `lib/types.ts` manual mirror is up to date |
 | Backlog | Edge Function for full `auth.users` deletion (admin "Purge data" currently leaves the auth row) |
-| Backlog | Streak / badge automation in `challenges` (columns exist, no logic yet) |
-| Backlog | Domain pre-warm / fewer-cold-start cache strategy |
-| Done (2026-05-13) | Renamed `0012_exchange_schema.sql` → `0012b_exchange_schema.sql` to resolve numbering collision with `0012_visibility_trust_badges.sql`. Lexical ordering preserved; no SQL behavior change. |
+| Backlog | Streak / badge automation in `challenges` |
+| Backlog | Performance score recalc as a Supabase trigger rather than a daily cron — would catch suspensions faster |
 
 ---
 
-## Build chronology (2026-05-09 / 2026-05-10)
-
-| Slice | Commit | Scope |
-|---|---|---|
-| 1 | `a773adf` | Security foundation: Next.js scaffold, auth pages, migrations 0001-0004 (RLS, leaderboard RPC, storage policies), privacy + rendering tests |
-| 2 | `a4d8266` | Trades CRUD UI; schema reconciliation (entry_price/exit_price/etc); migration 0005 (visibility backfill) |
-| 3 | `b6e89d0` | Chart screenshots via private bucket + signed URLs; migration 0006 (chart_path column + backfill) |
-| 4 | `13855be` | Leaderboard, public profile share page, profile settings; migrations 0007 (avatar_path), 0008 (get_public_trades RPC), 0009 (handle_new_user trigger) |
-| 5 | `fb7ce28` | Server-side admin panel; migration 0010 (admin_overview, admin_recent_*, admin_top_pairs RPCs) |
-| Cutover docs | `433b6bc` | CUTOVER.md with Vercel dashboard steps |
-| Slice 6 | `a6a8754` | Analytics, challenges, balance resets |
-| Polish | `f974174` | GitHub Actions CI, ConfirmButton, CompressedFileInput, Referrals UI |
-| Codex fixes | `1daf1bc` | Rewrote 0001 to match prod schema, added migration 0011 (admin_purge_user_data with explicit deletes), fixed React import + flawed assertion in rendering test |
-| Cutover | (Vercel dashboard) | Root Directory `web`, Framework Next.js, env vars set, redeploy 9JpDscBHo (54s) |
-
-Total: 9 commits + 11 migrations + 1 Vercel reconfig from "old static SPA serving emails to anon clients" → "Next.js app with strict RLS, signed URLs, server-side admin, sanitized leaderboard, and a versioned schema."
-
----
-
-*Last updated: 2026-05-10 after production cutover. Update when migrations land or routes change.*
+*Last updated: refreshed to reflect 28 migrations + EA architecture + sister sites + Bybit proxy. Keep in sync as future migrations land.*

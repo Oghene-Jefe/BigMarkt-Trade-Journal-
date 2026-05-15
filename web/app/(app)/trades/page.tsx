@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { getTradesAction, type TradeFilter } from "@/lib/actions/trades";
 
 const FILTERS: { value: TradeFilter; label: string }[] = [
@@ -77,8 +78,9 @@ export default async function TradesPage({
   if ("error" in result) {
     return (
       <div className="p-6">
-        <div className="rounded border border-red-700 bg-red-950 p-4 text-red-200">
-          Error: {result.error}
+        <div className="rounded-2xl border border-loss/30 bg-loss/10 p-8 text-center">
+          <p className="font-display text-lg tracking-widest text-loss">FAILED TO LOAD</p>
+          <p className="mt-2 text-sm text-muted">Failed to load trades. Please refresh the page.</p>
         </div>
       </div>
     );
@@ -184,7 +186,7 @@ export default async function TradesPage({
         </div>
         <div className="flex gap-2">
           <Link
-            href={`/trades?filter=${filter}&page=${prevPage}`}
+            href={`/trades?filter=${filter}&page=${prevPage}` as Route}
             aria-disabled={isFirst}
             tabIndex={isFirst ? -1 : undefined}
             className={`border border-gray-600 text-gray-300 px-4 py-2 rounded text-sm ${
@@ -194,7 +196,7 @@ export default async function TradesPage({
             Previous
           </Link>
           <Link
-            href={`/trades?filter=${filter}&page=${nextPage}`}
+            href={`/trades?filter=${filter}&page=${nextPage}` as Route}
             aria-disabled={isLast}
             tabIndex={isLast ? -1 : undefined}
             className={`border border-gray-600 text-gray-300 px-4 py-2 rounded text-sm ${
