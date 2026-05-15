@@ -8,13 +8,13 @@ export default async function AdminBroadcastPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl tracking-widest text-gold">
-          BROADCAST ANNOUNCEMENT
+        <h1 className="text-xl font-semibold text-white">
+          Broadcast announcement
         </h1>
       </div>
 
       <div
-        className="rounded-2xl border p-4 text-sm"
+        className="rounded-lg border p-4 text-sm"
         style={{
           borderColor: "rgba(239,68,68,0.4)",
           backgroundColor: "rgba(239,68,68,0.08)",

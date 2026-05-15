@@ -55,8 +55,8 @@ export default async function AdminLeaderboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl tracking-widest text-gold">
-          LEADERBOARD MANAGEMENT
+        <h1 className="text-xl font-semibold text-white">
+          Leaderboard management
         </h1>
         <p className="text-xs text-muted">
           Manage score overrides and bans. Overrides do not yet feed into
@@ -64,8 +64,8 @@ export default async function AdminLeaderboardPage() {
         </p>
       </div>
 
-      <section className="rounded-2xl border border-white/10 bg-panel p-4">
-        <h2 className="mb-3 font-display text-sm tracking-widest text-gold">
+      <section className="rounded-lg border border-white/10 bg-panel p-4">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gold">
           ADD / UPDATE OVERRIDE
         </h2>
         <form action={setLeaderboardOverrideAction} className="grid grid-cols-1 gap-2 md:grid-cols-4">
@@ -91,14 +91,14 @@ export default async function AdminLeaderboardPage() {
           />
           <button
             type="submit"
-            className="rounded-md border border-gold bg-bg px-4 py-1.5 font-display text-xs tracking-widest text-gold hover:bg-gold hover:text-black"
+            className="rounded-md border border-gold bg-bg px-4 py-1.5 text-xs font-medium text-gold hover:bg-gold hover:text-black"
           >
             SAVE OVERRIDE
           </button>
         </form>
       </section>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-panel">
+      <div className="overflow-x-auto rounded-lg border border-white/10 bg-panel">
         <table className="w-full text-sm">
           <thead className="bg-black/30 text-xs uppercase tracking-wider text-muted">
             <tr>

@@ -37,13 +37,13 @@ export default function BrokerSubmissionForm() {
   }
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-panel">
+    <section className="rounded-lg border border-white/10 bg-panel">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between px-6 py-4 text-left"
       >
-        <span className="font-display text-lg tracking-widest text-gold">
+        <span className="text-sm font-medium text-white">
           SUBMIT A BROKER
         </span>
         <span className="text-xs text-muted">{open ? "▲ Hide" : "▼ Open"}</span>
@@ -113,7 +113,7 @@ export default function BrokerSubmissionForm() {
             <button
               type="submit"
               disabled={pending}
-              className="rounded-md bg-gold px-5 py-2 font-display text-sm tracking-widest text-black disabled:opacity-50"
+              className="rounded-md bg-gold px-5 py-2 text-sm font-medium text-black disabled:opacity-50"
             >
               {pending ? "SUBMITTING…" : "SUBMIT"}
             </button>

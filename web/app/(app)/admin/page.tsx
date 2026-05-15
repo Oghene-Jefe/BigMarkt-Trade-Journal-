@@ -7,6 +7,7 @@ import {
   Trophy,
   Building2,
   Megaphone,
+  ArrowRight,
 } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin";
@@ -83,31 +84,29 @@ export default async function AdminPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-3xl tracking-widest text-gold">
-          ADMIN DASHBOARD
-        </h1>
-        <p className="text-xs text-muted">Last updated {lastUpdated}</p>
+        <h1 className="text-xl font-semibold text-white">Admin dashboard</h1>
+        <p className="mt-1 text-xs text-muted">Last updated {lastUpdated}</p>
       </div>
 
       <section className="space-y-3">
-        <h2 className="border-b border-gold/40 pb-2 font-display text-xl tracking-widest text-gold">
-          PLATFORM STATS
+        <h2 className="border-b border-white/10 pb-2 text-sm font-medium text-white">
+          Platform stats
         </h2>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-          <Stat label="Total Users" value={totalUsers} />
-          <Stat label="New Today" value={newToday} />
-          <Stat label="Trades Today" value={tradesToday} />
-          <Stat label="Trades This Week" value={tradesWeek} />
-          <Stat label="All-Time Trades" value={tradesAll} />
-          <Stat label="Platform Win Rate" value={`${winRate}%`} />
-          <Stat label="Open Support" value={openSupport} />
-          <Stat label="Active Brokers" value={activeBrokers} />
+          <Stat label="Total users" value={totalUsers} />
+          <Stat label="New today" value={newToday} />
+          <Stat label="Trades today" value={tradesToday} />
+          <Stat label="Trades this week" value={tradesWeek} />
+          <Stat label="All-time trades" value={tradesAll} />
+          <Stat label="Platform win rate" value={`${winRate}%`} />
+          <Stat label="Open support" value={openSupport} />
+          <Stat label="Active brokers" value={activeBrokers} />
         </div>
       </section>
 
       <section className="space-y-3">
-        <h2 className="border-b border-gold/40 pb-2 font-display text-xl tracking-widest text-gold">
-          MANAGEMENT
+        <h2 className="border-b border-white/10 pb-2 text-sm font-medium text-white">
+          Management
         </h2>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <ManageCard
@@ -154,14 +153,9 @@ export default async function AdminPage() {
 
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div
-      className="rounded-2xl border bg-panel p-4"
-      style={{ borderColor: "rgba(212,175,55,0.3)" }}
-    >
+    <div className="rounded-md border border-white/10 bg-panel p-4">
       <p className="text-xs uppercase tracking-wider text-muted">{label}</p>
-      <p className="mt-1 font-display text-2xl tracking-wider text-gold">
-        {value}
-      </p>
+      <p className="mt-1 text-2xl font-semibold text-white">{value}</p>
     </div>
   );
 }
@@ -180,19 +174,18 @@ function ManageCard({
   return (
     <Link
       href={href}
-      className="group flex items-start gap-3 rounded-2xl border bg-panel p-4 transition hover:border-gold"
-      style={{ borderColor: "rgba(212,175,55,0.25)" }}
+      className="group flex items-start gap-3 rounded-lg border border-white/10 bg-panel p-4 transition hover:border-gold/40"
     >
       <div className="rounded-md bg-gold/10 p-2 text-gold">{icon}</div>
       <div className="min-w-0 flex-1">
-        <p className="font-display text-base tracking-widest text-gold">
-          {title.toUpperCase()}
-        </p>
+        <p className="text-base font-medium text-white">{title}</p>
         <p className="mt-1 text-xs text-muted">{desc}</p>
       </div>
-      <span className="self-center text-gold opacity-60 group-hover:opacity-100">
-        →
-      </span>
+      <ArrowRight
+        size={14}
+        aria-hidden
+        className="mt-1 shrink-0 text-muted group-hover:text-gold"
+      />
     </Link>
   );
 }

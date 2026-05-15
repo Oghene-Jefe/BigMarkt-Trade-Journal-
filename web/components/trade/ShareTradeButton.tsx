@@ -86,7 +86,7 @@ export default function ShareTradeButton({ cardRef, pair, result }: Props) {
           type="button"
           onClick={handleShare}
           disabled={busy !== null}
-          className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gold bg-bg px-4 py-2 font-display text-sm tracking-widest text-gold transition hover:bg-gold hover:text-black disabled:opacity-50"
+          className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gold bg-bg px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gold transition hover:bg-gold hover:text-black disabled:opacity-50"
         >
           {busy === "share" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
           SHARE
@@ -95,7 +95,7 @@ export default function ShareTradeButton({ cardRef, pair, result }: Props) {
           type="button"
           onClick={handleDownload}
           disabled={busy !== null}
-          className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gold bg-bg px-4 py-2 font-display text-sm tracking-widest text-gold transition hover:bg-gold hover:text-black disabled:opacity-50"
+          className="flex flex-1 items-center justify-center gap-2 rounded-md border border-gold bg-bg px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gold transition hover:bg-gold hover:text-black disabled:opacity-50"
         >
           {busy === "download" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
           DOWNLOAD

@@ -32,7 +32,7 @@ export default function BrokerForm({ initial, onDone }: Props) {
           setPending(false);
         }
       }}
-      className="grid grid-cols-1 gap-3 rounded-2xl border border-white/10 bg-panel p-4 md:grid-cols-2"
+      className="grid grid-cols-1 gap-3 rounded-lg border border-white/10 bg-panel p-4 md:grid-cols-2"
     >
       {editing ? <input type="hidden" name="id" value={initial!.id} /> : null}
 
@@ -100,7 +100,7 @@ export default function BrokerForm({ initial, onDone }: Props) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-gold px-4 py-1.5 font-display text-xs tracking-widest text-black disabled:opacity-50"
+          className="rounded-md bg-gold px-4 py-1.5 text-xs font-medium text-black disabled:opacity-50"
         >
           {pending ? "SAVING…" : editing ? "UPDATE BROKER" : "ADD BROKER"}
         </button>

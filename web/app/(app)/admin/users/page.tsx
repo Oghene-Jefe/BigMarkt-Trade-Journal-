@@ -91,8 +91,8 @@ export default async function AdminUsersPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl tracking-widest text-gold">
-          USER MANAGEMENT
+        <h1 className="text-xl font-semibold text-white">
+          User management
         </h1>
         <p className="text-xs text-muted">
           {total} users · page {pageNum} of {totalPages}
@@ -113,9 +113,9 @@ export default async function AdminUsersPage({
         </label>
         <button
           type="submit"
-          className="rounded-md border border-gold bg-bg px-4 py-1.5 font-display text-xs tracking-widest text-gold hover:bg-gold hover:text-black"
+          className="rounded-md border border-gold bg-bg px-4 py-1.5 text-xs font-medium text-gold hover:bg-gold hover:text-black"
         >
-          SEARCH
+          Search
         </button>
       </form>
 
@@ -124,18 +124,18 @@ export default async function AdminUsersPage({
           <Link
             key={f}
             href={`/admin/users?filter=${f}${search ? `&search=${encodeURIComponent(search)}` : ""}` as Route}
-            className={`rounded-full px-4 py-1.5 font-display text-xs tracking-widest ${
+            className={`rounded-md px-3 py-1.5 text-xs font-medium capitalize ${
               filter === f
                 ? "bg-gold text-black"
                 : "border border-white/10 bg-panel text-muted hover:text-white"
             }`}
           >
-            {f.toUpperCase()}
+            {f}
           </Link>
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-panel">
+      <div className="overflow-x-auto rounded-lg border border-white/10 bg-panel">
         <table className="w-full text-sm">
           <thead className="bg-black/30 text-xs uppercase tracking-wider text-muted">
             <tr>

@@ -29,18 +29,18 @@ export default async function AdminDisputesPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="font-display text-3xl tracking-widest text-gold">DISPUTES</h1>
+        <h1 className="text-xl font-semibold text-white">Disputes</h1>
         <p className="mt-1 text-sm text-muted">
           Review and resolve disputes raised against leaders.
         </p>
       </header>
 
       <section className="space-y-3">
-        <h2 className="font-display text-xl tracking-widest text-gold">
+        <h2 className="text-sm font-medium text-white">
           OPEN ({open.length})
         </h2>
         {open.length === 0 ? (
-          <p className="rounded-2xl border border-white/10 bg-panel p-6 text-sm text-muted">
+          <p className="rounded-lg border border-white/10 bg-panel p-6 text-sm text-muted">
             No open disputes.
           </p>
         ) : (
@@ -52,7 +52,7 @@ export default async function AdminDisputesPage() {
 
       {closed.length > 0 ? (
         <section className="space-y-3">
-          <h2 className="font-display text-xl tracking-widest text-muted">
+          <h2 className="text-sm font-medium text-muted">
             HISTORY ({closed.length})
           </h2>
           <ul className="space-y-3">
@@ -66,7 +66,7 @@ export default async function AdminDisputesPage() {
 
 function DisputeCard({ dispute: d, historical }: { dispute: Dispute; historical?: boolean }) {
   return (
-    <li className={`rounded-2xl border border-white/10 bg-panel p-4 ${historical ? "opacity-70" : ""}`}>
+    <li className={`rounded-lg border border-white/10 bg-panel p-4 ${historical ? "opacity-70" : ""}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">

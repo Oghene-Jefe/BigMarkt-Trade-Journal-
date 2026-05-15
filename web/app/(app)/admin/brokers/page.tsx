@@ -40,8 +40,8 @@ export default async function AdminBrokersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl tracking-widest text-gold">
-          BROKER MANAGEMENT
+        <h1 className="text-xl font-semibold text-white">
+          Broker management
         </h1>
         <p className="text-xs text-muted">
           {brokers.length} broker{brokers.length === 1 ? "" : "s"} ·{" "}
@@ -50,13 +50,13 @@ export default async function AdminBrokersPage() {
       </div>
 
       <section className="space-y-3">
-        <h2 className="font-display text-sm tracking-widest text-gold">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-gold">
           ADD BROKER
         </h2>
         <BrokerForm />
       </section>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-panel">
+      <div className="overflow-x-auto rounded-lg border border-white/10 bg-panel">
         <table className="w-full text-sm">
           <thead className="bg-black/30 text-xs uppercase tracking-wider text-muted">
             <tr>

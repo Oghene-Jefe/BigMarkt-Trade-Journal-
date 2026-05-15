@@ -33,11 +33,11 @@ export default function AutomationTosModal({
       aria-labelledby="tos-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
     >
-      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-panel shadow-2xl">
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg border border-white/10 bg-panel shadow-2xl">
         <header className="border-b border-white/10 p-5">
           <h2
             id="tos-title"
-            className="font-display text-xl tracking-widest text-gold"
+            className="text-sm font-medium text-white"
           >
             Automated Journal — Terms of Use
           </h2>
@@ -151,9 +151,9 @@ export default function AutomationTosModal({
               type="button"
               onClick={handleAccept}
               disabled={!agreed || pending}
-              className="rounded-md bg-gold px-4 py-2 font-display text-sm tracking-widest text-black disabled:opacity-50"
+              className="rounded-md bg-gold px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
             >
-              {pending ? "SAVING…" : "ACCEPT"}
+              {pending ? "Saving…" : "Accept"}
             </button>
           </div>
         </footer>

@@ -67,7 +67,7 @@ export default async function UsernameProfilePage({
         </Link>
       </header>
 
-      <section className="rounded-2xl border border-white/10 bg-panel p-6">
+      <section className="rounded-lg border border-white/10 bg-panel p-6">
         <div className="flex items-center gap-5">
           <div className="h-20 w-20 overflow-hidden rounded-full border border-white/10 bg-black/40">
             {avatarUrl ? (
@@ -75,7 +75,7 @@ export default async function UsernameProfilePage({
             ) : null}
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="font-display text-3xl tracking-widest text-gold truncate">
+            <h1 className="text-xl font-semibold text-white truncate">
               {profile.display_name}
             </h1>
             <p className="text-xs uppercase tracking-wider text-muted">
@@ -112,9 +112,9 @@ export default async function UsernameProfilePage({
       </section>
 
       <section className="mt-6 space-y-3">
-        <h2 className="font-display text-xl tracking-widest text-gold">PUBLIC TRADES</h2>
+        <h2 className="text-sm font-medium text-white">Public trades</h2>
         {trades.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-panel p-8 text-center">
+          <div className="rounded-lg border border-white/10 bg-panel p-8 text-center">
             <p className="text-sm text-muted">No public trades yet.</p>
           </div>
         ) : (
@@ -189,9 +189,9 @@ function Stat({
   const colour =
     tone === "win" ? "text-win" : tone === "loss" ? "text-loss" : "text-white";
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-3">
+    <div className="rounded-lg border border-white/10 bg-black/30 p-3">
       <p className="text-xs uppercase tracking-wider text-muted">{label}</p>
-      <p className={`mt-1 font-display text-2xl tracking-wider ${colour}`}>{value}</p>
+      <p className={`mt-1 text-2xl font-semibold ${colour}`}>{value}</p>
     </div>
   );
 }

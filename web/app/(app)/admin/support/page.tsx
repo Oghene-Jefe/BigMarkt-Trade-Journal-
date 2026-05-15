@@ -82,8 +82,8 @@ export default async function AdminSupportPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl tracking-widest text-gold">
-          SUPPORT INBOX
+        <h1 className="text-xl font-semibold text-white">
+          Support inbox
         </h1>
         <p className="text-xs text-muted">All user conversations, newest first.</p>
       </div>
@@ -95,7 +95,7 @@ export default async function AdminSupportPage() {
       </div>
 
       {conversations.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-panel p-10 text-center text-sm text-muted">
+        <div className="rounded-lg border border-white/10 bg-panel p-10 text-center text-sm text-muted">
           No support conversations yet
         </div>
       ) : (
@@ -109,7 +109,7 @@ export default async function AdminSupportPage() {
               <li key={c.id}>
                 <Link
                   href={`/admin/support/${c.id}` as Route}
-                  className="flex items-start gap-3 rounded-xl border border-white/10 bg-panel p-3 transition hover:border-gold/40"
+                  className="flex items-start gap-3 rounded-lg border border-white/10 bg-panel p-3 transition hover:border-gold/40"
                 >
                   <div
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
@@ -155,10 +155,10 @@ export default async function AdminSupportPage() {
 
 function StatBox({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-panel p-4">
+    <div className="rounded-lg border border-white/10 bg-panel p-4">
       <p className="text-xs uppercase tracking-wider text-muted">{label}</p>
       <p
-        className="mt-1 font-display text-2xl tracking-wider"
+        className="mt-1 text-2xl font-semibold tabular-nums"
         style={{ color }}
       >
         {value}

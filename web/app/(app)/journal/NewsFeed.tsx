@@ -40,12 +40,12 @@ export default function NewsFeed({ initial, windowStart, windowEnd }: Props) {
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-loss/30 bg-loss/10 p-8 text-center space-y-3">
+      <div className="rounded-lg border border-loss/30 bg-loss/10 p-8 text-center space-y-3">
         <p className="text-sm text-muted">Could not load news. Try again later.</p>
         <button
           type="button"
           onClick={fetchEvents}
-          className="inline-block rounded-md border border-white/10 bg-panel px-5 py-2 font-display text-xs tracking-widest text-gold hover:bg-white/5"
+          className="inline-block rounded-md border border-white/10 bg-panel px-5 py-2 text-xs font-medium text-gold hover:bg-white/5"
         >
           RETRY
         </button>
@@ -55,7 +55,7 @@ export default function NewsFeed({ initial, windowStart, windowEnd }: Props) {
 
   if (events.length === 0) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-panel p-8 text-center">
+      <div className="rounded-lg border border-white/10 bg-panel p-8 text-center">
         <p className="text-sm text-muted">No news events this week</p>
       </div>
     );

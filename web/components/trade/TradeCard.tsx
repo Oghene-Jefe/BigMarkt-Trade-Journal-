@@ -73,7 +73,7 @@ const TradeCard = forwardRef<HTMLDivElement, TradeCardProps>(function TradeCard(
       ref={ref}
       id={id}
       style={{ backgroundColor: DARK, borderColor: `${GOLD}33` }}
-      className="w-full rounded-2xl border p-6 text-white"
+      className="w-full rounded-lg border p-6 text-white"
     >
       {/* HEADER */}
       <div className="flex items-center justify-between gap-3">

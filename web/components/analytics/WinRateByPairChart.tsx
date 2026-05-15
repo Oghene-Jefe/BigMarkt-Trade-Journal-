@@ -17,8 +17,8 @@ export default function WinRateByPairChart({ trades }: { trades: TradeRow[] }) {
   const height = Math.max(200, Math.min(400, data.length * 40 + 60));
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-panel p-4">
-      <h3 className="mb-3 font-display text-sm tracking-widest text-gold">
+    <div className="rounded-lg border border-white/10 bg-panel p-4">
+      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gold">
         WIN RATE BY PAIR
       </h3>
       {data.length < 3 ? (

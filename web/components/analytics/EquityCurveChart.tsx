@@ -19,8 +19,8 @@ export default function EquityCurveChart({ trades }: { trades: TradeRow[] }) {
   const lineColor = lastEquity >= 0 ? "#D4AF37" : "#ef4444";
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-panel p-4">
-      <h3 className="mb-3 font-display text-sm tracking-widest text-gold">
+    <div className="rounded-lg border border-white/10 bg-panel p-4">
+      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gold">
         EQUITY CURVE
       </h3>
       {data.length === 0 ? (

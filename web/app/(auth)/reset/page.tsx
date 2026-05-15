@@ -10,13 +10,13 @@ export default function ResetPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
-      <form action={formAction} className="w-full max-w-sm space-y-4 rounded-2xl bg-panel p-8">
+      <form action={formAction} className="w-full max-w-sm space-y-4 rounded-lg bg-panel p-8">
         <div className="flex justify-center mb-6">
           <Link href="/" aria-label="Back to home">
             <Logo size="lg" />
           </Link>
         </div>
-        <h1 className="font-display text-3xl tracking-widest text-gold">RESET PASSWORD</h1>
+        <h1 className="text-center text-2xl font-semibold text-white">Reset password</h1>
         <p className="text-sm text-muted">Enter your account email and we'll send a reset link.</p>
 
         <label className="block text-sm">
@@ -29,8 +29,8 @@ export default function ResetPage() {
         {state.ok ? <p className="text-sm text-win">{state.ok}</p> : null}
 
         <button disabled={pending}
-          className="w-full rounded-md bg-gold py-3 font-display tracking-widest text-black disabled:opacity-50">
-          {pending ? "SENDING…" : "SEND LINK"}
+          className="w-full rounded-md bg-gold py-3 text-sm font-medium text-black disabled:opacity-50">
+          {pending ? "Sending…" : "Send link"}
         </button>
 
         <p className="text-center text-xs">

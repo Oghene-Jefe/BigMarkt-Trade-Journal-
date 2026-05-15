@@ -127,7 +127,7 @@ export default function OnboardingWizard(props: Props) {
       <main className="flex-1">
         {step === 1 ? (
           <section className="space-y-5">
-            <h1 className="font-display text-2xl tracking-wider text-white sm:text-3xl">
+            <h1 className="text-2xl font-semibold text-white sm:text-3xl">
               First, let&apos;s set up your identity.
             </h1>
             <div className="space-y-3">
@@ -180,7 +180,7 @@ export default function OnboardingWizard(props: Props) {
 
         {step === 2 ? (
           <section className="space-y-5">
-            <h1 className="font-display text-2xl tracking-wider text-white sm:text-3xl">
+            <h1 className="text-2xl font-semibold text-white sm:text-3xl">
               How will you journal your trades?
             </h1>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -205,7 +205,7 @@ export default function OnboardingWizard(props: Props) {
 
         {step === 3 ? (
           <section className="space-y-5">
-            <h1 className="font-display text-2xl tracking-wider text-white sm:text-3xl">
+            <h1 className="text-2xl font-semibold text-white sm:text-3xl">
               Who can see your trading profile?
             </h1>
             <div className="flex flex-col gap-3">

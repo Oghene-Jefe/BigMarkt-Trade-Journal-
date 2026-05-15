@@ -8,8 +8,8 @@ export default function UnlistedBrokerChecker() {
   const [step, setStep] = useState<Step>(0);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-panel p-6">
-      <h3 className="font-display text-xl tracking-widest text-gold">
+    <div className="rounded-lg border border-white/10 bg-panel p-6">
+      <h3 className="text-sm font-medium text-white">
         BROKER NOT LISTED?
       </h3>
       <p className="mt-1 text-xs text-muted">
@@ -120,7 +120,7 @@ function Result({
     red: "border-rose-500/30 bg-rose-500/10 text-rose-200",
   }[tone];
   return (
-    <div className={`rounded-xl border p-4 ${styles}`}>
+    <div className={`rounded-lg border p-4 ${styles}`}>
       <p className="font-semibold text-sm">{title}</p>
       <p className="mt-1 text-xs leading-relaxed">{children}</p>
     </div>

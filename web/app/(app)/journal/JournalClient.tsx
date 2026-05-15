@@ -42,7 +42,7 @@ export default function JournalClient({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-2xl border border-white/10 bg-panel p-4">
+      <div className="rounded-lg border border-white/10 bg-panel p-4">
         <MonthlyHeatmap
           trades={trades}
           onDayClick={setSelectedDate}

@@ -160,10 +160,10 @@ export default function AdminConversationView({
         ← Support Inbox
       </Link>
 
-      <div className="rounded-2xl border border-white/10 bg-panel p-4">
+      <div className="rounded-lg border border-white/10 bg-panel p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-display text-xl tracking-widest text-gold">
+            <p className="text-sm font-medium text-white">
               {display}
             </p>
             {userProfile.email ? (
@@ -194,7 +194,7 @@ export default function AdminConversationView({
       </div>
 
       <div
-        className="flex flex-col gap-3 overflow-y-auto rounded-2xl border border-white/10 bg-panel p-4"
+        className="flex flex-col gap-3 overflow-y-auto rounded-lg border border-white/10 bg-panel p-4"
         style={{ minHeight: 360, maxHeight: 560 }}
       >
         {messages.length === 0 ? (
@@ -207,7 +207,7 @@ export default function AdminConversationView({
         <div ref={endRef} />
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-panel p-3">
+      <div className="rounded-lg border border-white/10 bg-panel p-3">
         <textarea
           value={reply}
           onChange={(e) => setReply(e.target.value)}
@@ -221,7 +221,7 @@ export default function AdminConversationView({
             type="button"
             onClick={handleSend}
             disabled={!reply.trim() || sending}
-            className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-1.5 font-display text-sm tracking-widest text-black transition hover:opacity-90 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-1.5 text-sm font-medium text-black transition hover:opacity-90 disabled:opacity-50"
           >
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             SEND REPLY

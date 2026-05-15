@@ -6,8 +6,8 @@ import { buildPsychologyReport } from "@/lib/analytics";
 export default function PsychologyAdvisor({ trades }: { trades: TradeRow[] }) {
   if (trades.length < 5) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-panel p-6">
-        <h3 className="mb-3 font-display text-sm tracking-widest text-gold">
+      <div className="rounded-lg border border-white/10 bg-panel p-6">
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gold">
           TRADE PSYCHOLOGY
         </h3>
         <p className="text-sm text-muted">
@@ -20,13 +20,13 @@ export default function PsychologyAdvisor({ trades }: { trades: TradeRow[] }) {
   const report = buildPsychologyReport(trades);
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-panel p-6">
-      <h3 className="mb-4 font-display text-sm tracking-widest text-gold">
+    <div className="rounded-lg border border-white/10 bg-panel p-6">
+      <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-gold">
         TRADE PSYCHOLOGY
       </h3>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-green-700/40 bg-green-900/20 p-4">
+        <div className="rounded-lg border border-green-700/40 bg-green-900/20 p-4">
           <p className="text-xs uppercase tracking-wider text-green-400/80">
             Best Mindset
           </p>
@@ -34,7 +34,7 @@ export default function PsychologyAdvisor({ trades }: { trades: TradeRow[] }) {
             {report.bestEmotion || "—"}
           </p>
         </div>
-        <div className="rounded-xl border border-red-700/40 bg-red-900/20 p-4">
+        <div className="rounded-lg border border-red-700/40 bg-red-900/20 p-4">
           <p className="text-xs uppercase tracking-wider text-red-400/80">
             Worst Mindset
           </p>
@@ -83,7 +83,7 @@ export default function PsychologyAdvisor({ trades }: { trades: TradeRow[] }) {
       )}
 
       <div className="mt-6">
-        <p className="font-display text-xs uppercase tracking-widest text-gold">
+        <p className="text-xs font-semibold uppercase tracking-wider text-gold">
           AI Insights
         </p>
         <ul className="mt-2 space-y-2">

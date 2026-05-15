@@ -72,7 +72,7 @@ export default function ReportCardSection({ trades, username }: ReportCardSectio
           >
             ‹ Prev
           </button>
-          <span className="font-display text-sm tracking-widest text-gold">
+          <span className="text-xs font-semibold uppercase tracking-wider text-gold">
             {MONTH_NAMES[month]} {year}
           </span>
           <button
@@ -126,7 +126,7 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`-mb-px border-b-2 px-1 pb-2 font-display text-sm tracking-widest transition ${
+      className={`-mb-px border-b-2 px-1 pb-2 text-sm font-medium transition ${
         active
           ? "border-gold text-gold"
           : "border-transparent text-muted hover:text-white"

@@ -112,14 +112,14 @@ export default function BroadcastForm() {
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-wider text-muted">Preview</p>
         <div
-          className="rounded-xl border p-4"
+          className="rounded-lg border p-4"
           style={{
             borderColor: "rgba(212,175,55,0.3)",
             backgroundColor: "#141414",
             color: "#f5f5f5",
           }}
         >
-          <p className="font-display text-base tracking-widest text-gold">
+          <p className="text-sm font-medium text-gold">
             {title.trim() || "Title goes here"}
           </p>
           <p className="mt-1 whitespace-pre-wrap text-sm text-muted">
@@ -137,7 +137,7 @@ export default function BroadcastForm() {
         <button
           type="submit"
           disabled={pending || !title.trim() || !body.trim()}
-          className="rounded-md bg-gold px-5 py-2 font-display text-sm tracking-widest text-black disabled:opacity-50"
+          className="rounded-md bg-gold px-5 py-2 text-sm font-medium text-black disabled:opacity-50"
         >
           {pending ? "SENDING…" : "SEND BROADCAST"}
         </button>
