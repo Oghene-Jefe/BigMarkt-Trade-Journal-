@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { TradeRow } from "@/lib/types";
 import JournalTable from "@/components/JournalTable";
 import MonthlyHeatmap from "@/components/heatmap/MonthlyHeatmap";
+import ExportButtons from "@/components/journal/ExportButtons";
 
 function toLocalDateKey(iso: string): string {
   const d = new Date(iso);
@@ -61,6 +62,14 @@ export default function JournalClient({
           </button>
         </div>
       ) : null}
+
+      <div className="flex items-end justify-end">
+        <ExportButtons
+          trades={filteredTrades}
+          isFiltered={selectedDate !== null}
+          filterLabel={selectedDate ? formatHuman(selectedDate) : ""}
+        />
+      </div>
 
       <JournalTable trades={filteredTrades} chartUrls={chartUrls} />
     </div>
