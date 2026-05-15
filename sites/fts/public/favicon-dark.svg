@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#0A0A0A"/>
+  <text
+    x="32" y="46"
+    text-anchor="middle"
+    font-family="'Helvetica Neue', Arial, sans-serif"
+    font-weight="900" font-size="42"
+    fill="#F5F5F5"
+  >B</text>
+  <path
+    d="M 36 18 L 44 38 L 28 38 Z M 36 32 L 40 38 L 32 38 Z"
+    fill="#D4AF37"
+    fill-rule="evenodd"
+  />
+</svg>

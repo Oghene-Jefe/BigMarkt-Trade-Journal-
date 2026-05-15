@@ -8,6 +8,12 @@ export const metadata: Metadata = {
   description:
     "Free financial literacy, trading skills and industry mentorship for students. African roots. Global reach.",
   metadataBase: new URL("https://club.bigmarkt.co"),
+  icons: {
+    icon: [
+      { url: "/favicon-dark.svg", type: "image/svg+xml", media: "(prefers-color-scheme: dark)" },
+      { url: "/favicon-light.svg", type: "image/svg+xml", media: "(prefers-color-scheme: light)" },
+    ],
+  },
   openGraph: {
     title: "BigMarkt Club",
     description:

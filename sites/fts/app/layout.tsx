@@ -8,6 +8,12 @@ export const metadata: Metadata = {
   description:
     "Learn to trade properly. No hype. No expensive courses. The education arm of BigMarkt.",
   metadataBase: new URL("https://fts.bigmarkt.co"),
+  icons: {
+    icon: [
+      { url: "/favicon-dark.svg", type: "image/svg+xml", media: "(prefers-color-scheme: dark)" },
+      { url: "/favicon-light.svg", type: "image/svg+xml", media: "(prefers-color-scheme: light)" },
+    ],
+  },
   openGraph: {
     title: "Free Trading Academy — FTS",
     description:

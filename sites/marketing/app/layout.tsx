@@ -8,6 +8,12 @@ export const metadata: Metadata = {
   description:
     "Auto-capture trades, review performance, and build a cleaner trading record.",
   metadataBase: new URL("https://bigmarkt.co"),
+  icons: {
+    icon: [
+      { url: "/favicon-dark.svg", type: "image/svg+xml", media: "(prefers-color-scheme: dark)" },
+      { url: "/favicon-light.svg", type: "image/svg+xml", media: "(prefers-color-scheme: light)" },
+    ],
+  },
   openGraph: {
     title: "BigMarkt — The Verified Trading Journal",
     description:
