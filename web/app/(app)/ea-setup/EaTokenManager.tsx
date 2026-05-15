@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Check, AlertTriangle, Plug, PlugZap } from "lucide-react";
 import {
   generateEaTokenAction,
   revokeEaTokenAction,
   linkEaTokenToAccountAction,
   type EaConnectionLogEntry,
 } from "@/lib/actions/ea-tokens";
+import { StatusPill } from "@/components/ui";
 import type { EaTokenRow, WsStatus, BrokerAccountOption } from "./page";
 
 const MAX_TOKENS = 5;
@@ -30,45 +32,54 @@ function formatUptime(seconds: number): string {
 }
 
 function WsStatusCard({ status }: { status: WsStatus | null }) {
-  let dot = "🔴";
-  let title = "WebSocket Server — Offline";
-  let body = "Start the WebSocket server locally with npm run dev";
-  let border = "border-rose-500/40 bg-rose-500/10";
+  let tone: "ok" | "warn" | "error" = "error";
+  let title = "WebSocket server — offline";
+  let body = "Start the WebSocket server locally with npm run dev.";
 
   if (status) {
     if (status.connected_clients === 0) {
-      dot = "🟡";
-      title = "WebSocket Server — Online, no EA connected";
+      tone = "warn";
+      title = "WebSocket server — online, no EA connected";
       body = "Server is running. Connect your MT4/MT5 EA to begin receiving trades.";
-      border = "border-amber-500/40 bg-amber-500/10";
     } else {
-      dot = "🟢";
-      title = `WebSocket Server — Online · ${status.connected_clients} EA connected`;
+      tone = "ok";
+      title = `WebSocket server — online · ${status.connected_clients} EA connected`;
       body = "Receiving trade events in real time.";
-      border = "border-emerald-500/40 bg-emerald-500/10";
     }
   }
 
+  const borderByTone = {
+    ok: "border-emerald-500/40 bg-emerald-500/10",
+    warn: "border-amber-500/40 bg-amber-500/10",
+    error: "border-rose-500/40 bg-rose-500/10",
+  } as const;
+
   return (
-    <div className={`rounded-xl border ${border} p-4`}>
-      <p className="text-sm font-semibold text-white">
-        {dot} {title}
-      </p>
-      <p className="mt-1 text-xs text-white/70">{body}</p>
+    <div className={`rounded-md border p-4 ${borderByTone[tone]}`}>
+      <div className="flex items-center gap-2">
+        <StatusPill tone={tone}>{title}</StatusPill>
+      </div>
+      <p className="mt-2 text-xs text-white/70">{body}</p>
       {status && status.connected_clients > 0 ? (
         <ul className="mt-3 space-y-1">
           {status.connections.map((c) => {
             const secs = Math.round(c.last_ping_ms_ago / 1000);
             return (
-              <li key={c.token_id} className="text-xs">
+              <li key={c.token_id} className="flex items-center gap-2 text-xs">
                 {c.stale ? (
-                  <span className="text-amber-300">
-                    ⚠️ EA connected but not responding — last seen {secs}s ago
-                  </span>
+                  <>
+                    <AlertTriangle size={12} aria-hidden className="text-amber-300" />
+                    <span className="text-amber-300">
+                      EA connected but not responding — last seen {secs}s ago
+                    </span>
+                  </>
                 ) : (
-                  <span className="text-emerald-300">
-                    🟢 EA active — last ping {secs}s ago
-                  </span>
+                  <>
+                    <PlugZap size={12} aria-hidden className="text-emerald-300" />
+                    <span className="text-emerald-300">
+                      EA active — last ping {secs}s ago
+                    </span>
+                  </>
                 )}
               </li>
             );
@@ -98,29 +109,31 @@ function formatRelative(iso: string): string {
 
 function ConnectionHistory({ log }: { log: EaConnectionLogEntry[] }) {
   return (
-    <section className="space-y-3 rounded-2xl border border-white/10 bg-panel p-5">
-      <div>
-        <h2 className="font-display text-lg tracking-widest text-gold">
-          CONNECTION HISTORY
-        </h2>
+    <section className="rounded-lg border border-white/10 bg-panel p-5">
+      <header>
+        <h3 className="text-sm font-medium text-white">Connection history</h3>
         <p className="mt-1 text-xs text-muted">
           Last 20 EA connect / disconnect events.
         </p>
-      </div>
+      </header>
       {log.length === 0 ? (
-        <p className="text-xs text-muted">No connections recorded yet.</p>
+        <p className="mt-3 text-xs text-muted">No connections recorded yet.</p>
       ) : (
-        <ul className="divide-y divide-white/5 rounded-lg border border-white/10 bg-black/30">
+        <ul className="mt-3 divide-y divide-white/5 rounded-md border border-white/10 bg-black/30">
           {log.slice(0, 20).map((row) => (
             <li
               key={row.id}
               className="flex flex-wrap items-center justify-between gap-3 p-3 text-xs"
             >
-              <span className="min-w-[120px]">
+              <span className="min-w-[140px]">
                 {row.event === "connected" ? (
-                  <span className="text-emerald-300">🟢 Connected</span>
+                  <StatusPill tone="ok" icon={<PlugZap size={12} aria-hidden />}>
+                    Connected
+                  </StatusPill>
                 ) : (
-                  <span className="text-rose-300">🔴 Disconnected</span>
+                  <StatusPill tone="error" icon={<Plug size={12} aria-hidden />}>
+                    Disconnected
+                  </StatusPill>
                 )}
               </span>
               <span className="min-w-0 flex-1 truncate text-white">{row.label}</span>
@@ -191,10 +204,9 @@ export default function EaTokenManager({
     <div className="space-y-4">
       <WsStatusCard status={wsStatus} />
 
-      {/* Freshly generated token — shown once */}
       {freshToken ? (
-        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300">
+        <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-4">
+          <p className="text-xs font-semibold text-emerald-300">
             New token — copy it now
           </p>
           <p className="mt-1 text-[11px] text-emerald-200/80">
@@ -208,14 +220,21 @@ export default function EaTokenManager({
             <button
               type="button"
               onClick={onCopy}
-              className="rounded-md bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700"
             >
-              {copied ? "Copied ✓" : "Copy"}
+              {copied ? (
+                <>
+                  <Check size={12} aria-hidden />
+                  <span>Copied</span>
+                </>
+              ) : (
+                "Copy"
+              )}
             </button>
             <button
               type="button"
               onClick={() => setFreshToken(null)}
-              className="rounded-md border border-white/20 px-3 py-2 text-xs text-muted hover:text-white"
+              className="rounded-md border border-white/15 px-3 py-2 text-xs text-muted hover:text-white"
             >
               Dismiss
             </button>
@@ -223,9 +242,8 @@ export default function EaTokenManager({
         </div>
       ) : null}
 
-      {/* Generate form */}
       {atLimit ? (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
           You've hit the {MAX_TOKENS}-token limit. Revoke one below before
           generating another.
         </p>
@@ -239,25 +257,22 @@ export default function EaTokenManager({
               onChange={(e) => setLabel(e.target.value)}
               placeholder="e.g. ICMarkets MT5"
               maxLength={60}
-              className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-base text-white"
+              className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
             />
           </label>
           <button
             type="button"
             onClick={onGenerate}
             disabled={pending}
-            className="rounded-md bg-gold/90 px-4 py-2 text-sm font-medium text-black hover:bg-gold transition-colors disabled:opacity-50"
+            className="inline-flex h-10 items-center rounded-md bg-gold px-4 text-sm font-medium text-black hover:bg-gold/90 disabled:opacity-50"
           >
             {pending ? "Generating…" : "Generate token"}
           </button>
         </div>
       )}
 
-      {error ? (
-        <p className="text-xs text-rose-300">{error}</p>
-      ) : null}
+      {error ? <p className="text-xs text-rose-300">{error}</p> : null}
 
-      {/* Existing tokens */}
       {tokens.length === 0 ? (
         <p className="text-xs text-muted">No active tokens yet.</p>
       ) : (
@@ -268,7 +283,7 @@ export default function EaTokenManager({
             return (
               <li
                 key={t.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/30 p-3"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-black/30 p-3"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-white">
@@ -293,7 +308,7 @@ export default function EaTokenManager({
                       name="broker_account_id"
                       defaultValue={t.broker_account_id ?? ""}
                       onChange={(e) => e.currentTarget.form?.requestSubmit()}
-                      className="rounded-md border border-white/10 bg-black/40 px-2 py-1 text-base text-white"
+                      className="rounded-md border border-white/10 bg-black/40 px-2 py-1 text-sm text-white"
                     >
                       <option value="">— No account —</option>
                       {brokerAccounts.map((a) => (
@@ -307,7 +322,7 @@ export default function EaTokenManager({
                     type="button"
                     onClick={() => onRevoke(t.id)}
                     disabled={pending}
-                    className="rounded-md border border-rose-500/40 px-3 py-1 text-xs text-rose-300 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+                    className="rounded-md border border-rose-500/40 px-3 py-1 text-xs text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
                   >
                     Revoke
                   </button>

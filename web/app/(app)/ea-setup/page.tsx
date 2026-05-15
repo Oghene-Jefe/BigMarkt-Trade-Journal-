@@ -1,6 +1,9 @@
+import type { ReactNode } from "react";
+import { Download, ChevronRight } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
 import { getEaConnectionLogAction } from "@/lib/actions/ea-tokens";
+import { PageHeader } from "@/components/ui";
 import EaTokenManager from "./EaTokenManager";
 
 export const dynamic = "force-dynamic";
@@ -66,249 +69,224 @@ export default async function EaSetupPage() {
   const connectionLog = await getEaConnectionLogAction();
 
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="font-display text-3xl tracking-widest text-gold">
-          EA SETUP
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          Install the BigMarkt read-only EA on MT4/MT5 and stream every fill
-          straight into your journal. Four steps, about three minutes.
-        </p>
-      </header>
+    <div className="space-y-6">
+      <PageHeader
+        title="EA setup"
+        description="Install the BigMarkt read-only EA on MT4/MT5 and stream every fill into your journal. Five steps, about three minutes."
+      />
 
-      {/* Step 1 — Token manager */}
-      <section className="space-y-3 rounded-2xl border border-white/10 bg-panel p-5">
-        <div>
-          <h2 className="font-display text-lg tracking-widest text-gold">
-            STEP 1 — GENERATE YOUR TOKEN
-          </h2>
-          <p className="mt-1 text-xs text-muted">
-            A token authenticates your EA. Each MT4/MT5 terminal should use its
-            own. Maximum of 5 active tokens per account.
-          </p>
-        </div>
+      <Step n={1} title="Generate a token">
+        <p className="mb-4 text-sm text-muted">
+          A token authenticates your EA. Each MT4/MT5 terminal should use its own. Maximum of 5 active tokens per account.
+        </p>
         <EaTokenManager
           tokens={activeTokens}
           wsStatus={wsStatus}
           connectionLog={connectionLog}
           brokerAccounts={brokerAccounts}
         />
-      </section>
+      </Step>
 
-      {/* Step 2 — Download */}
-      <section className="space-y-3 rounded-2xl border border-white/10 bg-panel p-5">
-        <div>
-          <h2 className="font-display text-lg tracking-widest text-gold">
-            STEP 2 — DOWNLOAD THE EA
-          </h2>
-          <p className="mt-1 text-xs text-muted">
-            One MQL5 file. Works on both MT4 and MT5 builds 1300+.
-          </p>
-        </div>
+      <Step n={2} title="Download the EA">
+        <p className="mb-4 text-sm text-muted">
+          One MQL5 file. Works on both MT4 and MT5 builds 1300+.
+        </p>
         <a
           href="/downloads/BigMarkt_EA.mq5"
           download
-          className="inline-flex items-center gap-2 rounded-md bg-gold/90 px-4 py-2 text-sm font-medium text-black hover:bg-gold transition-colors"
+          className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-sm font-medium text-black hover:bg-gold/90"
         >
-          ⬇ Download BigMarkt_EA.mq5
+          <Download size={14} aria-hidden />
+          <span>Download BigMarkt_EA.mq5</span>
         </a>
-        <p className="text-[11px] text-muted">
+        <p className="mt-3 text-xs text-muted">
           Read-only by design — the EA never calls{" "}
-          <code className="rounded bg-black/40 px-1 font-mono">OrderSend</code>,{" "}
-          <code className="rounded bg-black/40 px-1 font-mono">OrderModify</code>{" "}
-          or{" "}
-          <code className="rounded bg-black/40 px-1 font-mono">OrderClose</code>.
+          <Mono>OrderSend</Mono>, <Mono>OrderModify</Mono>, or <Mono>OrderClose</Mono>.
         </p>
-      </section>
+      </Step>
 
-      {/* Step 3 — Install */}
-      <section className="space-y-3 rounded-2xl border border-white/10 bg-panel p-5">
-        <h2 className="font-display text-lg tracking-widest text-gold">
-          STEP 3 — INSTALL ON MT5
-        </h2>
-        <ol className="space-y-3 text-sm text-white/80">
+      <Step n={3} title="Install in MetaTrader and paste your token">
+        <ol className="space-y-2 text-sm text-white/80">
           <li>
-            <span className="font-semibold text-white">1. Copy the file.</span>{" "}
-            In MetaTrader, open <em>File → Open Data Folder</em>, then drop{" "}
-            <code className="rounded bg-black/40 px-1 font-mono">
-              BigMarkt_EA.mq5
-            </code>{" "}
-            into{" "}
-            <code className="rounded bg-black/40 px-1 font-mono">
-              MQL5/Experts
-            </code>{" "}
-            (or{" "}
-            <code className="rounded bg-black/40 px-1 font-mono">
-              MQL4/Experts
-            </code>{" "}
-            on MT4).
+            Open <em>File → Open Data Folder</em>, then drop{" "}
+            <Mono>BigMarkt_EA.mq5</Mono> into <Mono>MQL5/Experts</Mono> (or{" "}
+            <Mono>MQL4/Experts</Mono> on MT4).
           </li>
           <li>
-            <span className="font-semibold text-white">2. Refresh Navigator.</span>{" "}
             Right-click <em>Expert Advisors</em> in the Navigator panel and pick{" "}
-            <em>Refresh</em>. Compile the file by double-clicking it in MetaEditor.
+            <em>Refresh</em>. Double-click the file in MetaEditor to compile.
           </li>
           <li>
-            <span className="font-semibold text-white">3. Attach to a chart.</span>{" "}
-            Drag{" "}
-            <code className="rounded bg-black/40 px-1 font-mono">BigMarkt_EA</code>{" "}
-            onto any chart — the symbol does not matter, deals are captured
-            account-wide.
+            Drag <Mono>BigMarkt_EA</Mono> onto any chart and paste the token from
+            Step 1 into the <Mono>ApiToken</Mono> input.
           </li>
           <li>
-            <span className="font-semibold text-white">4. Paste your token.</span>{" "}
-            In the EA inputs dialog, paste the token from Step 1 into{" "}
-            <code className="rounded bg-black/40 px-1 font-mono">ApiToken</code>.
+            In <em>Tools → Options → Expert Advisors</em>, tick{" "}
+            <em>Allow WebRequest for listed URL</em> and add{" "}
+            <Mono>https://journal.bigmarkt.co</Mono>.
           </li>
           <li>
-            <span className="font-semibold text-white">
-              4b. (Optional) Filter by magic number.
-            </span>{" "}
-            The{" "}
-            <code className="rounded bg-black/40 px-1 font-mono">FilterMagic</code>{" "}
-            input controls which trades get journaled:
-            <ul className="mt-2 ml-4 list-disc space-y-1 text-xs text-white/70">
-              <li>
-                <code className="rounded bg-black/40 px-1 font-mono">-1</code>{" "}
-                (default) — capture <em>all</em> trades, including bot trades.
-              </li>
-              <li>
-                <code className="rounded bg-black/40 px-1 font-mono">0</code> —
-                capture <em>manual trades only</em> (deals with no magic number).
-              </li>
-              <li>
-                Any positive number — capture only trades from the trading bot
-                with that magic number.
-              </li>
-            </ul>
-          </li>
-          <li>
-            <span className="font-semibold text-white">
-              5. Allow WebRequest.
-            </span>{" "}
-            Open <em>Tools → Options → Expert Advisors</em>, tick{" "}
-            <em>Allow WebRequest for listed URL</em>, and add:
-            <pre className="mt-2 overflow-x-auto rounded bg-black/50 p-2 text-xs font-mono text-emerald-300">
-              https://journal.bigmarkt.co
-            </pre>
-          </li>
-          <li>
-            <span className="font-semibold text-white">6. Enable AutoTrading.</span>{" "}
-            Click the <em>AutoTrading</em> button in the top toolbar so it turns
-            green. The smiley face on the chart should now be 🙂.
+            Click <em>AutoTrading</em> in the top toolbar so it turns green.
           </li>
         </ol>
-      </section>
+        <details className="mt-4">
+          <summary className="cursor-pointer text-xs text-muted hover:text-white">
+            Advanced setup (magic number filtering, MT4 differences)
+          </summary>
+          <AdvancedSetup />
+        </details>
+      </Step>
 
-      {/* Step 4 — Verify */}
-      <section className="space-y-3 rounded-2xl border border-white/10 bg-panel p-5">
-        <h2 className="font-display text-lg tracking-widest text-gold">
-          STEP 4 — VERIFY IT'S WORKING
-        </h2>
+      <Step n={4} title="Send a test trade">
         <p className="text-sm text-white/80">
-          Place a tiny test trade (0.01 lot) or wait for your next fill. Within a
-          few seconds you should see:
+          Place a tiny test trade (0.01 lot) or wait for your next fill.
         </p>
-        <ul className="ml-4 list-disc space-y-1 text-sm text-white/80">
+      </Step>
+
+      <Step n={5} title="Confirm the connection">
+        <p className="text-sm text-white/80">Within a few seconds you should see:</p>
+        <ul className="mt-2 ml-5 list-disc space-y-1 text-sm text-white/80">
           <li>
             A new row in your{" "}
             <a href="/journal" className="text-gold underline hover:text-white">
               journal
             </a>{" "}
-            tagged with the{" "}
+            tagged{" "}
             <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-300">
               auto_verified
-            </span>{" "}
-            badge.
+            </span>
+            .
           </li>
-          <li>
-            The token's <em>Last used</em> timestamp updating on this page.
-          </li>
+          <li>The token's <em>Last used</em> timestamp updating above.</li>
         </ul>
+        <details className="mt-4">
+          <summary className="cursor-pointer text-xs text-muted hover:text-white">
+            Troubleshooting
+          </summary>
+          <Troubleshooting />
+        </details>
+      </Step>
 
-        <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4">
-          <h3 className="text-sm font-semibold text-white">Troubleshooting</h3>
-          <ul className="mt-2 ml-4 list-disc space-y-1 text-xs text-white/70">
-            <li>
-              <span className="text-white">No trades appearing?</span> Toggle{" "}
-              <code className="rounded bg-black/40 px-1 font-mono">
-                DebugMode = true
-              </code>{" "}
-              in the EA inputs and check the <em>Experts</em> tab in MT5 for
-              error logs.
-            </li>
-            <li>
-              <span className="text-white">HTTP 401 in logs?</span> The token is
-              wrong or revoked — generate a fresh one above.
-            </li>
-            <li>
-              <span className="text-white">HTTP 4060?</span> WebRequest URL not
-              allowed. Re-check Step 3.5 and that the URL is exactly{" "}
-              <code className="rounded bg-black/40 px-1 font-mono">
-                https://journal.bigmarkt.co
-              </code>
-              .
-            </li>
-            <li>
-              <span className="text-white">Smiley face on chart is 😞?</span>{" "}
-              AutoTrading is off — click the top-toolbar button so it turns
-              green.
-            </li>
-            <li>
-              <span className="text-white">Prop firm account?</span> The EA is
-              read-only and journal-only by default. It never sends orders, so
-              it complies with FTMO / FundedNext / MyForexFunds rules.
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="space-y-3 rounded-2xl border border-white/10 bg-panel p-5">
-        <h2 className="font-display text-lg tracking-widest text-gold">FAQ</h2>
-        <div className="space-y-2">
-          <details className="group rounded-lg border border-white/10 bg-black/20 p-3 open:bg-black/30">
-            <summary className="flex cursor-pointer items-center justify-between text-sm font-medium text-white">
-              <span>Which brokers are supported?</span>
-              <span className="text-gold transition-transform group-open:rotate-90">›</span>
-            </summary>
-            <p className="mt-2 text-sm text-white/70">
-              BigMarkt EA works with any MT4/MT5 broker. Check our{" "}
-              <a href="/brokers" className="text-gold underline hover:text-white">
-                recommended brokers
-              </a>{" "}
-              list for verified options.
-            </p>
-          </details>
-          <details className="group rounded-lg border border-white/10 bg-black/20 p-3 open:bg-black/30">
-            <summary className="flex cursor-pointer items-center justify-between text-sm font-medium text-white">
-              <span>Why are my trades not appearing?</span>
-              <span className="text-gold transition-transform group-open:rotate-90">›</span>
-            </summary>
-            <p className="mt-2 text-sm text-white/70">
-              Ensure the EA is enabled and AutoTrading is turned on in MetaTrader.
-              Check that your token is entered correctly in the EA settings, and
-              that the WebRequest URL allow-list includes{" "}
-              <code className="rounded bg-black/40 px-1 font-mono text-xs">
-                https://journal.bigmarkt.co
-              </code>
-              .
-            </p>
-          </details>
-          <details className="group rounded-lg border border-white/10 bg-black/20 p-3 open:bg-black/30">
-            <summary className="flex cursor-pointer items-center justify-between text-sm font-medium text-white">
-              <span>Can I use the EA on multiple accounts?</span>
-              <span className="text-gold transition-transform group-open:rotate-90">›</span>
-            </summary>
-            <p className="mt-2 text-sm text-white/70">
-              Yes. Generate a separate token for each MetaTrader instance from
-              Step 1, then install the EA on each terminal. All trades will
-              appear in your unified BigMarkt journal.
-            </p>
-          </details>
+      <section className="rounded-lg border border-white/10 bg-panel p-5">
+        <h2 className="text-base font-medium text-white">FAQ</h2>
+        <div className="mt-3 space-y-2">
+          <Faq q="Which brokers are supported?">
+            BigMarkt EA works with any MT4/MT5 broker. Check our{" "}
+            <a href="/brokers" className="text-gold underline hover:text-white">
+              recommended brokers
+            </a>{" "}
+            list for verified options.
+          </Faq>
+          <Faq q="Why are my trades not appearing?">
+            Ensure the EA is enabled and AutoTrading is turned on in MetaTrader.
+            Check that your token is entered correctly in the EA settings, and
+            that the WebRequest URL allow-list includes{" "}
+            <Mono>https://journal.bigmarkt.co</Mono>.
+          </Faq>
+          <Faq q="Can I use the EA on multiple accounts?">
+            Yes. Generate a separate token for each MetaTrader instance from
+            Step 1, then install the EA on each terminal. All trades will
+            appear in your unified BigMarkt journal.
+          </Faq>
         </div>
       </section>
     </div>
+  );
+}
+
+function Faq({ q, children }: { q: string; children: ReactNode }) {
+  return (
+    <details className="group rounded-md border border-white/10 bg-black/20 p-3 open:bg-black/30">
+      <summary className="flex cursor-pointer items-center justify-between text-sm font-medium text-white">
+        <span>{q}</span>
+        <ChevronRight
+          size={16}
+          aria-hidden
+          className="text-gold transition-transform group-open:rotate-90"
+        />
+      </summary>
+      <p className="mt-2 text-sm text-white/70">{children}</p>
+    </details>
+  );
+}
+
+function Step({ n, title, children }: { n: number; title: string; children: ReactNode }) {
+  return (
+    <section className="rounded-lg border border-white/10 bg-panel p-5">
+      <header className="flex items-center gap-3">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-xs font-medium text-gold">
+          {n}
+        </span>
+        <h2 className="text-base font-medium text-white">{title}</h2>
+      </header>
+      <div className="mt-4 sm:ml-10">{children}</div>
+    </section>
+  );
+}
+
+function Mono({ children }: { children: ReactNode }) {
+  return (
+    <code className="rounded bg-black/40 px-1 font-mono text-xs">{children}</code>
+  );
+}
+
+function AdvancedSetup() {
+  return (
+    <div className="mt-3 space-y-3 rounded-md border border-white/10 bg-black/30 p-3 text-xs text-white/80">
+      <div>
+        <p className="font-medium text-white">Filter by magic number</p>
+        <p className="mt-1 text-white/70">
+          The <Mono>FilterMagic</Mono> EA input controls which trades get journaled:
+        </p>
+        <ul className="mt-2 ml-4 list-disc space-y-1 text-white/70">
+          <li>
+            <Mono>-1</Mono> (default) — capture <em>all</em> trades, including bot trades.
+          </li>
+          <li>
+            <Mono>0</Mono> — capture <em>manual trades only</em> (no magic number).
+          </li>
+          <li>Any positive number — capture only trades from that bot's magic.</li>
+        </ul>
+      </div>
+      <div>
+        <p className="font-medium text-white">MT4 differences</p>
+        <p className="mt-1 text-white/70">
+          On MT4, files live in <Mono>MQL4/Experts</Mono>. The same .mq5 file
+          compiles on both MT4 and MT5 builds 1300+.
+        </p>
+      </div>
+      <div>
+        <p className="font-medium text-white">Prop firm accounts</p>
+        <p className="mt-1 text-white/70">
+          The EA is read-only and journal-only. It never sends orders, so it
+          complies with FTMO / FundedNext / MyForexFunds rules.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Troubleshooting() {
+  return (
+    <ul className="mt-3 ml-4 list-disc space-y-2 rounded-md border border-white/10 bg-black/30 p-3 text-xs text-white/80">
+      <li>
+        <span className="text-white">No trades appearing?</span> Toggle{" "}
+        <Mono>DebugMode = true</Mono> in the EA inputs and check the{" "}
+        <em>Experts</em> tab in MT5 for error logs.
+      </li>
+      <li>
+        <span className="text-white">HTTP 401 in logs?</span> The token is wrong
+        or revoked — generate a fresh one in Step 1.
+      </li>
+      <li>
+        <span className="text-white">HTTP 4060?</span> WebRequest URL not
+        allowed. Re-check Step 3, item 4, and that the URL is exactly{" "}
+        <Mono>https://journal.bigmarkt.co</Mono>.
+      </li>
+      <li>
+        <span className="text-white">AutoTrading off?</span> Click the
+        top-toolbar button so it turns green.
+      </li>
+    </ul>
   );
 }
