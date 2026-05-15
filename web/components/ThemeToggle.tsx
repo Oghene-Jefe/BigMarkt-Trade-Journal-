@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Three-mode theme picker:
 //   "light" — force light, ignore OS
@@ -54,9 +54,19 @@ export default function ThemeToggle({ variant = "inline" }: { variant?: Variant 
     setTheme(readStoredTheme());
   }, []);
 
-  // When theme changes (via user click), persist + re-apply.
+  // Skip the first run of the apply effect. The inline script in
+  // app/layout.tsx already applied the correct class pre-paint; running
+  // applyTheme on initial mount (while `theme` is still the "auto"
+  // placeholder) can briefly flip to the OS-resolved theme before the
+  // localStorage read above corrects it, causing a flash when the toggle
+  // is mounted inside an opening dropdown.
+  const skipFirstApply = useRef(true);
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (skipFirstApply.current) {
+      skipFirstApply.current = false;
+      return;
+    }
     window.localStorage.setItem(THEME_STORAGE_KEY, theme);
     applyTheme(theme);
   }, [theme]);
