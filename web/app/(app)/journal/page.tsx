@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signCharts } from "@/lib/storage";
-import JournalTable from "@/components/JournalTable";
+import JournalClient from "./JournalClient";
 import NewsFeed from "./NewsFeed";
 import type { TradeRow, NewsEvent } from "@/lib/types";
 
@@ -115,7 +115,7 @@ async function TradesView({
           from your performance score.
         </p>
       ) : null}
-      <JournalTable trades={trades} chartUrls={chartUrls} />
+      <JournalClient trades={trades} chartUrls={chartUrls} />
     </div>
   );
 }

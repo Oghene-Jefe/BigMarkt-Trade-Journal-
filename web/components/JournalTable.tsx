@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Share2 } from "lucide-react";
 import type { TradeRow } from "@/lib/types";
@@ -6,9 +8,9 @@ import { deleteTradeAction } from "@/app/(app)/actions";
 import ConfirmButton from "./ConfirmButton";
 import TrustBadge from "./TrustBadge";
 
-// Server component. All trade fields render as React text — never as raw
-// HTML — which structurally prevents the stored-XSS class of bug the old
-// static app was vulnerable to.
+// All trade fields render as React text — never as raw HTML — which
+// structurally prevents the stored-XSS class of bug the old static app was
+// vulnerable to.
 //
 // chartUrls is a path → signed URL lookup minted by the parent page so we
 // only round-trip Storage once for the whole list. URLs expire on the next
@@ -127,15 +129,10 @@ function VisibilityPill({ v }: { v: TradeRow["visibility"] }) {
 }
 
 function DeleteForm({ id }: { id: string }) {
-  // Server action via form. RLS + the explicit user_id check inside
-  // deleteTradeAction together prevent cross-user deletes even if a client
-  // submits a forged trade id.
-  async function action() {
-    "use server";
-    await deleteTradeAction(id);
-  }
+  // RLS + the explicit user_id check inside deleteTradeAction together
+  // prevent cross-user deletes even if a client submits a forged trade id.
   return (
-    <form action={action}>
+    <form action={deleteTradeAction.bind(null, id)}>
       <ConfirmButton
         message="Delete this trade? Its chart screenshot will also be removed."
         className="rounded border border-loss/40 px-2 py-1 text-xs text-loss hover:bg-loss/10"

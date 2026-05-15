@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { TradeRow } from "@/lib/types";
 import { fmtMoney, fmtDate, fmtPct } from "@/lib/format";
+import { getMonthPulse } from "@/lib/heatmap";
 import Banners from "./Banners";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,18 @@ export default async function DashboardPage() {
   const growth = startBal && startBal > 0 ? (totalPnl / startBal) * 100 : null;
   const recent = trades.slice(0, 5);
 
+  const nowForPulse = new Date();
+  const pulse = getMonthPulse(
+    trades,
+    nowForPulse.getFullYear(),
+    nowForPulse.getMonth(),
+  );
+  const hasMonthActivity =
+    pulse.winDays > 0 ||
+    pulse.lossDays > 0 ||
+    pulse.bestDay !== 0 ||
+    pulse.worstDay !== 0;
+
   return (
     <div className="space-y-6">
       <h1 className="font-display text-3xl tracking-widest text-gold">DASHBOARD</h1>
@@ -70,6 +83,14 @@ export default async function DashboardPage() {
         <Stat label="Net P&L" value={fmtMoney(totalPnl)} tone={totalPnl >= 0 ? "win" : "loss"} />
         <Stat label="Growth" value={fmtPct(growth)} tone={(growth ?? 0) >= 0 ? "win" : "loss"} />
       </div>
+
+      {hasMonthActivity ? (
+        <div className="text-sm text-center text-gold/70 py-2">
+          This month: {pulse.winDays} win days · {pulse.lossDays} loss days · best{" "}
+          <span className="text-green-400">+${pulse.bestDay.toFixed(0)}</span> · worst{" "}
+          <span className="text-red-400">-${Math.abs(pulse.worstDay).toFixed(0)}</span>
+        </div>
+      ) : null}
 
       <section className="rounded-2xl border border-white/10 bg-panel p-5">
         <div className="mb-3 flex items-center justify-between">
