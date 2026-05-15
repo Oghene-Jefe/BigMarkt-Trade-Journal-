@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import Logo from "./Logo";
 
 const links = [
   { href: "/protocol", label: "Protocol" },
@@ -18,10 +19,10 @@ export default function Navbar() {
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link
           href="/"
-          className="font-bold tracking-[0.2em] text-[#C9A84C]"
+          className="flex items-center"
           onClick={() => setOpen(false)}
         >
-          BIGMARKT
+          <Logo size="md" />
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">

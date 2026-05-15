@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import Logo from "./Logo";
 
 const links = [
   { href: "/", label: "Home" },
@@ -20,10 +21,15 @@ export default function Navbar() {
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link
           href="/"
-          className="text-xs font-bold uppercase tracking-[0.2em] text-[#C9A84C]"
+          className="flex items-center"
           onClick={() => setOpen(false)}
         >
-          BigMarkt Club
+          <div className="flex flex-col items-start leading-none">
+            <Logo size="sm" />
+            <span style={{ color: "#C9A84C", fontSize: "9px", letterSpacing: "0.2em", marginTop: "3px" }}>
+              CLUB
+            </span>
+          </div>
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">
