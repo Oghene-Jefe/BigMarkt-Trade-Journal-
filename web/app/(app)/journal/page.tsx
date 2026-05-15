@@ -39,9 +39,10 @@ export default async function JournalPage({
       <PageHeader
         title="Journal"
         action={
-          // "Imports" button intentionally hidden alongside the Bybit
-          // exchange feature (see DrawerNav comment). /journal/imports
-          // still works via direct URL. See INFRASTRUCTURE.md → Hidden features.
+          // "Imports" button hidden because the Bybit exchange feature
+          // it depends on isn't part of the current rollout (see
+          // DrawerNav comment). /journal/imports still works via
+          // direct URL. See INFRASTRUCTURE.md → Hidden features.
           <LinkButton href="/journal/new" icon={<Plus size={14} aria-hidden />}>
             New trade
           </LinkButton>

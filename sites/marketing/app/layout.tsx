@@ -6,12 +6,12 @@ import Footer from "./_components/Footer";
 export const metadata: Metadata = {
   title: "BigMarkt — The Verified Trading Journal",
   description:
-    "Auto-capture every trade from your broker. Build a verified public record. Follow the best traders in the world.",
+    "Auto-capture trades, review performance, and build a cleaner trading record.",
   metadataBase: new URL("https://bigmarkt.co"),
   openGraph: {
     title: "BigMarkt — The Verified Trading Journal",
     description:
-      "Auto-capture every trade. Build a verified public record. Follow the best traders.",
+      "Auto-capture trades, review performance, and build a cleaner trading record.",
     url: "https://bigmarkt.co",
     siteName: "BigMarkt",
   },
