@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import DisputeForm from "./DisputeForm";
+import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -12,13 +14,17 @@ export default async function NewDisputePage({
 
   return (
     <div className="space-y-4">
-      <Link href="/subscriptions" className="text-xs text-muted hover:text-white">
-        ← Back to subscriptions
+      <Link
+        href="/subscriptions"
+        className="inline-flex items-center gap-1 text-xs text-muted hover:text-white"
+      >
+        <ArrowLeft size={12} aria-hidden />
+        <span>Back to subscriptions</span>
       </Link>
-      <h1 className="font-display text-3xl tracking-widest text-gold">RAISE A DISPUTE</h1>
-      <p className="text-sm text-muted">
-        Disputes are reviewed by our team. False or frivolous disputes may affect your account.
-      </p>
+      <PageHeader
+        title="Raise a dispute"
+        description="Disputes are reviewed by our team. False or frivolous disputes may affect your account."
+      />
       <DisputeForm leaderId={leaderId ?? ""} />
     </div>
   );

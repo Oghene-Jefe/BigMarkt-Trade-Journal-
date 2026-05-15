@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signAvatars } from "@/lib/storage";
+import { PageHeader, EmptyState } from "@/components/ui";
 import type { ScoreTier } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -27,9 +28,9 @@ type LeaderboardScoreEntry = {
 };
 
 const TAB_LABELS: Record<Tab, string> = {
-  all: "ALL LEADERS",
-  pro: "PRO TRADERS",
-  active: "ACTIVE TRADERS",
+  all: "All leaders",
+  pro: "Pro traders",
+  active: "Active traders",
 };
 
 const TAB_DESCRIPTIONS: Record<Tab, string> = {
@@ -88,9 +89,7 @@ export default async function LeaderboardPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl tracking-widest text-gold">LEADERBOARD</h1>
-      </div>
+      <PageHeader title="Leaderboard" />
 
       <div className="flex gap-6 border-b border-white/10 text-sm">
         {VALID_TABS.map((t) => {
@@ -99,7 +98,7 @@ export default async function LeaderboardPage({
             <Link
               key={t}
               href={`/leaderboard?tab=${t}`}
-              className={`-mb-px border-b-2 px-1 py-2 font-display tracking-widest ${
+              className={`-mb-px border-b-2 px-1 py-2 font-medium ${
                 active
                   ? "border-gold text-gold"
                   : "border-transparent text-muted hover:text-white"
@@ -118,12 +117,10 @@ export default async function LeaderboardPage({
       ) : null}
 
       {rows.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-panel p-12 text-center">
-          <p className="font-display text-2xl tracking-widest text-gold">NOT ENOUGH DATA</p>
-          <p className="mt-2 text-sm text-muted">
-            Connect your broker and build a verified trade history to appear here.
-          </p>
-        </div>
+        <EmptyState
+          title="Not enough data yet"
+          description="Connect your broker and build a verified trade history to appear here."
+        />
       ) : (
         <ol className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {rows.map((r, i) => {
@@ -140,7 +137,7 @@ export default async function LeaderboardPage({
               <li
                 key={`${r.user_id}-${r.broker_account_id}`}
                 style={accent.style}
-                className={`relative flex flex-col gap-4 rounded-2xl border border-white/10 bg-panel p-5 shadow-lg shadow-black/40 transition-colors hover:border-white/20 ${accent.className}`}
+                className={`relative flex flex-col gap-4 rounded-lg border border-white/10 bg-panel p-5 transition-colors hover:border-white/20 ${accent.className}`}
               >
                 {/* Top row: rank + avatar */}
                 <div className="flex items-start justify-between">
@@ -179,13 +176,13 @@ export default async function LeaderboardPage({
                   </Link>
                   <div className="mt-1.5">
                     <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-display tracking-widest ${
+                      className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] ${
                         isPro
-                          ? "bg-blue-500/15 text-blue-300 ring-1 ring-inset ring-blue-400/30"
-                          : "bg-green-500/15 text-green-300 ring-1 ring-inset ring-green-400/30"
+                          ? "border-blue-400/30 bg-blue-500/15 text-blue-300"
+                          : "border-green-400/30 bg-green-500/15 text-green-300"
                       }`}
                     >
-                      {isPro ? "🔵 VERIFIED PRO" : "🟢 ACTIVE TRADER"}
+                      {isPro ? "Verified pro" : "Active trader"}
                     </span>
                   </div>
                 </div>

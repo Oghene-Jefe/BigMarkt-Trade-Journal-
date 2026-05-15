@@ -2,9 +2,11 @@
 
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 import type { ProfileRow } from "@/lib/types";
 import CompressedFileInput from "@/components/CompressedFileInput";
 import AutomationTosModal from "@/components/brokers/AutomationTosModal";
+import { Button } from "@/components/ui";
 import { updateProfileAction, type ProfileActionState } from "./actions";
 
 export default function ProfileForm({
@@ -68,7 +70,7 @@ export default function ProfileForm({
   }
 
   return (
-    <form action={formAction} encType="multipart/form-data" className="space-y-5 rounded-2xl bg-panel p-6">
+    <form action={formAction} encType="multipart/form-data" className="space-y-5 rounded-lg bg-panel p-6">
       <div className="flex items-center gap-4">
         <div className="h-16 w-16 overflow-hidden rounded-full border border-white/10 bg-black/40">
           {avatarUrl ? (
@@ -120,33 +122,30 @@ export default function ProfileForm({
           onChange={handleJournalModeChange}
           className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-base"
         >
-          <option value="manual">MANUAL — log trades yourself after the fact</option>
-          <option value="automated">AUTOMATED — EA captures every trade in real time</option>
+          <option value="manual">Manual — log trades yourself after the fact</option>
+          <option value="automated">Automated — EA captures every trade in real time</option>
         </select>
         <span className="mt-1 block text-xs text-muted">
-          Automated mode unlocks the verified leaderboard. Switch to Automated once your broker EA is connected.
+          Automated mode unlocks the live leaderboard. Switch to Automated once your broker EA is connected.
         </span>
 
         {pendingJournalMode && confirmMessage ? (
           <div className="mt-3 flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
-            <span aria-hidden className="text-amber-300">⚠</span>
+            <AlertTriangle size={16} aria-hidden className="mt-0.5 shrink-0 text-amber-300" />
             <div className="flex-1 space-y-2">
               <p className="text-xs text-amber-100/90">{confirmMessage}</p>
               <div className="flex gap-2">
-                <button
+                <Button type="button" size="sm" onClick={confirmJournalModeChange}>
+                  Confirm
+                </Button>
+                <Button
                   type="button"
-                  onClick={confirmJournalModeChange}
-                  className="rounded-md bg-gold px-3 py-1 text-xs font-display tracking-widest text-black"
-                >
-                  CONFIRM
-                </button>
-                <button
-                  type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={cancelJournalModeChange}
-                  className="rounded-md border border-white/10 bg-black/40 px-3 py-1 text-xs"
                 >
-                  CANCEL
-                </button>
+                  Cancel
+                </Button>
               </div>
             </div>
           </div>
@@ -184,7 +183,7 @@ export default function ProfileForm({
         <CompressedFileInput
           name="avatar"
           accept="image/jpeg,image/png,image/webp"
-          className="block w-full text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-gold/20 file:px-3 file:py-1.5 file:text-xs file:font-display file:tracking-widest file:text-gold hover:file:bg-gold/30"
+          className="block w-full text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-gold/20 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-gold hover:file:bg-gold/30"
         />
         <p className="text-xs text-muted">Auto-compressed before upload. Server cap 2 MB. Stored privately; signed URL minted on each render.</p>
       </div>
@@ -193,12 +192,9 @@ export default function ProfileForm({
       {state.ok ? <p className="text-sm text-win">{state.ok}</p> : null}
 
       <div className="flex justify-end">
-        <button
-          disabled={pending}
-          className="rounded-md bg-gold px-6 py-2 font-display tracking-widest text-black disabled:opacity-50"
-        >
-          {pending ? "SAVING…" : "SAVE PROFILE"}
-        </button>
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving…" : "Save profile"}
+        </Button>
       </div>
 
       {showTosModal ? (

@@ -3,6 +3,7 @@ import type { ChallengeRow } from "@/lib/types";
 import { fmtMoney, fmtDate } from "@/lib/format";
 import NewChallengeForm from "./NewChallengeForm";
 import ConfirmButton from "@/components/ConfirmButton";
+import { PageHeader, StatusPill } from "@/components/ui";
 import { setChallengeStatusAction, deleteChallengeAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -19,14 +20,14 @@ export default async function ChallengesPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-3xl tracking-widest text-gold">CHALLENGES</h1>
+      <PageHeader title="Challenges" />
 
       <NewChallengeForm />
 
       <section className="space-y-3">
-        <h2 className="font-display text-xl tracking-widest text-gold">ACTIVE ({active.length})</h2>
+        <h2 className="text-sm font-medium text-white">Active ({active.length})</h2>
         {active.length === 0 ? (
-          <p className="rounded-2xl border border-white/10 bg-panel p-6 text-sm text-muted">
+          <p className="rounded-lg border border-white/10 bg-panel p-6 text-sm text-muted">
             No active challenges. Set one above to track a goal with a deadline.
           </p>
         ) : (
@@ -38,7 +39,7 @@ export default async function ChallengesPage() {
 
       {finished.length > 0 ? (
         <section className="space-y-3">
-          <h2 className="font-display text-xl tracking-widest text-muted">HISTORY ({finished.length})</h2>
+          <h2 className="text-sm font-medium text-muted">History ({finished.length})</h2>
           <ul className="space-y-2">
             {finished.map((c) => <ChallengeCard key={c.id} challenge={c} historical />)}
           </ul>
@@ -49,21 +50,22 @@ export default async function ChallengesPage() {
 }
 
 function ChallengeCard({ challenge: c, historical }: { challenge: ChallengeRow; historical?: boolean }) {
-  const statusColor: Record<string, string> = {
-    active: "bg-gold/20 text-gold",
-    completed: "bg-win/20 text-win",
-    failed: "bg-loss/20 text-loss",
-    abandoned: "bg-white/10 text-muted",
-  };
+  const status = c.status ?? "active";
+  const tone: "info" | "ok" | "error" | "neutral" =
+    status === "completed"
+      ? "ok"
+      : status === "failed"
+        ? "error"
+        : status === "abandoned"
+          ? "neutral"
+          : "info";
 
   return (
-    <li className={`rounded-2xl border border-white/10 bg-panel p-4 ${historical ? "opacity-70" : ""}`}>
+    <li className={`rounded-lg border border-white/10 bg-panel p-4 ${historical ? "opacity-70" : ""}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <span className={`rounded px-2 py-0.5 text-xs ${statusColor[c.status ?? "active"] ?? ""}`}>
-              {c.status ?? "active"}
-            </span>
+            <StatusPill tone={tone}>{status}</StatusPill>
             <h3 className="font-medium">{c.goal_type ?? "Unnamed"}</h3>
           </div>
           <p className="mt-1 text-sm text-muted">

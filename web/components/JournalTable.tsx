@@ -7,6 +7,8 @@ import { fmtDate, fmtMoney } from "@/lib/format";
 import { deleteTradeAction } from "@/app/(app)/actions";
 import ConfirmButton from "./ConfirmButton";
 import TrustBadge from "./TrustBadge";
+import { EmptyState, LinkButton } from "./ui";
+import { Plus } from "lucide-react";
 
 // All trade fields render as React text — never as raw HTML — which
 // structurally prevents the stored-XSS class of bug the old static app was
@@ -24,18 +26,20 @@ export default function JournalTable({
 }) {
   if (trades.length === 0) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-panel p-12 text-center">
-        <p className="font-display text-2xl tracking-widest text-gold">NO TRADES YET</p>
-        <p className="mt-2 text-sm text-muted">Log your first trade to start the journal.</p>
-        <Link href="/journal/new" className="mt-6 inline-block rounded-md bg-gold px-5 py-2 font-display tracking-widest text-black">
-          NEW TRADE
-        </Link>
-      </div>
+      <EmptyState
+        title="No trades yet"
+        description="Log your first trade to start the journal."
+        action={
+          <LinkButton href="/journal/new" icon={<Plus size={14} aria-hidden />}>
+            New trade
+          </LinkButton>
+        }
+      />
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-white/10 bg-panel">
+    <div className="overflow-x-auto rounded-lg border border-white/10 bg-panel">
       <table className="w-full text-sm">
         <thead className="bg-black/30 text-xs uppercase tracking-wider text-muted">
           <tr>

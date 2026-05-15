@@ -11,33 +11,13 @@ const FILTERS: { value: TradeFilter; label: string }[] = [
 
 const TRUST_BADGES: Record<
   string,
-  { emoji: string; label: string; className: string }
+  { label: string; className: string }
 > = {
-  auto_verified: {
-    emoji: "🔵",
-    label: "AUTO",
-    className: "bg-blue-900 text-blue-200",
-  },
-  manual: {
-    emoji: "🟡",
-    label: "MANUAL",
-    className: "bg-yellow-900 text-yellow-200",
-  },
-  draft: {
-    emoji: "⚪",
-    label: "DRAFT",
-    className: "bg-gray-700 text-gray-300",
-  },
-  edited: {
-    emoji: "🔴",
-    label: "EDITED",
-    className: "bg-red-900 text-red-200",
-  },
-  prop_firm: {
-    emoji: "🟠",
-    label: "PROP",
-    className: "bg-orange-900 text-orange-200",
-  },
+  auto_verified: { label: "Auto", className: "bg-blue-900 text-blue-200" },
+  manual: { label: "Manual", className: "bg-yellow-900 text-yellow-200" },
+  draft: { label: "Draft", className: "bg-gray-700 text-gray-300" },
+  edited: { label: "Edited", className: "bg-red-900 text-red-200" },
+  prop_firm: { label: "Prop", className: "bg-orange-900 text-orange-200" },
 };
 
 function parseFilter(value: string | undefined): TradeFilter {
@@ -154,10 +134,9 @@ export default async function TradesPage({
                     <td className="text-gray-100 px-4 py-3 text-sm">
                       {badge ? (
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${badge.className}`}
+                          className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium whitespace-nowrap ${badge.className}`}
                         >
-                          <span>{badge.emoji}</span>
-                          <span>{badge.label}</span>
+                          {badge.label}
                         </span>
                       ) : (
                         "—"

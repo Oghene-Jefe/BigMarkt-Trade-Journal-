@@ -84,7 +84,7 @@ export default function ConnectForm() {
     : {};
 
   return (
-    <form action={formAction} className="space-y-5 rounded-2xl bg-panel p-6" autoComplete="off">
+    <form action={formAction} className="space-y-5 rounded-lg bg-panel p-6" autoComplete="off">
       {/*
         Honeypot autofill absorbers. Browsers (especially Safari/iCloud
         Keychain) will autofill the *first* username+password pair they
@@ -104,7 +104,7 @@ export default function ConnectForm() {
         <input type="password" name="password" autoComplete="current-password" tabIndex={-1} defaultValue="" />
       </div>
       <div>
-        <h2 className="font-display text-xl tracking-widest text-gold">CONNECT BYBIT</h2>
+        <h2 className="text-lg font-semibold text-white">Connect Bybit</h2>
         <p className="mt-1 text-xs text-muted">
           Read-only API key only. BigMarkt rejects keys with withdraw, transfer, or trading scope.
         </p>
@@ -214,14 +214,17 @@ export default function ConnectForm() {
       {state.ok ? <p className="text-sm text-win">{state.ok}</p> : null}
 
       <div className="flex items-center justify-end gap-2">
-        <Link href="/exchanges" className="rounded-md border border-white/20 px-4 py-2 text-sm">
+        <Link
+          href="/exchanges"
+          className="inline-flex h-10 items-center rounded-md border border-white/15 px-4 text-sm hover:bg-white/5"
+        >
           Cancel
         </Link>
         <button
           disabled={pending}
-          className="rounded-md bg-gold px-6 py-2 font-display tracking-widest text-black disabled:opacity-50"
+          className="inline-flex h-10 items-center rounded-md bg-gold px-5 text-sm font-medium text-black disabled:opacity-50"
         >
-          {pending ? "VERIFYING…" : "CONNECT"}
+          {pending ? "Verifying…" : "Connect"}
         </button>
       </div>
     </form>

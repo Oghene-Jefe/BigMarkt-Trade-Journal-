@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Plus } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signCharts } from "@/lib/storage";
 import JournalClient from "./JournalClient";
 import NewsFeed from "./NewsFeed";
 import type { TradeRow, NewsEvent } from "@/lib/types";
+import { PageHeader, LinkButton } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +18,10 @@ function parseView(v: string | string[] | undefined): View {
 }
 
 const TABS: { key: View; label: string }[] = [
-  { key: "all", label: "ALL" },
-  { key: "my_trades", label: "MY TRADES" },
-  { key: "signals", label: "SIGNALS" },
-  { key: "news", label: "NEWS" },
+  { key: "all", label: "All" },
+  { key: "my_trades", label: "My trades" },
+  { key: "signals", label: "Signals" },
+  { key: "news", label: "News" },
 ];
 
 export default async function JournalPage({
@@ -34,21 +36,17 @@ export default async function JournalPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="font-display text-3xl tracking-widest text-gold">JOURNAL</h1>
-        {/*
-          "Imports" button intentionally hidden alongside the Bybit
-          exchange feature (see DrawerNav comment). /journal/imports
-          still works via direct URL. See INFRASTRUCTURE.md → Hidden
-          features.
-        */}
-        <Link
-          href="/journal/new"
-          className="rounded-md bg-gold px-5 py-2 font-display tracking-widest text-black"
-        >
-          NEW TRADE
-        </Link>
-      </div>
+      <PageHeader
+        title="Journal"
+        action={
+          // "Imports" button intentionally hidden alongside the Bybit
+          // exchange feature (see DrawerNav comment). /journal/imports
+          // still works via direct URL. See INFRASTRUCTURE.md → Hidden features.
+          <LinkButton href="/journal/new" icon={<Plus size={14} aria-hidden />}>
+            New trade
+          </LinkButton>
+        }
+      />
 
       <div className="flex flex-wrap gap-2">
         {TABS.map((t) => {
@@ -57,7 +55,7 @@ export default async function JournalPage({
             <Link
               key={t.key}
               href={`/journal?view=${t.key}`}
-              className={`rounded-full px-4 py-1.5 font-display text-xs tracking-widest transition ${
+              className={`rounded-md px-3 py-1.5 text-xs transition ${
                 active
                   ? "bg-gold text-black"
                   : "border border-white/10 bg-panel text-muted hover:text-white"
@@ -100,9 +98,9 @@ async function TradesView({
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-loss/30 bg-loss/10 p-8 text-center">
-        <p className="font-display text-lg tracking-widest text-loss">FAILED TO LOAD</p>
-        <p className="mt-2 text-sm text-muted">Failed to load trades. Please refresh the page.</p>
+      <div className="rounded-lg border border-loss/30 bg-loss/10 p-8 text-center">
+        <p className="text-base font-medium text-loss">Failed to load</p>
+        <p className="mt-2 text-sm text-muted">Please refresh the page.</p>
       </div>
     );
   }
@@ -110,7 +108,7 @@ async function TradesView({
   return (
     <div className="space-y-3">
       {view === "signals" ? (
-        <p className="rounded-xl border border-white/10 bg-panel p-3 text-xs text-muted">
+        <p className="rounded-md border border-white/10 bg-panel p-3 text-xs text-muted">
           Signals received from leaders you follow. These trades are excluded
           from your performance score.
         </p>
@@ -152,13 +150,13 @@ async function NewsView({
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-loss/30 bg-loss/10 p-8 text-center space-y-3">
+      <div className="rounded-lg border border-loss/30 bg-loss/10 p-8 text-center space-y-3">
         <p className="text-sm text-muted">Could not load news. Try again later.</p>
         <a
           href="/journal?view=news"
-          className="inline-block rounded-md border border-white/10 bg-panel px-5 py-2 font-display text-xs tracking-widest text-gold hover:bg-white/5"
+          className="inline-block rounded-md border border-white/10 bg-panel px-5 py-2 text-xs font-medium text-gold hover:bg-white/5"
         >
-          RETRY
+          Retry
         </a>
       </div>
     );

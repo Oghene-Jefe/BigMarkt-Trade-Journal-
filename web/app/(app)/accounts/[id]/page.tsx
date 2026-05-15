@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/require-user";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -38,8 +39,12 @@ export default async function AccountDetailPage({
   return (
     <div className="min-h-screen bg-gray-900 -mx-4 -my-6 px-4 py-6">
       <div className="mb-6">
-        <Link href="/accounts" className="text-sm text-white/60 hover:text-white">
-          ← Back to accounts
+        <Link
+          href="/accounts"
+          className="inline-flex items-center gap-1 text-sm text-white/60 hover:text-white"
+        >
+          <ArrowLeft size={14} aria-hidden />
+          <span>Back to accounts</span>
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-white">{acc.label}</h1>
         <p className="mt-1 text-sm text-white/60">

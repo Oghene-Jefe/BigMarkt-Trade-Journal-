@@ -1,26 +1,39 @@
 import { revalidatePath } from "next/cache";
 import {
+  AlertTriangle,
+  Search,
+  Moon,
+  CheckCircle2,
+  BarChart3,
+  Scale,
+  Bell,
+  UserPlus,
+  Award,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
   getMyNotificationsAction,
   markAllNotificationsReadAction,
   markNotificationReadAction,
 } from "@/lib/actions/notifications";
 import { fmtDate } from "@/lib/format";
+import { PageHeader, EmptyState } from "@/components/ui";
 import type { NotificationType } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const ICONS: Record<NotificationType, string> = {
-  leader_suspended: "⚠️",
-  leader_under_review: "🔍",
-  leader_inactive: "💤",
-  leader_reinstated: "✅",
-  score_updated: "📊",
-  dispute_opened: "⚖️",
-  dispute_resolved: "⚖️",
-  subscription_cancelled: "🔔",
-  new_follower: "👤",
-  trade_approved: "✅",
-  challenge_badge: "🏅",
+const ICONS: Record<NotificationType, LucideIcon> = {
+  leader_suspended: AlertTriangle,
+  leader_under_review: Search,
+  leader_inactive: Moon,
+  leader_reinstated: CheckCircle2,
+  score_updated: BarChart3,
+  dispute_opened: Scale,
+  dispute_resolved: Scale,
+  subscription_cancelled: Bell,
+  new_follower: UserPlus,
+  trade_approved: CheckCircle2,
+  challenge_badge: Award,
 };
 
 async function markAllAction() {
@@ -44,19 +57,21 @@ export default async function NotificationsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl tracking-widest text-gold">NOTIFICATIONS</h1>
-        {notifications.length > 0 ? (
-          <form action={markAllAction}>
-            <button
-              type="submit"
-              className="rounded-md border border-white/20 px-3 py-1 text-xs text-white hover:bg-white/10"
-            >
-              Mark all as read
-            </button>
-          </form>
-        ) : null}
-      </div>
+      <PageHeader
+        title="Notifications"
+        action={
+          notifications.length > 0 ? (
+            <form action={markAllAction}>
+              <button
+                type="submit"
+                className="rounded-md border border-white/15 px-3 py-1 text-xs text-white hover:bg-white/5"
+              >
+                Mark all as read
+              </button>
+            </form>
+          ) : null
+        }
+      />
 
       {isError ? (
         <p className="text-sm text-loss">
@@ -65,17 +80,16 @@ export default async function NotificationsPage() {
       ) : null}
 
       {!isError && notifications.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-panel p-12 text-center">
-          <p className="text-sm text-muted">
-            No notifications yet. Follow leaders to receive updates.
-          </p>
-        </div>
+        <EmptyState
+          title="No notifications yet"
+          description="Follow leaders to receive updates."
+        />
       ) : null}
 
       {notifications.length > 0 ? (
         <ul className="space-y-2">
           {notifications.map((n) => {
-            const icon = ICONS[n.type] ?? "🔔";
+            const Icon = ICONS[n.type] ?? Bell;
             const unread = !n.read;
             return (
               <li key={n.id}>
@@ -83,15 +97,15 @@ export default async function NotificationsPage() {
                   <input type="hidden" name="id" value={n.id} />
                   <button
                     type="submit"
-                    className={`flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition ${
+                    className={`flex w-full items-start gap-3 rounded-lg border p-4 text-left transition ${
                       unread
                         ? "border-l-4 border-l-gold border-white/10 bg-panel/80 hover:bg-panel"
                         : "border-white/10 bg-panel/40 opacity-60 hover:opacity-80"
                     }`}
                   >
-                    <span className="text-2xl leading-none">{icon}</span>
+                    <Icon size={18} aria-hidden className="mt-0.5 shrink-0 text-muted" />
                     <div className="min-w-0 flex-1">
-                      <p className="font-bold text-white">{n.title}</p>
+                      <p className="font-medium text-white">{n.title}</p>
                       {n.body ? (
                         <p className="mt-1 text-sm text-muted">{n.body}</p>
                       ) : null}

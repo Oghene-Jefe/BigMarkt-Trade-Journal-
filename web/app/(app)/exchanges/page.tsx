@@ -1,6 +1,13 @@
-import Link from "next/link";
+import { Plus, Lock, AlertTriangle, RefreshCw } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { fmtDate } from "@/lib/format";
+import {
+  PageHeader,
+  LinkButton,
+  Button,
+  EmptyState,
+  StatusPill,
+} from "@/components/ui";
 import { syncBybitAction } from "./sync";
 
 export const dynamic = "force-dynamic";
@@ -66,45 +73,44 @@ export default async function ExchangesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl tracking-widest text-gold">EXCHANGES</h1>
-        <Link
-          href="/exchanges/new"
-          className="rounded-md bg-gold px-5 py-2 font-display tracking-widest text-black"
-        >
-          + CONNECT
-        </Link>
-      </div>
+      <PageHeader
+        title="Exchanges"
+        description="Connect read-only Bybit API keys to import closed-PnL records into your journal."
+        action={
+          connections.length > 0 ? (
+            <LinkButton href="/exchanges/new" icon={<Plus size={14} aria-hidden />}>
+              Connect
+            </LinkButton>
+          ) : null
+        }
+      />
 
       {error ? <p className="text-sm text-loss">{error.message}</p> : null}
 
       {connections.length === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-panel p-12 text-center">
-          <p className="font-display text-2xl tracking-widest text-gold">NO CONNECTIONS</p>
-          <p className="mt-2 text-sm text-muted">
-            Connect a read-only Bybit API key to import closed-PnL records into your journal.
-          </p>
-          <Link
-            href="/exchanges/new"
-            className="mt-6 inline-block rounded-md bg-gold px-5 py-2 font-display tracking-widest text-black"
-          >
-            CONNECT BYBIT
-          </Link>
-        </div>
+        <EmptyState
+          title="No connections yet"
+          description="Connect a read-only Bybit API key to import closed-PnL records into your journal."
+          action={
+            <LinkButton href="/exchanges/new" icon={<Plus size={14} aria-hidden />}>
+              Connect Bybit
+            </LinkButton>
+          }
+        />
       ) : (
         <ul className="space-y-3">
           {connections.map((c) => (
-            <li key={c.id} className="rounded-2xl border border-white/10 bg-panel p-5">
+            <li key={c.id} className="rounded-lg border border-white/10 bg-panel p-5">
               <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-display text-xl tracking-wider text-gold">
-                      {c.exchange.toUpperCase()}
+                    <span className="text-base font-semibold text-white">
+                      {c.exchange === "bybit" ? "Bybit" : c.exchange}
                     </span>
-                    <span className="rounded bg-white/10 px-2 py-0.5 text-xs uppercase text-muted">
-                      {c.environment}
-                    </span>
-                    <StatusPill status={c.status} />
+                    <StatusPill tone="neutral">
+                      {c.environment === "mainnet" ? "Mainnet" : "Testnet"}
+                    </StatusPill>
+                    <ConnStatusPill status={c.status} />
                   </div>
                   <p className="mt-1 text-sm">{c.account_label ?? "(unlabelled)"}</p>
                   <p className="mt-1 font-mono text-xs text-muted">
@@ -120,9 +126,14 @@ export default async function ExchangesPage() {
                   </div>
                   <form action={syncBybitAction}>
                     <input type="hidden" name="id" value={c.id} />
-                    <button className="rounded-md bg-gold/20 px-4 py-2 text-xs font-display tracking-widest text-gold hover:bg-gold/30">
-                      SYNC
-                    </button>
+                    <Button
+                      type="submit"
+                      variant="secondary"
+                      size="sm"
+                      icon={<RefreshCw size={12} aria-hidden />}
+                    >
+                      Sync
+                    </Button>
                   </form>
                 </div>
               </div>
@@ -148,7 +159,9 @@ export default async function ExchangesPage() {
 function SyncRuns({ runs }: { runs: SyncRunRow[] }) {
   if (runs.length === 0) {
     return (
-      <p className="mt-3 text-xs text-muted">No syncs yet — click SYNC to import the last 7 days.</p>
+      <p className="mt-3 text-xs text-muted">
+        No syncs yet — click Sync to import the last 7 days.
+      </p>
     );
   }
   return (
@@ -173,47 +186,45 @@ function SyncRuns({ runs }: { runs: SyncRunRow[] }) {
   );
 }
 
-function StatusPill({ status }: { status: ConnectionRow["status"] }) {
-  const tone: Record<ConnectionRow["status"], string> = {
-    active: "bg-win/20 text-win",
-    paused: "bg-white/10 text-muted",
-    error: "bg-loss/20 text-loss",
-    revoked: "bg-loss/20 text-loss",
-  };
-  return (
-    <span className={`rounded px-2 py-0.5 text-xs uppercase ${tone[status]}`}>{status}</span>
-  );
+function ConnStatusPill({ status }: { status: ConnectionRow["status"] }) {
+  const tone =
+    status === "active"
+      ? "ok"
+      : status === "error" || status === "revoked"
+        ? "error"
+        : "neutral";
+  const label =
+    status === "active"
+      ? "Active"
+      : status === "paused"
+        ? "Paused"
+        : status === "error"
+          ? "Error"
+          : "Revoked";
+  return <StatusPill tone={tone}>{label}</StatusPill>;
 }
 
 function SyncStatusPill({ status }: { status: SyncRunRow["status"] }) {
-  const tone: Record<SyncRunRow["status"], string> = {
-    running: "bg-gold/20 text-gold",
-    success: "bg-win/20 text-win",
-    partial: "bg-gold/20 text-gold",
-    failed: "bg-loss/20 text-loss",
-  };
-  return (
-    <span className={`rounded px-1.5 py-0.5 ${tone[status]}`}>{status}</span>
-  );
+  const tone =
+    status === "success" ? "ok" : status === "failed" ? "error" : "info";
+  return <StatusPill tone={tone}>{status}</StatusPill>;
 }
 
 function IpBadge({ ipBound, ips }: { ipBound: boolean; ips: string[] }) {
   if (ipBound) {
     return (
-      <span
-        title={`Bybit reports IP restriction: ${ips.join(", ")}.`}
-        className="rounded bg-gold/15 px-2 py-0.5 text-xs text-gold"
-      >
-        🔒 IP-bound
+      <span title={`Bybit reports IP restriction: ${ips.join(", ")}.`}>
+        <StatusPill tone="info" icon={<Lock size={12} aria-hidden />}>
+          IP-bound
+        </StatusPill>
       </span>
     );
   }
   return (
-    <span
-      title="No IP restriction set on the key."
-      className="rounded bg-white/10 px-2 py-0.5 text-xs text-muted"
-    >
-      ⚠ No IP restriction
+    <span title="No IP restriction set on the key.">
+      <StatusPill tone="warn" icon={<AlertTriangle size={12} aria-hidden />}>
+        No IP restriction
+      </StatusPill>
     </span>
   );
 }
@@ -223,14 +234,7 @@ function PermissionsBadge({ perms }: { perms: Record<string, string[]> }) {
     .filter(([, vs]) => Array.isArray(vs) && vs.length > 0)
     .map(([g]) => g);
   if (groups.length === 0) {
-    return (
-      <span className="rounded bg-white/10 px-2 py-0.5 text-xs text-muted">Read-only</span>
-    );
+    return <StatusPill tone="neutral">Read-only</StatusPill>;
   }
-  return (
-    <span className="rounded bg-white/10 px-2 py-0.5 text-xs text-muted">
-      Scopes: {groups.join(", ")}
-    </span>
-  );
+  return <StatusPill tone="neutral">Scopes: {groups.join(", ")}</StatusPill>;
 }
-

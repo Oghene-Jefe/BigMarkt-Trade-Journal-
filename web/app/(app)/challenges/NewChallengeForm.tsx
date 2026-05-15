@@ -13,7 +13,7 @@ export default function NewChallengeForm() {
   const oneMonth = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
 
   return (
-    <form action={formAction} className="rounded-2xl border border-white/10 bg-panel p-4">
+    <form action={formAction} className="rounded-lg border border-white/10 bg-panel p-4">
       <p className="mb-3 text-sm text-muted">Set a profit / streak / consistency goal with a deadline.</p>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <label className="block text-sm">
@@ -64,9 +64,9 @@ export default function NewChallengeForm() {
       <div className="mt-3 flex justify-end">
         <button
           disabled={pending}
-          className="rounded-md bg-gold px-5 py-2 font-display tracking-widest text-black disabled:opacity-50"
+          className="inline-flex h-10 items-center rounded-md bg-gold px-5 text-sm font-medium text-black disabled:opacity-50"
         >
-          {pending ? "CREATING…" : "NEW CHALLENGE"}
+          {pending ? "Creating…" : "New challenge"}
         </button>
       </div>
     </form>

@@ -2,13 +2,14 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Check, X } from "lucide-react";
 import { recalculateAccountScore } from "@/lib/actions/scores";
 import type { AccountScore } from "@/lib/types";
 
 const TIER_META = {
-  pro: { label: "VERIFIED PRO", emoji: "🔵", classes: "bg-blue-500/10 text-blue-400 border-blue-500/30" },
-  active: { label: "ACTIVE LEADER", emoji: "🟢", classes: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
-  none: { label: "UNRANKED", emoji: "⚪", classes: "bg-white/5 text-white/60 border-white/10" },
+  pro: { label: "Verified pro", classes: "bg-blue-500/10 text-blue-400 border-blue-500/30" },
+  active: { label: "Active leader", classes: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
+  none: { label: "Unranked", classes: "bg-white/5 text-white/60 border-white/10" },
 } as const;
 
 const GATE_LABELS: Array<{ key: keyof AccountScore; label: string }> = [
@@ -90,10 +91,9 @@ export default function ScoreCard({
           <h2 className="text-lg font-semibold text-white">Performance Score</h2>
           <div className="mt-2 flex items-center gap-3">
             <span
-              className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${tier.classes}`}
+              className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium ${tier.classes}`}
             >
-              <span>{tier.emoji}</span>
-              <span>{tier.label}</span>
+              {tier.label}
             </span>
             <span className="text-4xl font-bold tabular-nums text-white">
               {overall.toFixed(1)}
@@ -112,7 +112,7 @@ export default function ScoreCard({
       <div className="grid gap-6 md:grid-cols-2">
         <div className="space-y-3 rounded-md border border-white/5 bg-white/[0.02] p-4">
           <div className="flex items-baseline justify-between">
-            <h3 className="text-sm font-semibold text-white">ACTIVE</h3>
+            <h3 className="text-sm font-semibold text-white">Active</h3>
             <span className="tabular-nums text-sm text-white/70">
               {score.active_score.toFixed(1)}
             </span>
@@ -125,7 +125,7 @@ export default function ScoreCard({
 
         <div className="space-y-3 rounded-md border border-white/5 bg-white/[0.02] p-4">
           <div className="flex items-baseline justify-between">
-            <h3 className="text-sm font-semibold text-white">VERIFIED PRO</h3>
+            <h3 className="text-sm font-semibold text-white">Verified pro</h3>
             <span className="tabular-nums text-sm text-white/70">
               {score.pro_score.toFixed(1)}
             </span>
@@ -144,9 +144,11 @@ export default function ScoreCard({
             const passed = score[key] as boolean;
             return (
               <li key={key} className="flex items-center gap-2 text-sm">
-                <span className={passed ? "text-emerald-400" : "text-red-400"}>
-                  {passed ? "✓" : "✗"}
-                </span>
+                {passed ? (
+                  <Check size={14} aria-hidden className="text-emerald-400" />
+                ) : (
+                  <X size={14} aria-hidden className="text-red-400" />
+                )}
                 <span className="text-white/80">{label}</span>
               </li>
             );

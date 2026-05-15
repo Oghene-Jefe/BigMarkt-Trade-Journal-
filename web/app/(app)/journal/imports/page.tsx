@@ -55,15 +55,15 @@ export default async function JournalImportsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h1 className="font-display text-3xl tracking-widest text-gold">IMPORTS</h1>
-          <p className="text-xs text-muted">
+          <h1 className="text-xl font-semibold text-white">Imports</h1>
+          <p className="mt-1 text-xs text-muted">
             Closed-PnL rows synced from your exchange connections. Approve to create journal trades,
             or ignore to dismiss.
           </p>
         </div>
         <Link
           href="/exchanges"
-          className="rounded-md border border-white/20 px-4 py-2 text-xs uppercase tracking-widest text-muted hover:bg-white/5"
+          className="inline-flex h-9 items-center rounded-md border border-white/15 px-3 text-xs text-muted hover:bg-white/5 hover:text-white"
         >
           Manage connections
         </Link>

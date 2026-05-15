@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { useEffect, useState } from "react";
+import { X, ArrowRight } from "lucide-react";
 
 const STORAGE_KEY = "bigmarkt_banner_dismissed";
 
@@ -47,7 +48,7 @@ export default function Banners({ journalMode, brokerAccountCount, tradeCount }:
     banners.push({
       key: "connect_broker",
       href: "/ea-setup",
-      text: "Connect your broker to start auto-capturing trades →",
+      text: "Connect your broker to start auto-capturing trades",
     });
   }
   if (
@@ -58,7 +59,7 @@ export default function Banners({ journalMode, brokerAccountCount, tradeCount }:
     banners.push({
       key: "first_trade",
       href: "/journal/new",
-      text: "Log your first trade →",
+      text: "Log your first trade",
     });
   }
 
@@ -71,16 +72,20 @@ export default function Banners({ journalMode, brokerAccountCount, tradeCount }:
           key={b.key}
           className="flex items-center justify-between gap-3 rounded-lg border border-gold/30 bg-gold/10 px-4 py-3"
         >
-          <Link href={b.href as Route} className="text-sm text-gold hover:underline">
-            {b.text}
+          <Link
+            href={b.href as Route}
+            className="inline-flex items-center gap-2 text-sm text-gold hover:underline"
+          >
+            <span>{b.text}</span>
+            <ArrowRight size={14} aria-hidden />
           </Link>
           <button
             type="button"
             onClick={() => dismiss(b.key)}
             aria-label="Dismiss"
-            className="text-lg leading-none text-gold/70 hover:text-gold"
+            className="text-gold/70 hover:text-gold"
           >
-            ✕
+            <X size={16} aria-hidden />
           </button>
         </div>
       ))}

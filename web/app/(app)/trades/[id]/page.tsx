@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowLeft } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
 import { signChart } from "@/lib/storage";
@@ -49,10 +50,14 @@ export default async function TradeDetailPage({
   if (error || !trade) {
     return (
       <div className="mx-auto max-w-2xl space-y-4 px-4 pb-16">
-        <Link href="/trades" className="text-sm text-muted hover:text-white">
-          ← Back to Trades
+        <Link
+          href="/trades"
+          className="inline-flex items-center gap-1 text-sm text-muted hover:text-white"
+        >
+          <ArrowLeft size={14} aria-hidden />
+          <span>Back to trades</span>
         </Link>
-        <div className="rounded-xl border border-white/10 bg-panel p-8 text-center text-muted">
+        <div className="rounded-lg border border-white/10 bg-panel p-8 text-center text-muted">
           Trade not found.
         </div>
       </div>
@@ -114,8 +119,12 @@ export default async function TradeDetailPage({
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 pb-16">
-      <Link href="/trades" className="inline-block text-sm text-muted hover:text-white">
-        ← Back to Trades
+      <Link
+        href="/trades"
+        className="inline-flex items-center gap-1 text-sm text-muted hover:text-white"
+      >
+        <ArrowLeft size={14} aria-hidden />
+        <span>Back to trades</span>
       </Link>
 
       <ShareableTradeCard

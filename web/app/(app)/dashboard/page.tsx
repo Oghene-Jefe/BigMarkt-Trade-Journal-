@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { Bot, PenLine, CircleDashed, ArrowRight } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { TradeRow } from "@/lib/types";
 import { fmtMoney, fmtDate, fmtPct } from "@/lib/format";
 import { getMonthPulse } from "@/lib/heatmap";
+import { PageHeader, MetricCard, Section, StatusPill } from "@/components/ui";
 import Banners from "./Banners";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +12,6 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
-  // Layout already redirects unauthed users; user is guaranteed to exist here.
 
   const [{ data: tradesData }, { data: profileData }, { count: brokerAccountCountRaw }] =
     await Promise.all([
@@ -28,13 +29,6 @@ export default async function DashboardPage() {
     | "automated"
     | "manual"
     | null;
-
-  const modeBadge =
-    journalMode === "automated"
-      ? { text: "🤖 Automated Mode", className: "bg-green-900 text-green-300" }
-      : journalMode === "manual"
-        ? { text: "✍️ Manual Mode", className: "bg-yellow-900 text-yellow-300" }
-        : { text: "⚪ Mode Not Set", className: "bg-gray-700 text-gray-300" };
 
   const wins = trades.filter((t) => t.result === "WIN").length;
   const losses = trades.filter((t) => t.result === "LOSS").length;
@@ -58,7 +52,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-3xl tracking-widest text-gold">DASHBOARD</h1>
+      <PageHeader title="Dashboard" />
 
       <Banners
         journalMode={journalMode}
@@ -66,66 +60,105 @@ export default async function DashboardPage() {
         tradeCount={trades.length}
       />
 
-      <div className="inline-flex flex-col gap-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-gray-200">
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium w-fit ${modeBadge.className}`}>
-          {modeBadge.text}
-        </span>
-        <div className="mt-1">
-          <Link href="/profile" className="text-xs text-muted hover:text-white">
-            Change in Settings →
-          </Link>
-        </div>
+      <div className="flex flex-wrap items-center gap-3 text-xs">
+        <span className="text-muted">Journal mode</span>
+        <ModePill mode={journalMode} />
+        <Link href="/profile" className="text-muted hover:text-white">
+          Change in settings
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Total Trades" value={String(trades.length)} />
-        <Stat label="Win Rate" value={winRate == null ? "—" : `${winRate.toFixed(0)}%`} />
-        <Stat label="Net P&L" value={fmtMoney(totalPnl)} tone={totalPnl >= 0 ? "win" : "loss"} />
-        <Stat label="Growth" value={fmtPct(growth)} tone={(growth ?? 0) >= 0 ? "win" : "loss"} />
+        <MetricCard label="Total trades" value={String(trades.length)} />
+        <MetricCard label="Win rate" value={winRate == null ? "—" : `${winRate.toFixed(0)}%`} />
+        <MetricCard
+          label="Net P&L"
+          value={fmtMoney(totalPnl)}
+          tone={totalPnl >= 0 ? "win" : "loss"}
+        />
+        <MetricCard
+          label="Growth"
+          value={fmtPct(growth)}
+          tone={(growth ?? 0) >= 0 ? "win" : "loss"}
+        />
       </div>
 
       {hasMonthActivity ? (
-        <div className="text-sm text-center text-gold/70 py-2">
+        <div className="text-center text-sm text-gold/70 py-2">
           This month: {pulse.winDays} win days · {pulse.lossDays} loss days · best{" "}
           <span className="text-green-400">+${pulse.bestDay.toFixed(0)}</span> · worst{" "}
           <span className="text-red-400">-${Math.abs(pulse.worstDay).toFixed(0)}</span>
         </div>
       ) : null}
 
-      <section className="rounded-2xl border border-white/10 bg-panel p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-display text-xl tracking-widest text-gold">RECENT TRADES</h2>
-          <Link href="/journal" className="text-xs text-muted hover:text-white">View all →</Link>
-        </div>
+      <Section
+        title="Recent trades"
+        action={
+          <Link
+            href="/journal"
+            className="inline-flex items-center gap-1 text-xs text-muted hover:text-white"
+          >
+            <span>View all</span>
+            <ArrowRight size={12} aria-hidden />
+          </Link>
+        }
+      >
         {recent.length === 0 ? (
-          <p className="text-sm text-muted">No trades yet. <Link href="/journal/new" className="text-gold">Log your first.</Link></p>
+          <p className="text-sm text-muted">
+            No trades yet.{" "}
+            <Link href="/journal/new" className="text-gold">
+              Log your first.
+            </Link>
+          </p>
         ) : (
           <ul className="divide-y divide-white/5 text-sm">
             {recent.map((t) => (
               <li key={t.id} className="flex items-center justify-between py-2">
                 <span className="text-muted">{fmtDate(t.created_at)}</span>
                 <span className="flex-1 px-3 font-medium">{t.pair}</span>
-                <span className={`px-3 text-xs ${t.result === "WIN" ? "text-win" : t.result === "LOSS" ? "text-loss" : "text-muted"}`}>
+                <span
+                  className={`px-3 text-xs ${
+                    t.result === "WIN"
+                      ? "text-win"
+                      : t.result === "LOSS"
+                        ? "text-loss"
+                        : "text-muted"
+                  }`}
+                >
                   {t.result}
                 </span>
-                <span className={`tabular-nums ${(t.pnl ?? 0) >= 0 ? "text-win" : "text-loss"}`}>
+                <span
+                  className={`tabular-nums ${(t.pnl ?? 0) >= 0 ? "text-win" : "text-loss"}`}
+                >
                   {fmtMoney(t.pnl)}
                 </span>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Section>
     </div>
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: string; tone?: "win" | "loss" }) {
-  const colour = tone === "win" ? "text-win" : tone === "loss" ? "text-loss" : "text-white";
+function ModePill({ mode }: { mode: "automated" | "manual" | null }) {
+  if (mode === "automated") {
+    return (
+      <StatusPill tone="ok" icon={<Bot size={12} aria-hidden />}>
+        Automated
+      </StatusPill>
+    );
+  }
+  if (mode === "manual") {
+    return (
+      <StatusPill tone="warn" icon={<PenLine size={12} aria-hidden />}>
+        Manual
+      </StatusPill>
+    );
+  }
   return (
-    <div className="min-w-0 rounded-2xl border border-white/10 bg-panel p-4">
-      <p className="text-xs uppercase tracking-wider text-muted">{label}</p>
-      <p className={`mt-1 truncate font-display text-2xl tracking-wider ${colour}`}>{value}</p>
-    </div>
+    <StatusPill tone="neutral" icon={<CircleDashed size={12} aria-hidden />}>
+      Not set
+    </StatusPill>
   );
 }

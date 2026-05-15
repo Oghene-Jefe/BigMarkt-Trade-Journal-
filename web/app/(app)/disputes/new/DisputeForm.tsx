@@ -52,7 +52,7 @@ export default function DisputeForm({ leaderId }: { leaderId: string }) {
 
   if (success) {
     return (
-      <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-6">
+      <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 p-6">
         <p className="text-sm text-emerald-300">
           Dispute submitted. Our team will review within 48 hours.
         </p>
@@ -61,11 +61,9 @@ export default function DisputeForm({ leaderId }: { leaderId: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-white/10 bg-panel p-6">
+    <form onSubmit={onSubmit} className="space-y-4 rounded-lg border border-white/10 bg-panel p-6">
       <div>
-        <label className="mb-1 block text-xs font-display tracking-widest text-muted">
-          REASON
-        </label>
+        <label className="mb-1 block text-xs text-muted">Reason</label>
         <select
           value={reason}
           onChange={(e) => setReason(e.target.value as DisputeReason)}
@@ -80,9 +78,7 @@ export default function DisputeForm({ leaderId }: { leaderId: string }) {
       </div>
 
       <div>
-        <label className="mb-1 block text-xs font-display tracking-widest text-muted">
-          DESCRIPTION
-        </label>
+        <label className="mb-1 block text-xs text-muted">Description</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -97,9 +93,7 @@ export default function DisputeForm({ leaderId }: { leaderId: string }) {
       </div>
 
       <div>
-        <label className="mb-1 block text-xs font-display tracking-widest text-muted">
-          EVIDENCE LINK (OPTIONAL)
-        </label>
+        <label className="mb-1 block text-xs text-muted">Evidence link (optional)</label>
         <input
           type="url"
           value={evidenceUrl}
@@ -114,9 +108,9 @@ export default function DisputeForm({ leaderId }: { leaderId: string }) {
       <button
         type="submit"
         disabled={!canSubmit}
-        className="rounded-md border border-gold/40 bg-gold/10 px-4 py-2 text-xs font-display tracking-widest text-gold hover:bg-gold/20 disabled:opacity-40"
+        className="inline-flex h-10 items-center rounded-md bg-gold px-4 text-sm font-medium text-black disabled:opacity-40"
       >
-        {pending ? "SUBMITTING..." : "SUBMIT DISPUTE"}
+        {pending ? "Submitting…" : "Submit dispute"}
       </button>
     </form>
   );

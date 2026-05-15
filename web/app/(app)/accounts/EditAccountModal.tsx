@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { X } from "lucide-react";
 import type { BrokerAccount } from "@/lib/types";
 import { updateBrokerAccountAction } from "./actions";
 
@@ -57,7 +58,13 @@ export default function EditAccountModal({ account }: { account: BrokerAccount }
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-white/10 bg-gray-900 p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-white">Edit Broker Account</h2>
-              <button onClick={() => setOpen(false)} className="text-white/60 hover:text-white">✕</button>
+              <button
+                onClick={() => setOpen(false)}
+                aria-label="Close"
+                className="text-white/60 hover:text-white"
+              >
+                <X size={18} aria-hidden />
+              </button>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-4">
@@ -83,9 +90,9 @@ export default function EditAccountModal({ account }: { account: BrokerAccount }
                   onChange={(e) => setAccountType(e.target.value as AccountType)}
                   className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
                 >
-                  <option value="live">🟢 Live</option>
-                  <option value="demo">🔵 Demo</option>
-                  <option value="prop_firm">🟠 Prop Firm</option>
+                  <option value="live">Live</option>
+                  <option value="demo">Demo</option>
+                  <option value="prop_firm">Prop firm</option>
                 </select>
               </div>
 
@@ -93,11 +100,11 @@ export default function EditAccountModal({ account }: { account: BrokerAccount }
                 <label className="mb-1 block text-sm text-white/80">Journal Mode</label>
                 {demoLocked ? (
                   <div className="rounded-md border border-white/15 bg-white/5 px-3 py-2 text-xs text-white/70">
-                    ✍️ Manual only — demo accounts cannot run automated mode.
+                    Manual only — demo accounts cannot run automated mode.
                   </div>
                 ) : propFirmLocked ? (
                   <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
-                    ✍️ Manual only — prop firm accounts cannot run automated mode. Copy execution is disabled.
+                    Manual only — prop firm accounts cannot run automated mode. Copy execution is disabled.
                   </div>
                 ) : (
                   <select
@@ -105,8 +112,8 @@ export default function EditAccountModal({ account }: { account: BrokerAccount }
                     onChange={(e) => setJournalMode(e.target.value as JournalMode)}
                     className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
                   >
-                    <option value="manual">✍️ Manual</option>
-                    <option value="automated">🤖 Automated</option>
+                    <option value="manual">Manual</option>
+                    <option value="automated">Automated</option>
                   </select>
                 )}
               </div>

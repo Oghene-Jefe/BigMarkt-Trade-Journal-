@@ -46,10 +46,10 @@ export default function ImportsTable({ rows }: { rows: PendingImport[] }) {
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-panel p-12 text-center">
-        <p className="font-display text-2xl tracking-widest text-gold">NOTHING TO REVIEW</p>
+      <div className="rounded-lg border border-white/10 bg-panel p-12 text-center">
+        <p className="text-base font-medium text-white">Nothing to review</p>
         <p className="mt-2 text-sm text-muted">
-          Closed-PnL rows from Bybit syncs land here as pending. Hit SYNC on /exchanges to fetch the latest window.
+          Closed-PnL rows from Bybit syncs land here as pending. Click Sync on /exchanges to fetch the latest window.
         </p>
       </div>
     );
@@ -75,7 +75,7 @@ export default function ImportsTable({ rows }: { rows: PendingImport[] }) {
             ))}
             <button
               disabled={!canAct}
-              className="rounded bg-gold px-3 py-1 font-display tracking-widest text-black disabled:opacity-40"
+              className="rounded-md bg-gold px-3 py-1 text-xs font-medium text-black disabled:opacity-40"
             >
               Approve
             </button>
@@ -94,7 +94,7 @@ export default function ImportsTable({ rows }: { rows: PendingImport[] }) {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-panel">
+      <div className="overflow-x-auto rounded-lg border border-white/10 bg-panel">
         <table className="w-full text-sm">
           <thead className="bg-black/30 text-xs uppercase tracking-wider text-muted">
             <tr>

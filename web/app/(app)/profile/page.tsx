@@ -37,10 +37,13 @@ export default async function ProfilePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl tracking-widest text-gold">PROFILE</h1>
+        <h1 className="text-xl font-semibold text-white">Profile</h1>
         {profile?.username && (profile.visibility === "community" || profile.visibility === "public") ? (
-          <Link href={`/@${profile.username}`} className="text-xs text-muted hover:text-white">
-            View public page →
+          <Link
+            href={`/@${profile.username}`}
+            className="text-xs text-muted hover:text-white"
+          >
+            View public page
           </Link>
         ) : null}
       </div>

@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Bot, PenLine } from "lucide-react";
 import { requireUser } from "@/lib/auth/require-user";
 import { supabaseServer } from "@/lib/supabase/server";
 import { BROKERS } from "@/lib/brokers";
 import type { BrokerAccount } from "@/lib/types";
 import ConfirmButton from "@/components/ConfirmButton";
+import { StatusPill } from "@/components/ui";
 import AddAccountModal from "./AddAccountModal";
 import EditAccountModal from "./EditAccountModal";
 import { toggleAccountActiveAction, deleteBrokerAccountAction } from "./actions";
@@ -12,11 +14,11 @@ export const dynamic = "force-dynamic";
 
 const ACCOUNT_TYPE_META: Record<
   "live" | "demo" | "prop_firm",
-  { label: string; emoji: string; classes: string }
+  { label: string; tone: "ok" | "info" | "warn" }
 > = {
-  live: { label: "Live", emoji: "🟢", classes: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
-  demo: { label: "Demo", emoji: "🔵", classes: "bg-sky-500/10 text-sky-400 border-sky-500/30" },
-  prop_firm: { label: "Prop Firm", emoji: "🟠", classes: "bg-amber-500/10 text-amber-400 border-amber-500/30" },
+  live: { label: "Live", tone: "ok" },
+  demo: { label: "Demo", tone: "info" },
+  prop_firm: { label: "Prop firm", tone: "warn" },
 };
 
 export default async function AccountsPage() {
@@ -78,16 +80,18 @@ export default async function AccountsPage() {
                       <span className="text-sm text-white/70">{brokerName}</span>
                     </Link>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className={`rounded-full border px-2 py-0.5 text-xs ${typeMeta.classes}`}>
-                        {typeMeta.emoji} {typeMeta.label}
-                      </span>
-                      <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-xs text-white/80">
-                        {account.journal_mode === "automated" ? "🤖 Automated" : "✍️ Manual"}
-                      </span>
+                      <StatusPill tone={typeMeta.tone}>{typeMeta.label}</StatusPill>
+                      {account.journal_mode === "automated" ? (
+                        <StatusPill tone="ok" icon={<Bot size={12} aria-hidden />}>
+                          Automated
+                        </StatusPill>
+                      ) : (
+                        <StatusPill tone="neutral" icon={<PenLine size={12} aria-hidden />}>
+                          Manual
+                        </StatusPill>
+                      )}
                       {!account.is_active && (
-                        <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-xs text-white/60">
-                          Inactive
-                        </span>
+                        <StatusPill tone="neutral">Inactive</StatusPill>
                       )}
                     </div>
                   </div>

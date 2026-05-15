@@ -227,7 +227,7 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
         <CompressedFileInput
           name="chart"
           accept="image/jpeg,image/png,image/webp,image/gif"
-          className="block w-full text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-gold/20 file:px-3 file:py-1.5 file:text-xs file:font-display file:tracking-widest file:text-gold hover:file:bg-gold/30"
+          className="block w-full text-sm text-muted file:mr-3 file:rounded-md file:border-0 file:bg-gold/20 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-gold hover:file:bg-gold/30"
         />
         <p className="text-xs text-muted">Auto-compressed to ≤1600px, JPEG q82. Server cap 5 MB. Visible only to you unless trade visibility is public.</p>
       </div>
@@ -255,12 +255,17 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
       {state.error ? <p className="text-sm text-loss">{state.error}</p> : null}
 
       <div className="flex items-center justify-end gap-2 pt-2">
-        <Link href="/journal" className="rounded-md border border-white/20 px-4 py-2 text-sm">Cancel</Link>
+        <Link
+          href="/journal"
+          className="inline-flex h-10 items-center rounded-md border border-white/15 px-4 text-sm hover:bg-white/5"
+        >
+          Cancel
+        </Link>
         <button
           disabled={pending}
-          className="rounded-md bg-gold px-6 py-2 font-display tracking-widest text-black disabled:opacity-50"
+          className="inline-flex h-10 items-center rounded-md bg-gold px-5 text-sm font-medium text-black disabled:opacity-50"
         >
-          {pending ? "SAVING…" : submitLabel}
+          {pending ? "Saving…" : submitLabel}
         </button>
       </div>
     </form>

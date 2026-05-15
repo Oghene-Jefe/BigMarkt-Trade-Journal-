@@ -3,6 +3,7 @@ import TradeForm from "@/components/TradeForm";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signChart } from "@/lib/storage";
 import type { TradeRow } from "@/lib/types";
+import { PageHeader } from "@/components/ui";
 import { updateTradeAction, type TradeActionState } from "../../../actions";
 
 export default async function EditTradePage({ params }: { params: Promise<{ id: string }> }) {
@@ -22,8 +23,8 @@ export default async function EditTradePage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-3xl tracking-widest text-gold">EDIT TRADE</h1>
-      <TradeForm trade={trade} existingChartUrl={existingChartUrl} action={bound} submitLabel="SAVE CHANGES" />
+      <PageHeader title="Edit trade" />
+      <TradeForm trade={trade} existingChartUrl={existingChartUrl} action={bound} submitLabel="Save changes" />
     </div>
   );
 }

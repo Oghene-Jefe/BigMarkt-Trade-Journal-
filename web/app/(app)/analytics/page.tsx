@@ -1,6 +1,7 @@
-import Link from "next/link";
+import { Plus } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { TradeRow } from "@/lib/types";
+import { PageHeader, EmptyState, LinkButton } from "@/components/ui";
 import EquityCurveChart from "@/components/analytics/EquityCurveChart";
 import DrawdownChart from "@/components/analytics/DrawdownChart";
 import WinRateByPairChart from "@/components/analytics/WinRateByPairChart";
@@ -19,15 +20,11 @@ export default async function AnalyticsPage() {
   if (error) {
     return (
       <div className="mx-auto max-w-4xl space-y-6 px-4">
-        <h1 className="font-display text-3xl tracking-widest text-gold">
-          ANALYTICS
-        </h1>
-        <div className="rounded-2xl border border-loss/30 bg-loss/10 p-8 text-center">
-          <p className="font-display text-lg tracking-widest text-loss">
-            FAILED TO LOAD
-          </p>
+        <PageHeader title="Analytics" />
+        <div className="rounded-lg border border-loss/30 bg-loss/10 p-8 text-center">
+          <p className="text-base font-medium text-loss">Failed to load</p>
           <p className="mt-2 text-sm text-muted">
-            Failed to load analytics data. Please refresh the page.
+            Please refresh the page.
           </p>
         </div>
       </div>
@@ -55,36 +52,26 @@ export default async function AnalyticsPage() {
   if (trades.length === 0) {
     return (
       <div className="mx-auto max-w-4xl space-y-6 px-4">
-        <h1 className="font-display text-3xl tracking-widest text-gold">
-          ANALYTICS
-        </h1>
-        <div className="rounded-2xl border border-white/10 bg-panel p-12 text-center">
-          <p className="font-display text-2xl tracking-widest text-gold">
-            NO DATA
-          </p>
-          <p className="mt-2 text-sm text-muted">
-            No trades to analyse yet. Start logging trades to unlock your
-            analytics.
-          </p>
-          <Link
-            href="/journal/new"
-            className="mt-6 inline-block rounded-md bg-gold px-5 py-2 font-display tracking-widest text-black"
-          >
-            NEW TRADE
-          </Link>
-        </div>
+        <PageHeader title="Analytics" />
+        <EmptyState
+          title="No data yet"
+          description="No trades to analyse yet. Start logging trades to unlock your analytics."
+          action={
+            <LinkButton href="/journal/new" icon={<Plus size={14} aria-hidden />}>
+              New trade
+            </LinkButton>
+          }
+        />
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 px-4">
-      <h1 className="font-display text-3xl tracking-widest text-gold">
-        ANALYTICS
-      </h1>
+      <PageHeader title="Analytics" />
 
       <section className="space-y-4">
-        <SectionHeading title="Report Cards" />
+        <SectionHeading title="Report cards" />
         <ReportCardSection trades={trades} username={username} />
       </section>
 
@@ -114,9 +101,7 @@ export default async function AnalyticsPage() {
 function SectionHeading({ title }: { title: string }) {
   return (
     <div className="border-b border-gold/40 pb-2">
-      <h2 className="font-display text-xl tracking-widest text-gold">
-        {title.toUpperCase()}
-      </h2>
+      <h2 className="text-base font-semibold text-gold">{title}</h2>
     </div>
   );
 }

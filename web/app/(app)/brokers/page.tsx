@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
+import { ArrowUpRight, ArrowRight } from "lucide-react";
 import {
   BROKERS,
   STATUS_META,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/brokers";
 import UnlistedBrokerChecker from "@/components/brokers/UnlistedBrokerChecker";
 import BrokerSubmissionForm from "@/components/brokers/BrokerSubmissionForm";
+import { PageHeader, StatusPill } from "@/components/ui";
 
 const ALL_CATEGORIES: (BrokerCategory | "all")[] = [
   "all",
@@ -48,14 +50,10 @@ export default function BrokersPage() {
 
   return (
     <main className="mx-auto max-w-5xl space-y-6 p-6">
-      <header>
-        <h1 className="font-display text-3xl tracking-widest text-gold">
-          BROKER COMPATIBILITY
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          Find out whether your broker plugs into BigMarkt's automated journal.
-        </p>
-      </header>
+      <PageHeader
+        title="Broker compatibility"
+        description="Find out whether your broker plugs into BigMarkt's automated journal."
+      />
 
       <section className="flex flex-wrap gap-3">
         {(["supported", "partial", "unsupported", "inactive"] as BrokerStatus[]).map((s) => {
@@ -111,22 +109,20 @@ export default function BrokersPage() {
             return (
               <article
                 key={b.id}
-                className={`rounded-2xl border p-4 ${meta.bg}`}
+                className={`rounded-lg border p-4 ${meta.bg}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="flex items-center gap-2 font-display text-lg tracking-wider">
+                    <h2 className="flex items-center gap-2 text-base font-semibold">
                       <span aria-hidden>{meta.dot}</span>
                       <span className="truncate">{b.name}</span>
                     </h2>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {b.prop_firm ? (
-                        <span className="rounded-full border border-orange-500/40 bg-orange-500/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-orange-300">
-                          🟠 Prop Firm
-                        </span>
+                        <StatusPill tone="warn">Prop firm</StatusPill>
                       ) : null}
                       <span
-                        className={`rounded-full border border-white/10 bg-black/30 px-2 py-0.5 text-[10px] uppercase tracking-wider ${meta.color}`}
+                        className={`rounded-md border border-white/10 bg-black/30 px-2 py-0.5 text-[10px] uppercase tracking-wider ${meta.color}`}
                       >
                         {meta.label}
                       </span>
@@ -137,9 +133,10 @@ export default function BrokersPage() {
                       href={b.website}
                       target="_blank"
                       rel="noreferrer noopener"
-                      className="shrink-0 text-xs text-muted underline hover:text-white"
+                      className="inline-flex shrink-0 items-center gap-1 text-xs text-muted hover:text-white"
                     >
-                      Visit →
+                      <span>Visit</span>
+                      <ArrowUpRight size={12} aria-hidden />
                     </a>
                   ) : null}
                 </div>
@@ -176,16 +173,18 @@ export default function BrokersPage() {
                     {b.connectPath ? (
                       <Link
                         href={b.connectPath as Route<string>}
-                        className="inline-flex items-center gap-1 rounded px-3 py-1 text-xs font-medium bg-green-600 hover:bg-green-700 text-white transition-colors"
+                        className="inline-flex items-center gap-1.5 rounded-md bg-win/20 px-3 py-1 text-xs font-medium text-win hover:bg-win/30"
                       >
-                        Connect →
+                        <span>Connect</span>
+                        <ArrowRight size={12} aria-hidden />
                       </Link>
                     ) : (
                       <Link
                         href={"/ea-setup" as Route<string>}
-                        className="inline-flex items-center gap-1 rounded px-3 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-3 py-1 text-xs font-medium text-white hover:bg-white/5"
                       >
-                        Install EA →
+                        <span>Install EA</span>
+                        <ArrowRight size={12} aria-hidden />
                       </Link>
                     )}
                   </div>
