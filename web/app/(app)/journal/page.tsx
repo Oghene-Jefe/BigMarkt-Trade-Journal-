@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signCharts } from "@/lib/storage";
 import JournalTable from "@/components/JournalTable";
+import NewsFeed from "./NewsFeed";
 import type { TradeRow, NewsEvent } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -119,20 +120,35 @@ async function TradesView({
   );
 }
 
+// Returns [startOfWeekMonday, startOfNextMonday) in UTC as ISO strings.
+// We anchor on Monday because Forex Factory's "thisweek" feed is Mon→Sun.
+function currentWeekWindow(): { start: string; end: string } {
+  const now = new Date();
+  const day = now.getUTCDay(); // 0 = Sun, 1 = Mon, ...
+  const offsetToMonday = (day + 6) % 7; // Mon→0, Tue→1, ..., Sun→6
+  const start = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate() - offsetToMonday,
+    0, 0, 0, 0,
+  ));
+  const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
 async function NewsView({
   sb,
 }: {
   sb: Awaited<ReturnType<typeof supabaseServer>>;
 }) {
-  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { start, end } = currentWeekWindow();
 
   const { data, error } = await sb
     .from("news_events")
     .select("*")
-    .gte("event_time", since)
-    .order("event_time", { ascending: false });
-
-  const events = (data ?? []) as NewsEvent[];
+    .gte("event_time", start)
+    .lt("event_time", end)
+    .order("event_time", { ascending: true });
 
   if (error) {
     return (
@@ -148,73 +164,11 @@ async function NewsView({
     );
   }
 
-  if (events.length === 0) {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-panel p-8 text-center">
-        <p className="text-sm text-muted">
-          No high impact news events in the last 7 days
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <ul className="space-y-2">
-      {events.map((e) => (
-        <li
-          key={e.id}
-          className="rounded-xl border border-white/10 bg-panel p-4"
-        >
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="flex-1 font-semibold text-white">{e.title}</p>
-            <ImpactPill impact={e.impact} />
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
-            <span>{fmtEventTime(e.event_time)}</span>
-            {e.currency
-              ? e.currency
-                  .split(",")
-                  .map((c) => c.trim())
-                  .filter(Boolean)
-                  .map((c) => (
-                    <span
-                      key={c}
-                      className="rounded-full border border-white/10 bg-black/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-white"
-                    >
-                      {c}
-                    </span>
-                  ))
-              : null}
-          </div>
-        </li>
-      ))}
-    </ul>
+    <NewsFeed
+      initial={(data ?? []) as NewsEvent[]}
+      windowStart={start}
+      windowEnd={end}
+    />
   );
-}
-
-function ImpactPill({ impact }: { impact: NewsEvent["impact"] }) {
-  const map: Record<NonNullable<NewsEvent["impact"]>, string> = {
-    high: "bg-loss/20 text-loss border-loss/40",
-    medium: "bg-amber-500/20 text-amber-300 border-amber-500/40",
-    low: "bg-white/10 text-muted border-white/10",
-  };
-  const cls = impact ? map[impact] : "bg-white/10 text-muted border-white/10";
-  return (
-    <span
-      className={`rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${cls}`}
-    >
-      {impact ?? "—"}
-    </span>
-  );
-}
-
-function fmtEventTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
