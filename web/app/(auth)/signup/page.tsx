@@ -14,7 +14,9 @@ function SignupForm() {
   return (
     <form action={formAction} className="w-full max-w-sm space-y-4 rounded-lg bg-panel p-8">
       <div className="flex justify-center mb-6">
-        <Logo size="lg" />
+        <Link href="/" aria-label="Back to home">
+          <Logo size="lg" />
+        </Link>
       </div>
       <h1 className="text-center text-2xl font-semibold text-white">Create account</h1>
 
@@ -88,6 +90,12 @@ function SignupForm() {
         Already have an account?{" "}
         <Link href="/login" className="text-white">
           Log in
+        </Link>
+      </p>
+
+      <p className="text-center text-xs">
+        <Link href="/" className="text-muted hover:text-white">
+          ← Back to home
         </Link>
       </p>
     </form>

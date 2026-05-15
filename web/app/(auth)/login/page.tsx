@@ -12,7 +12,9 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center p-6">
       <form action={formAction} className="w-full max-w-sm space-y-4 rounded-2xl bg-panel p-8">
         <div className="flex justify-center mb-6">
-          <Logo size="lg" />
+          <Link href="/" aria-label="Back to home">
+            <Logo size="lg" />
+          </Link>
         </div>
         <h1 className="font-display text-3xl tracking-widest text-gold">ENTER THE MARKET</h1>
 
@@ -39,6 +41,12 @@ export default function LoginPage() {
           <Link href="/signup" className="hover:text-white">Create account</Link>
           <Link href="/reset" className="hover:text-white">Forgot password?</Link>
         </div>
+
+        <p className="text-center text-xs">
+          <Link href="/" className="text-muted hover:text-white">
+            ← Back to home
+          </Link>
+        </p>
       </form>
     </main>
   );
