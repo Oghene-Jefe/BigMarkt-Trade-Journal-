@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/admin";
 import { getUnreadNotificationCountAction } from "@/lib/actions/notifications";
 import DrawerNav from "./DrawerNav";
 import Logo from "@/components/ui/Logo";
+import ChatWidgetMount from "@/components/support/ChatWidgetMount";
 
 // Auth gate for the app shell. Every page under (app) requires a session.
 // Admin link only renders if is_admin(auth.uid()) — non-admins never see
@@ -16,6 +17,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const admin = await isAdmin();
   const unreadRes = await getUnreadNotificationCountAction();
   const unreadCount = ("count" in unreadRes ? unreadRes.count : 0) ?? 0;
+
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("username, display_name")
+    .eq("id", user.id)
+    .maybeSingle();
+  const username =
+    (profile?.username && profile.username.trim()) ||
+    (profile?.display_name && profile.display_name.trim()) ||
+    user.email?.split("@")[0] ||
+    "Trader";
 
   return (
     <div className="min-h-screen">
@@ -34,6 +46,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+      <ChatWidgetMount userId={user.id} username={username} />
     </div>
   );
 }

@@ -159,7 +159,7 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
         {/* Profile menu — separate from the four content groups */}
         <DesktopMenu
           label={admin ? "Profile ★" : "Profile"}
-          items={[{ href: "/profile", label: "Profile" }, ...(admin ? [{ href: "/admin" as Route, label: "Admin" }] : [])]}
+          items={[{ href: "/profile", label: "Profile" }, ...(admin ? [{ href: "/admin" as Route, label: "Admin" }, { href: "/admin/support" as Route, label: "Support Inbox" }] : [])]}
           isOpen={openMenu === "__profile"}
           onToggle={() => setOpenMenu(openMenu === "__profile" ? null : "__profile")}
           onClose={() => setOpenMenu(null)}
@@ -242,15 +242,26 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
                 </Link>
               ))}
               {admin ? (
-                <Link
-                  href="/admin"
-                  onClick={() => setDrawerOpen(false)}
-                  className={`flex min-h-[48px] w-full items-center px-4 ${
-                    isActive("/admin") ? "text-gold" : "text-gold/80 hover:text-white"
-                  }`}
-                >
-                  Admin
-                </Link>
+                <>
+                  <Link
+                    href="/admin"
+                    onClick={() => setDrawerOpen(false)}
+                    className={`flex min-h-[48px] w-full items-center px-4 ${
+                      isActive("/admin") && !isActive("/admin/support") ? "text-gold" : "text-gold/80 hover:text-white"
+                    }`}
+                  >
+                    Admin
+                  </Link>
+                  <Link
+                    href={"/admin/support" as Route}
+                    onClick={() => setDrawerOpen(false)}
+                    className={`flex min-h-[48px] w-full items-center px-4 ${
+                      isActive("/admin/support") ? "text-gold" : "text-gold/80 hover:text-white"
+                    }`}
+                  >
+                    Support Inbox
+                  </Link>
+                </>
               ) : null}
             </nav>
             <div className="space-y-3 border-t border-white/10 p-4">

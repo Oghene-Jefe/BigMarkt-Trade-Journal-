@@ -320,3 +320,27 @@ export interface NewsEvent {
   created_at: string;
   updated_at: string;
 }
+
+// Session 7: in-app support chat
+export interface SupportConversation {
+  id: string;
+  user_id: string;
+  status: 'open' | 'resolved' | 'closed';
+  subject: string | null;
+  created_at: string;
+  updated_at: string;
+  last_message_at: string | null;
+  last_message_preview: string | null;
+  unread_by_user: boolean;
+  unread_by_admin: boolean;
+}
+
+export interface SupportMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  sender_role: 'user' | 'admin';
+  body: string;
+  created_at: string;
+  read_at: string | null;
+}
