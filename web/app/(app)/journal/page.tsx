@@ -119,9 +119,10 @@ async function TradesView({
   );
 }
 
-// Returns [startOfWeekMonday, startOfNextMonday) in UTC as ISO strings.
-// We anchor on Monday because Forex Factory's "thisweek" feed is Mon→Sun.
-function currentWeekWindow(): { start: string; end: string } {
+// Returns [startOfWeekMonday, startOfMondayAfterNext) in UTC as ISO strings.
+// We anchor on Monday because Forex Factory's feeds are Mon→Sun, and we
+// surface BOTH this week and next week because the cron imports both.
+function currentTwoWeekWindow(): { start: string; end: string } {
   const now = new Date();
   const day = now.getUTCDay(); // 0 = Sun, 1 = Mon, ...
   const offsetToMonday = (day + 6) % 7; // Mon→0, Tue→1, ..., Sun→6
@@ -131,7 +132,7 @@ function currentWeekWindow(): { start: string; end: string } {
     now.getUTCDate() - offsetToMonday,
     0, 0, 0, 0,
   ));
-  const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const end = new Date(start.getTime() + 14 * 24 * 60 * 60 * 1000);
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
@@ -140,7 +141,7 @@ async function NewsView({
 }: {
   sb: Awaited<ReturnType<typeof supabaseServer>>;
 }) {
-  const { start, end } = currentWeekWindow();
+  const { start, end } = currentTwoWeekWindow();
 
   const { data, error } = await sb
     .from("news_events")

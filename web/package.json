@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "typecheck:full": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "news:run": "tsx scripts/run-news-cron.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",

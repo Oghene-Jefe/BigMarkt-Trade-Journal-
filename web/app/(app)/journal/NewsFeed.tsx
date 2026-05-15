@@ -26,6 +26,24 @@ function storyLink(e: NewsEvent): string {
   return `https://news.google.com/search?q=${q}`;
 }
 
+// Day key in the viewer's local timezone — "Mon, May 11" style. Used to
+// group events under per-day headers so a 14-day window doesn't read as a
+// 200-row wall.
+function dayKey(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function timeOnly(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
 export default function NewsFeed({ initial, windowStart, windowEnd }: Props) {
   const [events, setEvents] = useState<NewsEvent[]>(initial);
   const [error, setError] = useState<string | null>(null);
@@ -54,12 +72,26 @@ export default function NewsFeed({ initial, windowStart, windowEnd }: Props) {
   }, [fetchEvents]);
 
   const totalPages = Math.max(1, Math.ceil(events.length / PAGE_SIZE));
-  // Clamp page if the underlying list shrinks below the current page.
   const safePage = Math.min(page, totalPages - 1);
+
+  // Slice the active page first, then bucket by local-date so per-day
+  // headers appear inside the page. Within each day, order is preserved
+  // because the upstream query is ascending by event_time.
   const pageEvents = useMemo(() => {
     const start = safePage * PAGE_SIZE;
     return events.slice(start, start + PAGE_SIZE);
   }, [events, safePage]);
+
+  const grouped = useMemo(() => {
+    const buckets: { day: string; rows: NewsEvent[] }[] = [];
+    for (const e of pageEvents) {
+      const day = dayKey(e.event_time);
+      const last = buckets[buckets.length - 1];
+      if (last && last.day === day) last.rows.push(e);
+      else buckets.push({ day, rows: [e] });
+    }
+    return buckets;
+  }, [pageEvents]);
 
   if (error) {
     return (
@@ -79,7 +111,7 @@ export default function NewsFeed({ initial, windowStart, windowEnd }: Props) {
   if (events.length === 0) {
     return (
       <div className="rounded-lg border border-white/10 bg-panel p-8 text-center">
-        <p className="text-sm text-muted">No news events this week</p>
+        <p className="text-sm text-muted">No news events in the next two weeks</p>
       </div>
     );
   }
@@ -88,55 +120,62 @@ export default function NewsFeed({ initial, windowStart, windowEnd }: Props) {
   const lastShown = Math.min(firstShown + pageEvents.length - 1, events.length);
 
   return (
-    <div className="space-y-3">
-      <ul className="space-y-2">
-        {pageEvents.map((e) => (
-          <li key={e.id} className="rounded-lg border border-white/10 bg-panel p-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <a
-                href={storyLink(e)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex flex-1 items-center gap-2 font-semibold text-white hover:text-gold"
-              >
-                <span>{e.title}</span>
-                <ExternalLink
-                  size={12}
-                  aria-hidden
-                  className="text-muted group-hover:text-gold"
-                />
-              </a>
-              <ImpactPill impact={e.impact} />
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
-              <span>{fmtEventTime(e.event_time)}</span>
-              {e.currency
-                ? e.currency
-                    .split(",")
-                    .map((c) => c.trim())
-                    .filter(Boolean)
-                    .map((c) => (
-                      <span
-                        key={c}
-                        className="rounded border border-white/10 bg-black/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-white"
-                      >
-                        {c}
-                      </span>
-                    ))
-                : null}
-              <a
-                href={storyLink(e)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-auto inline-flex items-center gap-1 text-gold hover:underline"
-              >
-                <span>Read story</span>
-                <ExternalLink size={12} aria-hidden />
-              </a>
-            </div>
-          </li>
-        ))}
-      </ul>
+    <div className="space-y-4">
+      {grouped.map((bucket) => (
+        <section key={bucket.day} className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">
+            {bucket.day}
+          </h3>
+          <ul className="space-y-2">
+            {bucket.rows.map((e) => (
+              <li key={e.id} className="rounded-lg border border-white/10 bg-panel p-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <a
+                    href={storyLink(e)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex flex-1 items-center gap-2 font-semibold text-white hover:text-gold"
+                  >
+                    <span>{e.title}</span>
+                    <ExternalLink
+                      size={12}
+                      aria-hidden
+                      className="text-muted group-hover:text-gold"
+                    />
+                  </a>
+                  <ImpactPill impact={e.impact} />
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+                  <span>{timeOnly(e.event_time)}</span>
+                  {e.currency
+                    ? e.currency
+                        .split(",")
+                        .map((c) => c.trim())
+                        .filter(Boolean)
+                        .map((c) => (
+                          <span
+                            key={c}
+                            className="rounded border border-white/10 bg-black/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-white"
+                          >
+                            {c}
+                          </span>
+                        ))
+                    : null}
+                  <a
+                    href={storyLink(e)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-auto inline-flex items-center gap-1 text-gold hover:underline"
+                  >
+                    <span>Read story</span>
+                    <ExternalLink size={12} aria-hidden />
+                  </a>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
 
       <div className="flex items-center justify-between text-xs text-muted">
         <span>
@@ -184,16 +223,4 @@ function ImpactPill({ impact }: { impact: NewsEvent["impact"] }) {
       {impact ?? "—"}
     </span>
   );
-}
-
-function fmtEventTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
