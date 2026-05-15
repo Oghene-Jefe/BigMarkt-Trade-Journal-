@@ -159,7 +159,20 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
         {/* Profile menu — separate from the four content groups */}
         <DesktopMenu
           label={admin ? "Profile ★" : "Profile"}
-          items={[{ href: "/profile", label: "Profile" }, ...(admin ? [{ href: "/admin" as Route, label: "Admin" }, { href: "/admin/support" as Route, label: "Support Inbox" }] : [])]}
+          items={[
+            { href: "/profile", label: "Profile" },
+            ...(admin
+              ? [
+                  { href: "/admin" as Route, label: "Admin · Dashboard" },
+                  { href: "/admin/users" as Route, label: "Admin · Users" },
+                  { href: "/admin/trades" as Route, label: "Admin · Trades" },
+                  { href: "/admin/support" as Route, label: "Admin · Support" },
+                  { href: "/admin/leaderboard" as Route, label: "Admin · Leaderboard" },
+                  { href: "/admin/brokers" as Route, label: "Admin · Brokers" },
+                  { href: "/admin/broadcast" as Route, label: "Admin · Broadcast" },
+                ]
+              : []),
+          ]}
           isOpen={openMenu === "__profile"}
           onToggle={() => setOpenMenu(openMenu === "__profile" ? null : "__profile")}
           onClose={() => setOpenMenu(null)}
@@ -243,24 +256,28 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
               ))}
               {admin ? (
                 <>
-                  <Link
-                    href="/admin"
-                    onClick={() => setDrawerOpen(false)}
-                    className={`flex min-h-[48px] w-full items-center px-4 ${
-                      isActive("/admin") && !isActive("/admin/support") ? "text-gold" : "text-gold/80 hover:text-white"
-                    }`}
-                  >
-                    Admin
-                  </Link>
-                  <Link
-                    href={"/admin/support" as Route}
-                    onClick={() => setDrawerOpen(false)}
-                    className={`flex min-h-[48px] w-full items-center px-4 ${
-                      isActive("/admin/support") ? "text-gold" : "text-gold/80 hover:text-white"
-                    }`}
-                  >
-                    Support Inbox
-                  </Link>
+                  {(
+                    [
+                      ["/admin", "Admin"],
+                      ["/admin/users", "Admin · Users"],
+                      ["/admin/trades", "Admin · Trades"],
+                      ["/admin/support", "Admin · Support"],
+                      ["/admin/leaderboard", "Admin · Leaderboard"],
+                      ["/admin/brokers", "Admin · Brokers"],
+                      ["/admin/broadcast", "Admin · Broadcast"],
+                    ] as Array<[Route, string]>
+                  ).map(([href, label]) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setDrawerOpen(false)}
+                      className={`flex min-h-[48px] w-full items-center px-4 ${
+                        pathname === href ? "text-gold" : "text-gold/80 hover:text-white"
+                      }`}
+                    >
+                      {label}
+                    </Link>
+                  ))}
                 </>
               ) : null}
             </nav>
