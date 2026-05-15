@@ -9,6 +9,7 @@ import {
   saveStep3Action,
   skipOnboardingAction,
 } from "./actions";
+import Logo from "@/components/ui/Logo";
 
 type Mode = "manual" | "automated";
 type Visibility = "private" | "community" | "public";
@@ -117,7 +118,7 @@ export default function OnboardingWizard(props: Props) {
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col px-4 py-6">
       <header className="mb-8 flex items-center justify-between">
-        <span className="font-display text-2xl tracking-widest text-gold">BIGMARKT</span>
+        <Logo size="md" />
         <span className="text-xs uppercase tracking-wider text-muted">Step {step} of 3</span>
       </header>
 

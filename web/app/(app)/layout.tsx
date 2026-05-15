@@ -4,6 +4,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import { getUnreadNotificationCountAction } from "@/lib/actions/notifications";
 import DrawerNav from "./DrawerNav";
+import Logo from "@/components/ui/Logo";
 
 // Auth gate for the app shell. Every page under (app) requires a session.
 // Admin link only renders if is_admin(auth.uid()) — non-admins never see
@@ -26,8 +27,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       */}
       <header className="sticky top-0 z-30 border-b border-white/10 bg-panel">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <Link href="/dashboard" className="font-display text-2xl tracking-widest text-gold">
-            BIGMARKT
+          <Link href="/dashboard">
+            <Logo size="md" />
           </Link>
           <DrawerNav admin={admin} unreadCount={unreadCount} userEmail={user.email ?? ""} />
         </div>

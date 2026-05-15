@@ -4,6 +4,10 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "BigMarkt Trade Journal",
   description: "Built for traders, by traders.",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 // Run synchronously before first paint to apply the right theme class.

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
+import Logo from "@/components/ui/Logo";
 
 export const dynamic = "force-dynamic";
 
@@ -191,7 +192,7 @@ export default async function Home() {
         <div className="mx-auto max-w-5xl">
           <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
             <div>
-              <p className="font-display text-2xl tracking-widest text-gold">BIGMARKT</p>
+              <Logo size="md" />
               <p className="mt-1 text-xs uppercase tracking-[0.3em] text-muted">
                 Trade. Verify. Earn.
               </p>

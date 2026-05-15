@@ -6,6 +6,7 @@ import TrustBadge from "@/components/TrustBadge";
 import FollowButton from "@/components/FollowButton";
 import Link from "next/link";
 import type { PublicProfileFull, PublicTrade, Subscription } from "@/lib/types";
+import Logo from "@/components/ui/Logo";
 
 export const dynamic = "force-dynamic";
 
@@ -58,8 +59,8 @@ export default async function UsernameProfilePage({
   return (
     <main className="mx-auto max-w-3xl p-6">
       <header className="mb-8 flex items-center justify-between">
-        <Link href="/" className="font-display text-2xl tracking-widest text-gold">
-          BIGMARKT
+        <Link href="/">
+          <Logo size="md" />
         </Link>
         <Link href="/leaderboard" className="text-xs text-muted hover:text-white">
           Leaderboard →

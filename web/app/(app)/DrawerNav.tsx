@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { logoutAction } from "../(auth)/actions";
 import ThemeToggle from "@/components/ThemeToggle";
+import Logo from "@/components/ui/Logo";
 
 type Props = {
   admin: boolean;
@@ -223,6 +224,9 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
               >
                 ✕
               </button>
+            </div>
+            <div className="flex justify-center py-4 border-b border-gold/20">
+              <Logo size="md" />
             </div>
             <nav className="flex-1 overflow-y-auto py-2">
               {MOBILE_LINKS.map((l) => (
