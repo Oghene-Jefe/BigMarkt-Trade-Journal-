@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { tradeSchema, tradeVisibility } from "@/lib/schemas";
+import { updateChallengeStreak } from "@/lib/challengeStreak";
 
 export type TradeActionState = { error?: string; ok?: string; fieldErrors?: Record<string, string> };
 
@@ -114,6 +115,13 @@ export async function createTradeAction(_: TradeActionState, fd: FormData): Prom
   }
   if (upload && "path" in upload) {
     await sb.from("trades").update({ chart_path: upload.path }).eq("id", inserted.id).eq("user_id", user.id);
+  }
+
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    await updateChallengeStreak(sb, user.id, today);
+  } catch (err) {
+    console.error("updateChallengeStreak failed:", err);
   }
 
   revalidatePath("/journal");

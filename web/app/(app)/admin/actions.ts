@@ -326,3 +326,49 @@ export async function broadcastNotificationAction(
   if (error) return { ok: false, message: error.message };
   return { ok: true, message: `Broadcast sent to ${rows.length} users.` };
 }
+
+// ---------------------------------------------------------------------------
+// Dispute resolution
+// ---------------------------------------------------------------------------
+const resolveDisputeSchema = z.object({
+  id: z.string().uuid(),
+  resolution: z.enum(["resolved", "dismissed"]),
+  note: z.string().trim().max(2000).optional(),
+});
+
+export async function resolveDisputeAction(fd: FormData) {
+  if (!(await isAdmin())) return;
+  const parsed = resolveDisputeSchema.safeParse({
+    id: fd.get("id"),
+    resolution: fd.get("resolution"),
+    note: fd.get("note") ?? "",
+  });
+  if (!parsed.success) return;
+
+  const sb = await supabaseServer();
+  const { data: { user: admin } } = await sb.auth.getUser();
+  if (!admin) return;
+
+  const { data: dispute } = await sb
+    .from("disputes")
+    .select("raised_by, leader_id")
+    .eq("id", parsed.data.id)
+    .maybeSingle();
+  if (!dispute) return;
+
+  const { error } = await sb
+    .from("disputes")
+    .update({
+      status: parsed.data.resolution,
+      resolution_notes: parsed.data.note || null,
+      resolved_by: admin.id,
+      resolved_at: new Date().toISOString(),
+    })
+    .eq("id", parsed.data.id);
+  if (error) return;
+
+  const { notifyDisputeUpdate } = await import("@/lib/actions/notificationTriggers");
+  await notifyDisputeUpdate(sb, dispute.raised_by as string, parsed.data.resolution);
+
+  revalidatePath("/admin/disputes");
+}

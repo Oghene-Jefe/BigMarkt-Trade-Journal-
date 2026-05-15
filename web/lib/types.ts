@@ -110,6 +110,8 @@ export type ChallengeRow = {
   current_streak: number | null;
   longest_streak: number | null;
   badge_earned: string | null;
+  last_trade_date: string | null;
+  streak_broken_at: string | null;
   created_at: string;
   completed_at: string | null;
 };
@@ -269,7 +271,9 @@ export type NotificationType =
   | 'dispute_opened'
   | 'dispute_resolved'
   | 'subscription_cancelled'
-  | 'new_follower';
+  | 'new_follower'
+  | 'trade_approved'
+  | 'challenge_badge';
 
 export interface Notification {
   id: string;

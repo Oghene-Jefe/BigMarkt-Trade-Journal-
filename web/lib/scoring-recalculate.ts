@@ -54,14 +54,32 @@ export async function recalculateAccountScoreWithClient(
     return { error: "Account not found" };
   }
 
-  const { data: tradeRows, error: tradesErr } = await sb
+  // Scoring boundary: only trades after the user's most recent balance reset
+  // count. Resets are how a trader signals "start a fresh score" — pre-reset
+  // history is intentionally excluded from the leaderboard score, even though
+  // it remains visible everywhere else (journal, analytics).
+  const { data: lastReset } = await sb
+    .from("balance_resets")
+    .select("created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const resetBoundary = lastReset?.created_at as string | undefined;
+
+  let tradesQuery = sb
     .from("trades")
     .select(
       "pnl, rr_ratio, result, trust_badge, created_at, entry_price, exit_price, stop_loss",
     )
     .eq("broker_account_id", accountId)
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true });
+    .eq("user_id", userId);
+  if (resetBoundary) {
+    tradesQuery = tradesQuery.gt("created_at", resetBoundary);
+  }
+  const { data: tradeRows, error: tradesErr } = await tradesQuery.order("created_at", {
+    ascending: true,
+  });
 
   if (tradesErr) {
     return { error: tradesErr.message };

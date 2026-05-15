@@ -263,6 +263,52 @@ export default async function EaSetupPage() {
           </ul>
         </div>
       </section>
+
+      {/* FAQ */}
+      <section className="space-y-3 rounded-2xl border border-white/10 bg-panel p-5">
+        <h2 className="font-display text-lg tracking-widest text-gold">FAQ</h2>
+        <div className="space-y-2">
+          <details className="group rounded-lg border border-white/10 bg-black/20 p-3 open:bg-black/30">
+            <summary className="flex cursor-pointer items-center justify-between text-sm font-medium text-white">
+              <span>Which brokers are supported?</span>
+              <span className="text-gold transition-transform group-open:rotate-90">›</span>
+            </summary>
+            <p className="mt-2 text-sm text-white/70">
+              BigMarkt EA works with any MT4/MT5 broker. Check our{" "}
+              <a href="/brokers" className="text-gold underline hover:text-white">
+                recommended brokers
+              </a>{" "}
+              list for verified options.
+            </p>
+          </details>
+          <details className="group rounded-lg border border-white/10 bg-black/20 p-3 open:bg-black/30">
+            <summary className="flex cursor-pointer items-center justify-between text-sm font-medium text-white">
+              <span>Why are my trades not appearing?</span>
+              <span className="text-gold transition-transform group-open:rotate-90">›</span>
+            </summary>
+            <p className="mt-2 text-sm text-white/70">
+              Ensure the EA is enabled and AutoTrading is turned on in MetaTrader.
+              Check that your token is entered correctly in the EA settings, and
+              that the WebRequest URL allow-list includes{" "}
+              <code className="rounded bg-black/40 px-1 font-mono text-xs">
+                https://journal.bigmarkt.co
+              </code>
+              .
+            </p>
+          </details>
+          <details className="group rounded-lg border border-white/10 bg-black/20 p-3 open:bg-black/30">
+            <summary className="flex cursor-pointer items-center justify-between text-sm font-medium text-white">
+              <span>Can I use the EA on multiple accounts?</span>
+              <span className="text-gold transition-transform group-open:rotate-90">›</span>
+            </summary>
+            <p className="mt-2 text-sm text-white/70">
+              Yes. Generate a separate token for each MetaTrader instance from
+              Step 1, then install the EA on each terminal. All trades will
+              appear in your unified BigMarkt journal.
+            </p>
+          </details>
+        </div>
+      </section>
     </div>
   );
 }
