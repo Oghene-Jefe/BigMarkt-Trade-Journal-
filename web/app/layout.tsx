@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "BigMarkt Trade Journal",
@@ -32,14 +33,23 @@ const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('bm_theme'
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* Inline pre-paint theme bootstrap. suppressHydrationWarning on
-            <html> above silences React's warning about the class attribute
-            differing between server and client (the script adds the class
-            before React hydrates). */}
-        <script>{THEME_INIT_SCRIPT}</script>
-      </head>
-      <body className="min-h-screen bg-bg text-white antialiased">{children}</body>
+      <body className="min-h-screen bg-bg text-white antialiased">
+        {/* Inline pre-paint theme bootstrap via next/script with the
+            beforeInteractive strategy — Next emits this as a synchronous
+            inline <script> placed before any other scripts, guaranteed
+            to run before body paint. The plain <script>{...}</script>
+            JSX form caused a visible dark flash on data-heavy refreshes
+            (most noticeable on the news page) because React was
+            injecting the script via DOM after paint.
+
+            suppressHydrationWarning on <html> above silences React's
+            warning about the class attribute differing between server
+            and client (the script adds the class before hydration). */}
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_INIT_SCRIPT}
+        </Script>
+        {children}
+      </body>
     </html>
   );
 }
