@@ -36,7 +36,9 @@ function resultColor(r: TradeCardProps["result"]) {
 }
 
 function resultIcon(r: TradeCardProps["result"]) {
-  return r === "WIN" ? "✅" : r === "LOSS" ? "❌" : "➖";
+  // Text glyphs render reliably in the share-card PNG export (the card is
+  // captured via html-to-image, which doesn't always include emoji fonts).
+  return r === "WIN" ? "↑" : r === "LOSS" ? "↓" : "·";
 }
 
 function directionColor(d: TradeCardProps["direction"]) {

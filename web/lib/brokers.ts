@@ -14,33 +14,37 @@ export type Broker = {
   eaDownload?: boolean;
 };
 
+// `dotClass` is a Tailwind background utility for a small status dot the
+// callers render as <span class="h-2 w-2 rounded-full ${dotClass}" />.
+// Replaced emoji glyphs (🟢🟡🔴⚫) that didn't fit the broader operational-UI
+// no-emoji rule.
 export const STATUS_META: Record<
   BrokerStatus,
-  { label: string; color: string; bg: string; dot: string }
+  { label: string; color: string; bg: string; dotClass: string }
 > = {
   supported: {
     label: "Supported",
     color: "text-emerald-400",
     bg: "bg-emerald-500/10 border-emerald-500/30",
-    dot: "🟢",
+    dotClass: "bg-emerald-400",
   },
   partial: {
     label: "Partial",
     color: "text-amber-400",
     bg: "bg-amber-500/10 border-amber-500/30",
-    dot: "🟡",
+    dotClass: "bg-amber-400",
   },
   unsupported: {
     label: "Unsupported",
     color: "text-rose-400",
     bg: "bg-rose-500/10 border-rose-500/30",
-    dot: "🔴",
+    dotClass: "bg-rose-400",
   },
   inactive: {
     label: "Inactive",
     color: "text-white/40",
     bg: "bg-white/5 border-white/10",
-    dot: "⚫",
+    dotClass: "bg-white/30",
   },
 };
 

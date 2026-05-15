@@ -61,9 +61,10 @@ export default function BrokersPage() {
           return (
             <span
               key={s}
-              className={`rounded-full border px-3 py-1 text-xs ${meta.bg} ${meta.color}`}
+              className={`inline-flex items-center gap-2 rounded-md border px-3 py-1 text-xs ${meta.bg} ${meta.color}`}
             >
-              {meta.dot} {meta.label}
+              <span className={`h-1.5 w-1.5 rounded-full ${meta.dotClass}`} aria-hidden />
+              <span>{meta.label}</span>
             </span>
           );
         })}
@@ -114,7 +115,10 @@ export default function BrokersPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="flex items-center gap-2 text-base font-semibold">
-                      <span aria-hidden>{meta.dot}</span>
+                      <span
+                        aria-hidden
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${meta.dotClass}`}
+                      />
                       <span className="truncate">{b.name}</span>
                     </h2>
                     <div className="mt-1 flex flex-wrap gap-1.5">

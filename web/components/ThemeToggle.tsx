@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Sun, Moon, Monitor } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 // Three-mode theme picker:
 //   "light" — force light, ignore OS
@@ -88,9 +90,9 @@ export default function ThemeToggle({ variant = "inline" }: { variant?: Variant 
 
   return (
     <div role="radiogroup" aria-label="Theme" className={containerClass}>
-      <Option current={theme} value="light" label="Light" icon="☀" onSelect={setTheme} variant={variant} />
-      <Option current={theme} value="dark" label="Dark" icon="☾" onSelect={setTheme} variant={variant} />
-      <Option current={theme} value="auto" label="Auto" icon="⌖" onSelect={setTheme} variant={variant} />
+      <Option current={theme} value="light" label="Light" Icon={Sun} onSelect={setTheme} variant={variant} />
+      <Option current={theme} value="dark" label="Dark" Icon={Moon} onSelect={setTheme} variant={variant} />
+      <Option current={theme} value="auto" label="Auto" Icon={Monitor} onSelect={setTheme} variant={variant} />
     </div>
   );
 }
@@ -99,14 +101,14 @@ function Option({
   current,
   value,
   label,
-  icon,
+  Icon,
   onSelect,
   variant,
 }: {
   current: Theme;
   value: Theme;
   label: string;
-  icon: string;
+  Icon: LucideIcon;
   onSelect: (t: Theme) => void;
   variant: Variant;
 }) {
@@ -122,7 +124,7 @@ function Option({
       onClick={() => onSelect(value)}
       className={variant === "stacked" ? stacked : inline}
     >
-      <span aria-hidden="true">{icon}</span>
+      <Icon size={14} aria-hidden />
       <span>{label}</span>
     </button>
   );

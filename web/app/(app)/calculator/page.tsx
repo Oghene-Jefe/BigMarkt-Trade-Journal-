@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 
 type Unit = "pips" | "points";
 
@@ -207,7 +208,7 @@ export default function CalculatorPage() {
               className="font-display text-5xl"
               style={{ color: lotTooSmall ? "#EF4444" : "#D4AF37" }}
             >
-              {calc ? (lotTooSmall ? "✕" : calc.lot.toFixed(2)) : "—"}
+              {calc ? (lotTooSmall ? "—" : calc.lot.toFixed(2)) : "—"}
             </div>
             <div className="text-xs text-muted">
               {calc
@@ -288,8 +289,12 @@ function Warning({
         color: "#fff",
       }}
     >
-      <div className="font-display tracking-widest" style={{ color: tone === "danger" ? "#EF4444" : "#D4AF37" }}>
-        ⚠️ {title}
+      <div
+        className="flex items-center gap-2 text-sm font-medium"
+        style={{ color: tone === "danger" ? "#EF4444" : "#D4AF37" }}
+      >
+        <AlertTriangle size={14} aria-hidden />
+        <span>{title}</span>
       </div>
       <div className="mt-1 text-xs text-muted">{children}</div>
     </div>

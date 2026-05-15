@@ -164,7 +164,7 @@ export default function ChatWidget({ userId, username }: ChatWidgetProps) {
         ) : messages.length === 0 ? (
           <div style={{ marginTop: 24, textAlign: "center" }}>
             <p style={{ color: GOLD, fontSize: 16, marginBottom: 8 }}>
-              👋 Hi {username}!
+              Hi {username}.
             </p>
             <p style={{ color: TEXT_MUTED, fontSize: 12, lineHeight: 1.5 }}>
               Send us a message and we&apos;ll get back to you shortly.

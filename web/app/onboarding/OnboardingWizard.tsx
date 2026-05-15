@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { PenLine, Bot, Lock, Users, Globe } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import {
   checkUsernameAvailableAction,
   saveStep1Action,
@@ -183,14 +185,14 @@ export default function OnboardingWizard(props: Props) {
             </h1>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <ModeCard
-                icon="✍️"
+                Icon={PenLine}
                 title="Manual"
                 body="I will log trades myself after each session"
                 selected={mode === "manual"}
                 onSelect={() => setMode("manual")}
               />
               <ModeCard
-                icon="🤖"
+                Icon={Bot}
                 title="Automated"
                 body="I will connect my broker and capture trades automatically"
                 selected={mode === "automated"}
@@ -208,7 +210,7 @@ export default function OnboardingWizard(props: Props) {
             </h1>
             <div className="flex flex-col gap-3">
               <ModeCard
-                icon="🔒"
+                Icon={Lock}
                 title="Private"
                 body="Only you can see your trades and stats"
                 selected={visibility === "private"}
@@ -216,7 +218,7 @@ export default function OnboardingWizard(props: Props) {
                 stacked
               />
               <ModeCard
-                icon="👥"
+                Icon={Users}
                 title="Community"
                 body="Logged-in BigMarkt members can see your stats"
                 selected={visibility === "community"}
@@ -224,7 +226,7 @@ export default function OnboardingWizard(props: Props) {
                 stacked
               />
               <ModeCard
-                icon="🌐"
+                Icon={Globe}
                 title="Public"
                 body="Anyone with your profile link can see your full profile"
                 selected={visibility === "public"}
@@ -294,14 +296,14 @@ export default function OnboardingWizard(props: Props) {
 }
 
 function ModeCard({
-  icon,
+  Icon,
   title,
   body,
   selected,
   onSelect,
   stacked,
 }: {
-  icon: string;
+  Icon: LucideIcon;
   title: string;
   body: string;
   selected: boolean;
@@ -312,16 +314,18 @@ function ModeCard({
     <button
       type="button"
       onClick={onSelect}
-      className={`text-left rounded-xl border px-4 py-4 transition ${
+      className={`text-left rounded-lg border px-4 py-4 transition ${
         selected
           ? "border-gold bg-gold/10"
           : "border-white/15 bg-panel hover:border-white/30"
       } ${stacked ? "" : "min-h-[140px]"}`}
     >
       <div className="flex items-start gap-3">
-        <span className="text-2xl" aria-hidden>
-          {icon}
-        </span>
+        <Icon
+          size={20}
+          aria-hidden
+          className={selected ? "text-gold" : "text-muted"}
+        />
         <div className="min-w-0">
           <p className={`font-medium ${selected ? "text-gold" : "text-white"}`}>{title}</p>
           <p className="mt-1 text-xs text-muted">{body}</p>

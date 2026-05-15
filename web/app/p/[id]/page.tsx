@@ -51,7 +51,7 @@ export default async function PublicProfilePage({
   }
 
   const journalModeLabel = profile.journal_mode === "automated"
-    ? "🔵 AUTO-VERIFIED JOURNAL"
+    ? "Auto-verified journal"
     : null;
 
   return (

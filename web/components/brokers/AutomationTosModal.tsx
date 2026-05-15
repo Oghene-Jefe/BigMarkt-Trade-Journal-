@@ -108,9 +108,9 @@ export default function AutomationTosModal({
             </li>
           </ol>
 
-          <div className="rounded-xl border border-orange-500/40 bg-orange-500/10 p-4">
+          <div className="rounded-lg border border-orange-500/40 bg-orange-500/10 p-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-orange-300">
-              🟠 Prop Firm Users — Read This
+              Prop firm users — read this
             </p>
             <p className="mt-2 text-xs leading-relaxed text-orange-100/90">
               If your account is a prop firm challenge or funded account, copy
