@@ -92,7 +92,19 @@ export default async function TradeDetailPage({
   const result: "WIN" | "LOSS" | "BREAKEVEN" =
     resultRaw === "WIN" ? "WIN" : resultRaw === "LOSS" ? "LOSS" : "BREAKEVEN";
 
-  const username = (user.email ?? "trader").split("@")[0];
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("username, display_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const emailLocal = (user.email ?? "trader").split("@")[0];
+  const username =
+    (profile?.username && profile.username.trim()) ||
+    (profile?.display_name && profile.display_name.trim()) ||
+    emailLocal;
+  const profileUrl = profile?.username ? `/${profile.username}` : `/p/${user.id}`;
+
   const createdAt = typeof t.created_at === "string" ? t.created_at : new Date().toISOString();
 
   const chartPath = typeof t.chart_path === "string" ? t.chart_path : null;
@@ -123,6 +135,7 @@ export default async function TradeDetailPage({
         emotions={typeof t.emotions === "string" ? t.emotions : null}
         tags={parseTags(t.tags)}
         username={username}
+        profileUrl={profileUrl}
         createdAt={createdAt}
       />
 

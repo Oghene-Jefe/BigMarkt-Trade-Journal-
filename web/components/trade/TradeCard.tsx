@@ -18,6 +18,7 @@ export interface TradeCardProps {
   emotions: string | null;
   tags: string[] | null;
   username: string;
+  profileUrl: string;
   createdAt: string;
   id?: string;
 }
@@ -57,7 +58,7 @@ const TradeCard = forwardRef<HTMLDivElement, TradeCardProps>(function TradeCard(
   const {
     pair, direction, result, pnl, rrRatio, lotSize, setupGrade,
     entry, exit, stopLoss, takeProfit, session, strategy, emotions, tags,
-    username, createdAt, id,
+    username, profileUrl, createdAt, id,
   } = props;
 
   const rColor = resultColor(result);
@@ -150,9 +151,15 @@ const TradeCard = forwardRef<HTMLDivElement, TradeCardProps>(function TradeCard(
         style={{ borderColor: `${GOLD}33` }}
       >
         <span style={{ color: MUTED }}>{fmtDate(createdAt)}</span>
-        <span style={{ color: `${GOLD}AA` }} className="font-mono tracking-wide">
-          journal.bigmarkt.co
-        </span>
+        <a
+          href={profileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: `${GOLD}AA`, textDecoration: "none" }}
+          className="font-mono tracking-wide hover:underline"
+        >
+          journal.bigmarkt.co/{username}
+        </a>
       </div>
     </div>
   );
