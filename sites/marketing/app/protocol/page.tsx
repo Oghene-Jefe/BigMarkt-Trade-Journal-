@@ -10,9 +10,9 @@ const layers = [
   {
     n: "01",
     name: "Proof Layer",
-    summary: "Tamper-evident trade capture.",
+    summary: "Server-captured trade history.",
     detail:
-      "The MT4/MT5 Expert Advisor reads every fill from the trader's broker terminal and ships it to the journal in real time. Trades arrive timestamped, hash-anchored, and append-only — no manual edit path, no screenshot upload, no after-the-fact rewrite. The journal entry is what the broker confirmed, period.",
+      "The MT4/MT5 Expert Advisor reads every fill from the trader's broker terminal and ships it to the journal in real time. Trades arrive timestamped server-side, with no manual edit path, no screenshot upload, and no after-the-fact rewrite. The journal entry is what the broker confirmed.",
   },
   {
     n: "02",
@@ -31,16 +31,16 @@ const layers = [
   {
     n: "04",
     name: "Settlement Layer",
-    summary: "$BMT-routed payment rail.",
+    summary: "$BMT-routed payment rail (planned).",
     detail:
-      "Subscriptions, leader payouts, copy-vault performance fees, and dispute stakes settle through $BMT on Solana. Users top up in USDT, the protocol routes USDT → $BMT → USDT under the hood, so leaders and followers never need to think about token mechanics.",
+      "Planned for a later phase. Subscriptions, leader payouts, copy-vault performance fees, and dispute stakes will settle through $BMT on Solana. Users will top up in USDT, with the protocol routing USDT → $BMT → USDT under the hood so leaders and followers never need to think about token mechanics.",
   },
   {
     n: "05",
     name: "Protocol Layer",
-    summary: "On-chain reputation and governance.",
+    summary: "On-chain reputation and governance (planned).",
     detail:
-      "A trader's verified history is portable and cryptographically attestable. Disputes are resolved by staked arbiters. Protocol parameters — fee splits, slashing thresholds, leader tier gates — are governed by $BMT holders.",
+      "Planned for a later phase. A trader's verified history becomes portable and cryptographically attestable. Disputes are resolved by staked arbiters. Protocol parameters — fee splits, slashing thresholds, leader tier gates — are governed by $BMT holders.",
   },
 ];
 

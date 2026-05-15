@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
+import { ShieldCheck, BarChart3, Bell, ArrowRight } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import Logo from "@/components/ui/Logo";
 
@@ -63,24 +64,24 @@ export default async function Home() {
         <h1 className="font-display text-4xl leading-tight tracking-wider sm:text-6xl">
           <span className="block">The Verified</span>
           <span className="block text-gold">Trading Journal.</span>
-          <span className="block text-muted">Your reputation. On-chain.</span>
+          <span className="block text-muted">Verified by your broker.</span>
         </h1>
         <p className="mt-6 max-w-2xl text-base text-muted sm:text-lg">
-          Auto-capture every trade from your broker. Build a verified public record.
-          Follow the best traders in the world.
+          Auto-capture every trade from your broker. Build a public record you can
+          point to. Follow leaders ranked on real, broker-reported performance.
         </p>
         <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
             href="/signup"
-            className="rounded-md bg-gold px-6 py-3 text-center font-display tracking-widest text-black hover:bg-gold/90 sm:w-auto"
+            className="rounded-md bg-gold px-6 py-3 text-center text-sm font-medium text-black hover:bg-gold/90 sm:w-auto"
           >
-            START FREE
+            Start free
           </Link>
           <Link
             href="/leaderboard"
-            className="rounded-md border border-gold px-6 py-3 text-center font-display tracking-widest text-gold hover:bg-gold/10 sm:w-auto"
+            className="rounded-md border border-gold px-6 py-3 text-center text-sm font-medium text-gold hover:bg-gold/10 sm:w-auto"
           >
-            SEE THE LEADERBOARD
+            See the leaderboard
           </Link>
         </div>
         <p className="mt-10 text-xs uppercase tracking-[0.25em] text-muted">
@@ -100,19 +101,19 @@ export default async function Home() {
           </h2>
           <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
             <FeatureCard
-              icon="🔵"
-              title="Auto-Verified"
-              body="Your MT4/MT5 EA captures every trade in real time. Immutable. Timestamped. Locked."
+              icon={<ShieldCheck size={28} aria-hidden />}
+              title="Auto-captured"
+              body="Your MT4/MT5 EA streams every fill into your journal. Timestamped server-side, never edited after the fact."
             />
             <FeatureCard
-              icon="📊"
-              title="Public Leaderboard"
-              body="Ranked by real performance. Win rate, expectancy, drawdown. No screenshots accepted."
+              icon={<BarChart3 size={28} aria-hidden />}
+              title="Public leaderboard"
+              body="Ranked on real broker-reported performance — win rate, expectancy, drawdown. Trades come from your broker, not screenshots."
             />
             <FeatureCard
-              icon="🔔"
-              title="Follow Top Traders"
-              body="Subscribe to verified leaders. Signals delivered to your journal. Copy execution coming in Phase 3."
+              icon={<Bell size={28} aria-hidden />}
+              title="Follow top traders"
+              body="Subscribe to leaders. Signals are delivered to your journal as data. Copy execution is on the roadmap."
             />
           </div>
         </div>
@@ -122,18 +123,21 @@ export default async function Home() {
       <section className="border-t border-white/10 px-4 py-16">
         <div className="mx-auto max-w-5xl">
           <h2 className="text-center font-display text-3xl tracking-wider text-gold sm:text-4xl">
-            The verified leaderboard. Live.
+            Live leaderboard.
           </h2>
+          <p className="mx-auto mt-3 max-w-xl text-center text-sm text-muted">
+            Ranked on real, broker-reported performance.
+          </p>
           {leaders.length === 0 ? (
-            <div className="mt-10 rounded-2xl border border-white/10 bg-panel px-6 py-10 text-center">
+            <div className="mt-10 rounded-lg border border-white/10 bg-panel px-6 py-10 text-center">
               <p className="text-muted">
                 Leaderboard fills as traders connect their brokers. Be one of the first.
               </p>
               <Link
                 href="/signup"
-                className="mt-5 inline-block rounded-md bg-gold px-5 py-2 font-display tracking-widest text-black hover:bg-gold/90"
+                className="mt-5 inline-block rounded-md bg-gold px-5 py-2 text-sm font-medium text-black hover:bg-gold/90"
               >
-                START FREE
+                Start free
               </Link>
             </div>
           ) : (
@@ -144,8 +148,12 @@ export default async function Home() {
             </div>
           )}
           <div className="mt-8 text-center">
-            <Link href="/leaderboard" className="text-sm text-gold hover:underline">
-              View Full Leaderboard →
+            <Link
+              href="/leaderboard"
+              className="inline-flex items-center gap-1 text-sm text-gold hover:underline"
+            >
+              <span>View full leaderboard</span>
+              <ArrowRight size={14} aria-hidden />
             </Link>
           </div>
         </div>
@@ -216,11 +224,19 @@ export default async function Home() {
   );
 }
 
-function FeatureCard({ icon, title, body }: { icon: string; title: string; body: string }) {
+function FeatureCard({
+  icon,
+  title,
+  body,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+}) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-panel p-6">
-      <div className="text-3xl" aria-hidden>{icon}</div>
-      <h3 className="mt-3 font-display text-xl tracking-wider text-white">{title}</h3>
+    <div className="rounded-lg border border-white/10 bg-panel p-6">
+      <div className="text-gold">{icon}</div>
+      <h3 className="mt-3 text-lg font-semibold text-white">{title}</h3>
       <p className="mt-2 text-sm text-muted">{body}</p>
     </div>
   );
@@ -233,7 +249,7 @@ function LeaderCard({ rank, leader }: { rank: number; leader: LeaderRow }) {
   const topBadge = leader.badges && leader.badges.length > 0 ? leader.badges[0] : null;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-panel p-5">
+    <div className="rounded-lg border border-white/10 bg-panel p-5">
       <div className="flex items-center gap-3">
         <span className="font-display text-2xl text-gold">#{rank}</span>
         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gold/20 font-display text-sm tracking-wider text-gold">
@@ -278,7 +294,7 @@ function EcoCard({
   internal?: boolean;
 }) {
   const className =
-    "block rounded-2xl border border-white/10 bg-panel p-5 hover:border-gold/40";
+    "block rounded-lg border border-white/10 bg-panel p-5 hover:border-gold/40";
   const inner = (
     <>
       <p className="text-xs uppercase tracking-wider text-muted">{domain}</p>

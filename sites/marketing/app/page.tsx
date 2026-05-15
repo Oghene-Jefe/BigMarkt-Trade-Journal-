@@ -4,23 +4,23 @@ import StatBar from "./_components/StatBar";
 
 const features = [
   {
-    tag: "AUTO-VERIFIED",
-    body: "Your MT4/MT5 EA captures every trade in real time. Immutable. Timestamped. Locked.",
+    tag: "AUTO-CAPTURED",
+    body: "Your MT4/MT5 EA streams every fill into your journal. Timestamped server-side, never edited after the fact.",
   },
   {
     tag: "PUBLIC LEADERBOARD",
-    body: "Ranked by real performance. Win rate, expectancy, drawdown. No screenshots accepted.",
+    body: "Ranked on real broker-reported performance — win rate, expectancy, drawdown. Trades come from your broker, not screenshots.",
   },
   {
     tag: "FOLLOW TOP TRADERS",
-    body: "Subscribe to verified leaders. Signals delivered to your journal. Copy execution coming in Phase 3.",
+    body: "Subscribe to leaders. Signals are delivered to your journal as data. Copy execution is on the roadmap.",
   },
 ];
 
 const layers = [
-  { n: "01", name: "Proof Layer", desc: "Tamper-evident trade capture from broker to journal.", phase: "Phase 1 · Live" },
-  { n: "02", name: "Coordination Layer", desc: "Leaderboards, profiles, and verified rank discovery.", phase: "Phase 1 · Live" },
-  { n: "03", name: "Signal Layer", desc: "Journal-to-journal signal flow between verified leaders and followers.", phase: "Phase 2 · Building" },
+  { n: "01", name: "Proof Layer", desc: "Server-side trade capture from broker to journal.", phase: "Phase 1 · Live" },
+  { n: "02", name: "Coordination Layer", desc: "Leaderboards, profiles, and rank discovery.", phase: "Phase 1 · Live" },
+  { n: "03", name: "Signal Layer", desc: "Journal-to-journal signal flow between leaders and followers.", phase: "Phase 2 · Building" },
   { n: "04", name: "Settlement Layer", desc: "$BMT-routed payment rail for subscriptions and performance.", phase: "Phase 3 · Planned" },
   { n: "05", name: "Protocol Layer", desc: "On-chain reputation, governance, and dispute resolution.", phase: "Phase 4 · Planned" },
 ];
@@ -47,11 +47,11 @@ export default function Home() {
           <h1 className="font-bold leading-[1.05] tracking-tight text-4xl md:text-6xl lg:text-7xl">
             <span className="block text-white">The Verified</span>
             <span className="block text-white">Trading Journal.</span>
-            <span className="block text-[#C9A84C]">Your reputation. On-chain.</span>
+            <span className="block text-[#C9A84C]">Verified by your broker.</span>
           </h1>
 
           <p className="mt-8 max-w-2xl text-base leading-relaxed text-white/70 md:text-lg">
-            Auto-capture every trade from your broker. Build a verified public record. Follow the best traders in the world.
+            Auto-capture every trade from your broker. Build a public record you can point to. Follow leaders ranked on real, broker-reported performance.
           </p>
 
           <div className="mt-10 flex flex-col gap-4 sm:flex-row">
