@@ -15,6 +15,7 @@ type Props = {
 const LINKS: { href: Route; label: string }[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/journal", label: "Journal" },
+  { href: "/calculator", label: "Risk Calc" },
   { href: "/trades", label: "Trades" },
   { href: "/analytics", label: "Analytics" },
   { href: "/challenges", label: "Challenges" },
@@ -76,6 +77,7 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
       <nav className="hidden items-center gap-5 text-sm md:flex">
         <Link href="/dashboard" className="text-muted hover:text-white">Dashboard</Link>
         <Link href="/journal" className="text-muted hover:text-white">Journal</Link>
+        <Link href="/calculator" className="text-muted hover:text-white">Risk Calc</Link>
         <Link href="/trades" className="text-muted hover:text-white">Trades</Link>
         <Link href="/analytics" className="text-muted hover:text-white">Analytics</Link>
         <Link href="/challenges" className="text-muted hover:text-white">Challenges</Link>
