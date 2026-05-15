@@ -78,8 +78,9 @@ export default async function TradesPage({
   if ("error" in result) {
     return (
       <div className="p-6">
-        <div className="rounded border border-red-700 bg-red-950 p-4 text-red-200">
-          Error: {result.error}
+        <div className="rounded-2xl border border-loss/30 bg-loss/10 p-8 text-center">
+          <p className="font-display text-lg tracking-widest text-loss">FAILED TO LOAD</p>
+          <p className="mt-2 text-sm text-muted">Failed to load trades. Please refresh the page.</p>
         </div>
       </div>
     );
