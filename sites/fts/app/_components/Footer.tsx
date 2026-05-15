@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SocialLinks from "./SocialLinks";
 
 export default function Footer() {
   return (
@@ -32,10 +33,9 @@ export default function Footer() {
 
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-widest text-white/40">Community</h4>
-            <ul className="mt-4 space-y-2 text-sm text-white/70">
-              <li><a href="https://t.me/fts_bigmarkt" target="_blank" rel="noopener" className="hover:text-[#C9A84C]">Telegram</a></li>
-              <li><a href="https://x.com/Jefe_xau" target="_blank" rel="noopener" className="hover:text-[#C9A84C]">X — @Jefe_xau</a></li>
-            </ul>
+            <div className="mt-4">
+              <SocialLinks />
+            </div>
           </div>
         </div>
 

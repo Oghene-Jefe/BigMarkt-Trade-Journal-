@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SocialLinks from "./SocialLinks";
 
 export default function Footer() {
   return (
@@ -43,7 +44,10 @@ export default function Footer() {
           <p className="text-xs leading-relaxed text-white/40">
             Trading involves substantial risk of loss. Past performance is not indicative of future results. BigMarkt is a journaling and transparency tool, not a financial advisor.
           </p>
-          <p className="mt-4 text-xs text-white/40">© 2026 BigMarkt Protocol. All rights reserved.</p>
+          <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+            <SocialLinks />
+            <p className="text-xs text-white/40">© 2026 BigMarkt Protocol. All rights reserved.</p>
+          </div>
         </div>
       </div>
     </footer>

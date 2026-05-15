@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ShieldCheck, BarChart3, Bell, ArrowRight } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import Logo from "@/components/ui/Logo";
+import SocialLinks from "@/components/ui/SocialLinks";
 
 export const dynamic = "force-dynamic";
 
@@ -217,6 +218,9 @@ export default async function Home() {
             future results. BigMarkt is a journaling and transparency tool, not a financial
             advisor.
           </p>
+          <div className="mt-6 flex justify-center">
+            <SocialLinks />
+          </div>
           <p className="mt-4 text-xs text-muted/70">© 2026 BigMarkt Protocol</p>
         </div>
       </footer>

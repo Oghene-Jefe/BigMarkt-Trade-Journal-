@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SocialLinks from "./SocialLinks";
 
 const pageLinks = [
   { href: "/", label: "Home" },
@@ -7,14 +8,6 @@ const pageLinks = [
   { href: "/chapters", label: "Chapters" },
   { href: "/mentorship", label: "Mentorship" },
   { href: "/join", label: "Join" },
-];
-
-const socials = [
-  { href: "#", label: "LinkedIn" },
-  { href: "#", label: "X / Twitter" },
-  { href: "#", label: "Discord" },
-  { href: "#", label: "YouTube" },
-  { href: "#", label: "Instagram" },
 ];
 
 export default function Footer() {
@@ -55,14 +48,10 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-white/40">Social</h4>
-            <ul className="mt-4 space-y-2 text-sm text-white/70">
-              {socials.map((s) => (
-                <li key={s.label}>
-                  <a href={s.href} className="hover:text-[#C9A84C]">{s.label}</a>
-                </li>
-              ))}
-            </ul>
+            <h4 className="text-xs font-semibold uppercase tracking-widest text-white/40">Follow Us</h4>
+            <div className="mt-4">
+              <SocialLinks />
+            </div>
           </div>
         </div>
 

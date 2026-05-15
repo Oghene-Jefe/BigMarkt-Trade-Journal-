@@ -3,6 +3,7 @@
 // External links open in a new tab; the journal link stays internal.
 
 import Link from "next/link";
+import SocialLinks from "@/components/ui/SocialLinks";
 
 type Link = {
   href: string;
@@ -20,8 +21,8 @@ const LINKS: Link[] = [
 export function EcosystemFooter() {
   return (
     <footer className="mt-12 border-t border-white/10 bg-panel/40">
-      <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-3 px-4 py-6 text-xs text-muted sm:flex-row sm:items-center">
-        <nav className="flex flex-wrap gap-x-5 gap-y-2">
+      <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-4 py-6 text-xs text-muted sm:flex-row sm:items-center">
+        <nav className="flex flex-wrap justify-center gap-x-5 gap-y-2 sm:justify-start">
           {LINKS.map((l) =>
             l.external ? (
               <a
@@ -44,6 +45,7 @@ export function EcosystemFooter() {
             ),
           )}
         </nav>
+        <SocialLinks />
         <p className="text-[11px] text-muted/70">© 2026 BigMarkt</p>
       </div>
     </footer>
