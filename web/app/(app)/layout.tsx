@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/admin";
 import { getUnreadNotificationCountAction } from "@/lib/actions/notifications";
 import DrawerNav from "./DrawerNav";
 import Logo from "@/components/ui/Logo";
+import { EcosystemFooter } from "@/components/ui/EcosystemFooter";
 import ChatWidgetMount from "@/components/support/ChatWidgetMount";
 
 // Auth gate for the app shell. Every page under (app) requires a session.
@@ -30,7 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     "Trader";
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       {/*
         Sticky so the brand + drawer-trigger stay reachable while
         scrolling long journal / trade / leaderboard lists. z-30 sits
@@ -45,7 +46,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <DrawerNav admin={admin} unreadCount={unreadCount} userEmail={user.email ?? ""} />
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
+      <EcosystemFooter />
       <ChatWidgetMount userId={user.id} username={username} />
     </div>
   );
