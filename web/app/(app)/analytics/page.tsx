@@ -7,11 +7,13 @@ import WinRateByPairChart from "@/components/analytics/WinRateByPairChart";
 import SessionChart from "@/components/analytics/SessionChart";
 import SetupGradeChart from "@/components/analytics/SetupGradeChart";
 import PsychologyAdvisor from "@/components/analytics/PsychologyAdvisor";
+import ReportCardSection from "@/components/reportCard/ReportCardSection";
 
 export const dynamic = "force-dynamic";
 
 export default async function AnalyticsPage() {
   const sb = await supabaseServer();
+  const { data: { user } } = await sb.auth.getUser();
   const { data, error } = await sb.from("trades").select("*");
 
   if (error) {
@@ -35,6 +37,20 @@ export default async function AnalyticsPage() {
   const trades = ((data ?? []) as TradeRow[]).filter(
     (t) => t.visibility !== "exclude",
   );
+
+  const { data: profile } = user
+    ? await sb
+        .from("profiles")
+        .select("username, display_name")
+        .eq("id", user.id)
+        .maybeSingle()
+    : { data: null };
+
+  const emailLocal = (user?.email ?? "trader").split("@")[0]!;
+  const username: string =
+    (profile?.username && profile.username.trim()) ||
+    (profile?.display_name && profile.display_name.trim()) ||
+    emailLocal;
 
   if (trades.length === 0) {
     return (
@@ -66,6 +82,11 @@ export default async function AnalyticsPage() {
       <h1 className="font-display text-3xl tracking-widest text-gold">
         ANALYTICS
       </h1>
+
+      <section className="space-y-4">
+        <SectionHeading title="Report Cards" />
+        <ReportCardSection trades={trades} username={username} />
+      </section>
 
       <section className="space-y-4">
         <SectionHeading title="Performance" />
