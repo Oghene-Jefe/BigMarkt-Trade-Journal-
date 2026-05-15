@@ -71,6 +71,7 @@ export default async function UsernameProfilePage({
         <div className="flex items-center gap-5">
           <div className="h-20 w-20 overflow-hidden rounded-full border border-white/10 bg-black/40">
             {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render
               <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
             ) : null}
           </div>
@@ -127,6 +128,7 @@ export default async function UsernameProfilePage({
                 <span className="w-24 text-xs text-muted">{fmtDate(t.created_at)}</span>
                 {t.chart_path && chartUrls[t.chart_path] ? (
                   <a href={chartUrls[t.chart_path]} target="_blank" rel="noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render */}
                     <img
                       src={chartUrls[t.chart_path]}
                       alt=""

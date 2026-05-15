@@ -110,15 +110,17 @@ export default function CalculatorPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-3xl tracking-widest text-gold">RISK CALCULATOR</h1>
-      <p className="text-sm text-muted">
-        Position sizing for your account. Live updates as you type.
-      </p>
+      <div>
+        <h1 className="text-xl font-semibold text-white">Risk calculator</h1>
+        <p className="mt-1 text-sm text-muted">
+          Position sizing for your account. Live updates as you type.
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Inputs */}
         <div className="rounded-lg border border-white/10 bg-panel p-4 space-y-4">
-          <h2 className="font-display tracking-widest text-gold">INPUTS</h2>
+          <h2 className="text-sm font-medium text-white">Inputs</h2>
 
           <Field label="Account Balance (USD)">
             <input
@@ -200,12 +202,12 @@ export default function CalculatorPage() {
 
         {/* Outputs */}
         <div className="rounded-lg border border-white/10 bg-panel p-4 space-y-4">
-          <h2 className="font-display tracking-widest text-gold">RESULT</h2>
+          <h2 className="text-sm font-medium text-white">Result</h2>
 
           <div>
-            <div className="text-xs uppercase tracking-widest text-muted">Recommended Lot Size</div>
+            <div className="text-xs uppercase tracking-wider text-muted">Recommended lot size</div>
             <div
-              className="font-display text-5xl"
+              className="text-5xl font-semibold tabular-nums"
               style={{ color: lotTooSmall ? "#EF4444" : "#D4AF37" }}
             >
               {calc ? (lotTooSmall ? "—" : calc.lot.toFixed(2)) : "—"}

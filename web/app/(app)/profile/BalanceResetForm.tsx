@@ -10,7 +10,7 @@ export default function BalanceResetForm({ currentBalance }: { currentBalance: n
   );
 
   return (
-    <form action={formAction} className="rounded-2xl border border-white/10 bg-panel p-4">
+    <form action={formAction} className="rounded-lg border border-white/10 bg-panel p-4">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <label className="block text-sm">
           <span className="mb-1 block text-muted">Current</span>
@@ -47,9 +47,9 @@ export default function BalanceResetForm({ currentBalance }: { currentBalance: n
       <div className="mt-3 flex justify-end">
         <button
           disabled={pending}
-          className="rounded-md bg-gold px-5 py-2 font-display tracking-widest text-black disabled:opacity-50"
+          className="inline-flex h-10 items-center rounded-md bg-gold px-4 text-sm font-medium text-black disabled:opacity-50"
         >
-          {pending ? "SAVING…" : "RESET BALANCE"}
+          {pending ? "Saving…" : "Reset balance"}
         </button>
       </div>
     </form>

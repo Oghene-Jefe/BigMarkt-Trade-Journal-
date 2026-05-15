@@ -72,7 +72,7 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
   }
 
   return (
-    <form action={formAction} className="space-y-4 rounded-2xl bg-panel p-6" encType="multipart/form-data">
+    <form action={formAction} className="space-y-4 rounded-lg bg-panel p-6" encType="multipart/form-data">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <label className="block text-sm">
           <span className="mb-1 block text-muted">Pair <span className="text-loss">*</span></span>
@@ -216,6 +216,7 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
         {existingChartUrl ? (
           <div className="space-y-2">
             <a href={existingChartUrl} target="_blank" rel="noreferrer" className="inline-block">
+              {/* eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render */}
               <img src={existingChartUrl} alt="Current chart" className="max-h-40 rounded-md border border-white/10" />
             </a>
             <label className="flex items-center gap-2 text-xs text-muted">

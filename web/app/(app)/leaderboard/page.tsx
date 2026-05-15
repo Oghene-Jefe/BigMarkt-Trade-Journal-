@@ -157,6 +157,7 @@ export default async function LeaderboardPage({
                     }`}
                   >
                     {avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render
                       <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <span className="font-display text-sm tracking-wider text-gold">

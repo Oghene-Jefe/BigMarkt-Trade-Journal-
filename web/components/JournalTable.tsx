@@ -63,6 +63,7 @@ export default function JournalTable({
               <td className="px-3 py-2">
                 {t.chart_path && chartUrls[t.chart_path] ? (
                   <a href={chartUrls[t.chart_path]} target="_blank" rel="noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render */}
                     <img
                       src={chartUrls[t.chart_path]}
                       alt=""

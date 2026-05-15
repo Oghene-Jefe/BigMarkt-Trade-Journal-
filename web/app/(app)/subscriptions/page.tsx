@@ -72,9 +72,10 @@ export default async function SubscriptionsPage() {
                 <div className="flex items-start gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/15 bg-black/60">
                     {avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render
                       <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <span className="font-display text-sm tracking-wider text-gold">
+                      <span className="text-sm font-medium text-gold">
                         {initials(s.leader_display_name)}
                       </span>
                     )}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown, Plus } from "lucide-react";
 import {
   followLeaderAction,
   unfollowLeaderAction,
@@ -58,12 +59,19 @@ export default function FollowButton({
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
           disabled={pending}
-          className="rounded-full border border-gold bg-gold/10 px-5 py-2 font-display text-sm tracking-widest text-gold hover:bg-gold/20 disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md border border-gold bg-gold/10 px-4 py-2 text-sm font-medium text-gold hover:bg-gold/20 disabled:opacity-50"
         >
-          {pending ? "…" : "FOLLOWING ▾"}
+          {pending ? (
+            "…"
+          ) : (
+            <>
+              <span>Following</span>
+              <ChevronDown size={14} aria-hidden />
+            </>
+          )}
         </button>
         {menuOpen ? (
-          <div className="absolute right-0 z-20 mt-2 w-64 rounded-xl border border-white/10 bg-panel p-1 shadow-xl">
+          <div className="absolute right-0 z-20 mt-2 w-64 rounded-md border border-white/10 bg-panel p-1 shadow-lg">
             {existingSubscription.mode !== "journal_only" ? (
               <MenuItem
                 onClick={() =>
@@ -125,12 +133,19 @@ export default function FollowButton({
           type="button"
           onClick={() => setMenuOpen((v) => !v)}
           disabled={pending}
-          className="rounded-full border border-white/20 bg-white/5 px-5 py-2 font-display text-sm tracking-widest text-muted hover:bg-white/10 disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-muted hover:bg-white/10 disabled:opacity-50"
         >
-          {pending ? "…" : "PAUSED ▾"}
+          {pending ? (
+            "…"
+          ) : (
+            <>
+              <span>Paused</span>
+              <ChevronDown size={14} aria-hidden />
+            </>
+          )}
         </button>
         {menuOpen ? (
-          <div className="absolute right-0 z-20 mt-2 w-56 rounded-xl border border-white/10 bg-panel p-1 shadow-xl">
+          <div className="absolute right-0 z-20 mt-2 w-56 rounded-md border border-white/10 bg-panel p-1 shadow-lg">
             <MenuItem
               onClick={() =>
                 run(() =>
@@ -165,9 +180,10 @@ export default function FollowButton({
         type="button"
         onClick={() => setModalOpen(true)}
         disabled={pending}
-        className="rounded-full bg-gold px-5 py-2 font-display text-sm tracking-widest text-black hover:opacity-90 disabled:opacity-50"
+        className="inline-flex items-center gap-1 rounded-md bg-gold px-4 py-2 text-sm font-medium text-black hover:bg-gold/90 disabled:opacity-50"
       >
-        + FOLLOW
+        <Plus size={14} aria-hidden />
+        <span>Follow</span>
       </button>
       {modalOpen ? (
         <FollowModal
@@ -286,10 +302,10 @@ function FollowModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-panel p-6"
+        className="w-full max-w-md rounded-lg border border-white/10 bg-panel p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="font-display text-xl tracking-widest text-gold">
+        <h3 className="text-base font-semibold text-white">
           Follow {leaderUsername ? `@${leaderUsername}` : "this trader"}
         </h3>
         <p className="mt-1 text-xs text-muted">Choose how you want to follow.</p>
@@ -353,9 +369,9 @@ function FollowModal({
             type="button"
             onClick={submit}
             disabled={submitting}
-            className="rounded-md bg-gold px-5 py-2 font-display text-sm tracking-widest text-black hover:opacity-90 disabled:opacity-50"
+            className="rounded-md bg-gold px-4 py-2 text-sm font-medium text-black hover:bg-gold/90 disabled:opacity-50"
           >
-            {submitting ? "…" : "CONFIRM"}
+            {submitting ? "…" : "Confirm"}
           </button>
         </div>
       </div>
@@ -378,14 +394,14 @@ function ModeOption({
     <button
       type="button"
       onClick={onClick}
-      className={`block w-full rounded-xl border p-3 text-left transition ${
+      className={`block w-full rounded-md border p-3 text-left transition ${
         selected
           ? "border-gold bg-gold/10"
           : "border-white/10 bg-black/30 hover:border-white/20"
       }`}
     >
       <p
-        className={`font-display text-sm tracking-widest ${
+        className={`text-sm font-medium ${
           selected ? "text-gold" : "text-white"
         }`}
       >
