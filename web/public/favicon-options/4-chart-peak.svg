@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#0A0A0A"/>
+  <!-- Trading sparkline. Two strokes:
+       1. A subtle baseline drift in muted gold.
+       2. A confident upward leg in full gold ending in a tip dot.
+       Reads as "trading + upward" at any size; loses the dot at 16px but
+       keeps the upward gesture. -->
+  <polyline
+    points="10,40 22,36 30,42 40,28 54,18"
+    fill="none"
+    stroke="#D4AF37"
+    stroke-width="6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="54" cy="18" r="5" fill="#D4AF37"/>
+</svg>

@@ -5,7 +5,15 @@ export const metadata: Metadata = {
   title: "BigMarkt Trade Journal",
   description: "Built for traders, by traders.",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      // Browsers pick the variant whose `media` matches the OS/browser
+      // theme. The legacy /favicon.ico stays as a fallback for browsers
+      // that don't honour the SVG icon route (older Safari, RSS clients,
+      // etc.) — listed last so the SVGs take precedence when supported.
+      { url: "/favicon-dark.svg", type: "image/svg+xml", media: "(prefers-color-scheme: dark)" },
+      { url: "/favicon-light.svg", type: "image/svg+xml", media: "(prefers-color-scheme: light)" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
     apple: "/apple-touch-icon.png",
   },
 };
