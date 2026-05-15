@@ -111,19 +111,27 @@ export default async function TradeDetailPage({
   const pairStr = typeof t.pair === "string" ? t.pair : "";
   const dirStr = typeof t.direction === "string" ? t.direction.toUpperCase() : null;
 
-  // PnL: use stored value; fall back to price-derived calculation if missing.
+  // PnL: use stored value; recalculate when null or when stored as 0 but prices
+  // are present (incorrectly stored default). Genuine breakevens (entry === exit)
+  // will still produce 0 after recalculation, so they display correctly.
   const storedPnl = typeof t.pnl === "number" ? t.pnl : null;
   let displayPnl = storedPnl;
-  if (displayPnl == null && entryNum != null && exitNum != null && lotNum != null && dirStr != null) {
+  if (
+    (displayPnl == null || displayPnl === 0) &&
+    entryNum != null && entryNum !== 0 &&
+    exitNum != null && exitNum !== 0 &&
+    lotNum != null && dirStr != null
+  ) {
     const mult = getPnlMultiplier(pairStr);
     const sign = dirStr === "BUY" ? 1 : -1;
     displayPnl = +(sign * (exitNum - entryNum) * lotNum * mult).toFixed(2);
   }
 
-  // RR: use stored value; fall back to entry/exit/stop-loss calculation if missing.
+  // RR: use stored value; recalculate when null or when stored as 0 but prices
+  // are present (incorrectly stored default).
   const storedRR = typeof t.rr_ratio === "number" ? t.rr_ratio : null;
   let rrDisplay = "—";
-  if (storedRR != null) {
+  if (storedRR != null && storedRR !== 0) {
     rrDisplay = storedRR.toFixed(2);
   } else if (entryNum != null && exitNum != null && stopNum != null) {
     const risk = Math.abs(entryNum - stopNum);
