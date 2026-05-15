@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Menu, X, Bell, Shield, ChevronDown } from "lucide-react";
 import { logoutAction } from "../(auth)/actions";
 import ThemeToggle from "@/components/ThemeToggle";
 import Logo from "@/components/ui/Logo";
@@ -123,14 +124,14 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
 
   const groupHasActive = (items: LinkItem[]) => items.some((i) => isActive(i.href));
 
-  const Bell = ({ onNavigate }: { onNavigate?: () => void }) => (
+  const BellLink = ({ onNavigate }: { onNavigate?: () => void }) => (
     <Link
       href="/notifications"
       onClick={onNavigate}
       className="relative text-muted hover:text-white"
       aria-label="Notifications"
     >
-      <span className="text-base">🔔</span>
+      <Bell size={18} aria-hidden />
       {unreadCount > 0 ? (
         <span className="absolute -right-2 -top-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
           {unreadCount > 99 ? "99+" : unreadCount}
@@ -158,7 +159,8 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
 
         {/* Profile menu — separate from the four content groups */}
         <DesktopMenu
-          label={admin ? "Profile ★" : "Profile"}
+          label="Profile"
+          adornment={admin ? <Shield size={12} aria-hidden className="text-gold" /> : null}
           items={[
             { href: "/profile", label: "Profile" },
             ...(admin
@@ -195,21 +197,21 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
           }
         />
 
-        <Bell />
+        <BellLink />
       </nav>
 
       {/* Mobile header right cluster */}
       <div className="flex items-center gap-4 md:hidden">
-        <Bell />
+        <BellLink />
         <button
           type="button"
           aria-label="Open menu"
           aria-expanded={drawerOpen}
           aria-controls="mobile-drawer"
           onClick={() => setDrawerOpen(true)}
-          className="text-2xl leading-none text-white"
+          className="text-white"
         >
-          ☰
+          <Menu size={22} aria-hidden />
         </button>
       </div>
 
@@ -229,37 +231,42 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
             className="fixed right-0 top-0 z-50 flex h-full w-72 max-w-[85vw] flex-col border-l border-white/10 bg-panel md:hidden"
           >
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-              <Bell onNavigate={() => setDrawerOpen(false)} />
+              <BellLink onNavigate={() => setDrawerOpen(false)} />
               <button
                 type="button"
                 aria-label="Close menu"
                 onClick={() => setDrawerOpen(false)}
-                className="text-2xl leading-none text-white"
+                className="text-white"
               >
-                ✕
+                <X size={20} aria-hidden />
               </button>
             </div>
             <div className="flex justify-center py-4 border-b border-gold/20">
               <Logo size="md" />
             </div>
             <nav className="flex-1 overflow-y-auto py-2">
-              {MOBILE_LINKS.map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  onClick={() => setDrawerOpen(false)}
-                  className={`flex min-h-[48px] w-full items-center px-4 ${
-                    isActive(l.href) ? "text-gold" : "text-muted hover:text-white"
-                  }`}
-                >
-                  {l.label}
-                </Link>
-              ))}
+              {MOBILE_LINKS.map((l) => {
+                const active = isActive(l.href);
+                return (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    onClick={() => setDrawerOpen(false)}
+                    className={`flex min-h-[48px] w-full items-center border-l-2 px-4 ${
+                      active
+                        ? "border-gold bg-gold/5 font-medium text-gold"
+                        : "border-transparent text-muted hover:text-white"
+                    }`}
+                  >
+                    {l.label}
+                  </Link>
+                );
+              })}
               {admin ? (
                 <>
                   {(
                     [
-                      ["/admin", "Admin"],
+                      ["/admin", "Admin · Dashboard"],
                       ["/admin/users", "Admin · Users"],
                       ["/admin/trades", "Admin · Trades"],
                       ["/admin/disputes", "Admin · Disputes"],
@@ -268,18 +275,24 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
                       ["/admin/brokers", "Admin · Brokers"],
                       ["/admin/broadcast", "Admin · Broadcast"],
                     ] as Array<[Route, string]>
-                  ).map(([href, label]) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      onClick={() => setDrawerOpen(false)}
-                      className={`flex min-h-[48px] w-full items-center px-4 ${
-                        pathname === href ? "text-gold" : "text-gold/80 hover:text-white"
-                      }`}
-                    >
-                      {label}
-                    </Link>
-                  ))}
+                  ).map(([href, label]) => {
+                    const active = pathname === href;
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setDrawerOpen(false)}
+                        className={`flex min-h-[48px] w-full items-center gap-2 border-l-2 px-4 ${
+                          active
+                            ? "border-gold bg-gold/5 font-medium text-gold"
+                            : "border-transparent text-gold/80 hover:text-white"
+                        }`}
+                      >
+                        <Shield size={14} aria-hidden />
+                        <span>{label}</span>
+                      </Link>
+                    );
+                  })}
                 </>
               ) : null}
             </nav>
@@ -306,6 +319,7 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
 // a child link to navigate (which also closes via onClose).
 function DesktopMenu({
   label,
+  adornment,
   items,
   isOpen,
   onToggle,
@@ -315,6 +329,7 @@ function DesktopMenu({
   footer,
 }: {
   label: string;
+  adornment?: React.ReactNode;
   items: LinkItem[];
   isOpen: boolean;
   onToggle: () => void;
@@ -330,12 +345,15 @@ function DesktopMenu({
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-sm ${
-          active ? "text-gold" : "text-muted hover:text-white"
+        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+          active
+            ? "bg-gold/10 text-gold"
+            : "text-muted hover:bg-white/5 hover:text-white"
         }`}
       >
-        {label}
-        <span className="text-xs">▾</span>
+        <span>{label}</span>
+        {adornment}
+        <ChevronDown size={14} aria-hidden />
       </button>
       {isOpen ? (
         <div
@@ -350,7 +368,9 @@ function DesktopMenu({
                   onClick={onClose}
                   role="menuitem"
                   className={`block px-3 py-2 text-sm ${
-                    isActive(i.href) ? "text-gold" : "text-muted hover:bg-white/5 hover:text-white"
+                    isActive(i.href)
+                      ? "bg-gold/10 font-medium text-gold"
+                      : "text-muted hover:bg-white/5 hover:text-white"
                   }`}
                 >
                   {i.label}
