@@ -1,5 +1,6 @@
 import { Plus, Lock, AlertTriangle, RefreshCw } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/admin";
 import { fmtDate } from "@/lib/format";
 import {
   PageHeader,
@@ -43,6 +44,7 @@ type SyncRunRow = {
 };
 
 export default async function ExchangesPage() {
+  await requireAdmin();
   const sb = await supabaseServer();
 
   const [{ data: connData, error }, { data: runData }] = await Promise.all([
