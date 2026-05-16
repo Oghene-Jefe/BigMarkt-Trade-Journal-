@@ -1,13 +1,24 @@
 import Link from "next/link";
+import {
+  Bitcoin,
+  Building2,
+  CandlestickChart,
+  Globe,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Ticker from "./_components/Ticker";
 
-const tracks = [
-  { icon: "💰", name: "Money Foundations", desc: "Build the financial base nobody taught you" },
-  { icon: "📈", name: "Investing Fundamentals", desc: "Stocks, bonds, ETFs and long-term wealth" },
-  { icon: "₿", name: "Crypto & Digital Assets", desc: "Blockchain, DeFi and the digital economy" },
-  { icon: "🏢", name: "Business Finance", desc: "How money moves inside companies" },
-  { icon: "🌍", name: "Global Markets", desc: "Macroeconomics, geopolitics and market forces" },
-  { icon: "📊", name: "Trading Track", desc: "Technical analysis, risk management and live markets" },
+type Track = { icon: LucideIcon; name: string; desc: string };
+
+const tracks: Track[] = [
+  { icon: Wallet,           name: "Money Foundations",       desc: "Build the financial base nobody taught you" },
+  { icon: TrendingUp,       name: "Investing Fundamentals",  desc: "Stocks, bonds, ETFs and long-term wealth" },
+  { icon: Bitcoin,          name: "Crypto & Digital Assets", desc: "Blockchain, DeFi and the digital economy" },
+  { icon: Building2,        name: "Business Finance",        desc: "How money moves inside companies" },
+  { icon: Globe,            name: "Global Markets",          desc: "Macroeconomics, geopolitics and market forces" },
+  { icon: CandlestickChart, name: "Trading Track",           desc: "Technical analysis, risk management and live markets" },
 ];
 
 const stats = [
@@ -90,13 +101,22 @@ export default function HomePage() {
             Six tracks. One platform. Your choice.
           </h2>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {tracks.map((t) => (
-              <Link key={t.name} href="/tracks" className="block border border-[#1f1f1f] bg-[#111111] p-6 transition hover:border-[#C9A84C]">
-                <div className="text-3xl">{t.icon}</div>
-                <h3 className="mt-4 text-lg font-semibold text-[#C9A84C]">{t.name}</h3>
-                <p className="mt-2 text-sm text-white/70">{t.desc}</p>
-              </Link>
-            ))}
+            {tracks.map((t) => {
+              const Icon = t.icon;
+              return (
+                <Link
+                  key={t.name}
+                  href="/tracks"
+                  className="block border border-[#1f1f1f] bg-[#111111] p-6 transition hover:border-[#C9A84C]"
+                >
+                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#C9A84C]/30 bg-[#C9A84C]/10 text-[#C9A84C]">
+                    <Icon size={20} aria-hidden strokeWidth={1.75} />
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-[#C9A84C]">{t.name}</h3>
+                  <p className="mt-2 text-sm text-white/70">{t.desc}</p>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
