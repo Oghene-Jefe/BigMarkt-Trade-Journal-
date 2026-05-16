@@ -9,7 +9,8 @@ export type { TradePayload };
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const WS_PORT = Number(process.env.WS_PORT ?? 8080);
+// Railway injects PORT. WS_PORT is the local-dev fallback.
+const PORT = Number(process.env.PORT ?? process.env.WS_PORT ?? 8080);
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars");
@@ -112,7 +113,49 @@ async function handleTrade(socket: AuthedSocket, payload: TradePayload): Promise
   socket.send(JSON.stringify({ type: "trade_ack", ticket: payload.ticket, status: "ok" }));
 }
 
-const wss = new WebSocketServer({ port: WS_PORT });
+// ── Single HTTP server: handles /status + /healthz, and WS upgrades ─────────
+const httpServer = createHttpServer((req, res) => {
+  const url = (req.url ?? "").split("?")[0];
+
+  if (req.method === "GET" && url === "/status") {
+    const now = Date.now();
+    const connections = Array.from(authedSockets).map((s) => {
+      const lastPing = s.lastPing ?? now;
+      const ago = now - lastPing;
+      const entry: { token_id: string; last_ping_ms_ago: number; stale?: boolean } = {
+        token_id: s.tokenId ?? "",
+        last_ping_ms_ago: ago,
+      };
+      if (ago > STALE_MS) entry.stale = true;
+      return entry;
+    });
+    const body = JSON.stringify({
+      connected_clients: authedSockets.size,
+      server_uptime_seconds: Math.floor(process.uptime()),
+      ts: now,
+      connections,
+    });
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Cache-Control": "no-store",
+    });
+    res.end(body);
+    return;
+  }
+
+  if (req.method === "GET" && url === "/healthz") {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("ok");
+    return;
+  }
+
+  res.writeHead(404, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ error: "not found" }));
+});
+
+// Attach WebSocket server to the HTTP server — no separate port needed.
+const wss = new WebSocketServer({ server: httpServer });
 
 wss.on("connection", async (socket: AuthedSocket, req) => {
   const authHeader = req.headers["authorization"] ?? "";
@@ -202,55 +245,6 @@ wss.on("connection", async (socket: AuthedSocket, req) => {
   });
 });
 
-console.log(`BigMarkt WebSocket server listening on :${WS_PORT}`);
-
-// ── HTTP status endpoint ─────────────────────────────────────────────────────
-const statusPort = WS_PORT + 1;
-
-try {
-  const statusServer = createHttpServer((req, res) => {
-    const url = (req.url ?? "").split("?")[0];
-
-    if (req.method === "GET" && url === "/status") {
-      const now = Date.now();
-      const connections = Array.from(authedSockets).map((s) => {
-        const lastPing = s.lastPing ?? now;
-        const ago = now - lastPing;
-        const entry: { token_id: string; last_ping_ms_ago: number; stale?: boolean } = {
-          token_id: s.tokenId ?? "",
-          last_ping_ms_ago: ago,
-        };
-        if (ago > STALE_MS) entry.stale = true;
-        return entry;
-      });
-      const body = JSON.stringify({
-        connected_clients: authedSockets.size,
-        server_uptime_seconds: Math.floor(process.uptime()),
-        ts: now,
-        connections,
-      });
-      res.writeHead(200, {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "no-store",
-      });
-      res.end(body);
-      return;
-    }
-
-    res.writeHead(404, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "not found" }));
-  });
-
-  statusServer.on("error", (err) => {
-    console.error(`Status server error on :${statusPort}:`, err);
-  });
-
-  // Bind explicitly to 0.0.0.0 so IPv4 clients (http://localhost:8081 → 127.0.0.1)
-  // can reach it — defaulting can bind IPv6-only (::) on some Windows setups.
-  statusServer.listen(statusPort, "0.0.0.0", () => {
-    console.log(`BigMarkt status server listening on :${statusPort}`);
-  });
-} catch (err) {
-  console.error("Failed to start status server:", err);
-}
+httpServer.listen(PORT, () => {
+  console.log(`BigMarkt WebSocket + status server listening on :${PORT}`);
+});
