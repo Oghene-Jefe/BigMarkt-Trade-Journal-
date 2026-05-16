@@ -1,5 +1,16 @@
 import Link from "next/link";
+import { GraduationCap, Megaphone, Swords } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import ApplicationForm from "./_components/ApplicationForm";
+
+type Pathway = {
+  icon: LucideIcon;
+  title: string;
+  body: string;
+  cta: string;
+  href: string;
+  external: boolean;
+};
 
 const pillars = [
   { title: "Market Structure & Technical Analysis", body: "Read charts. Understand price. Trade with the trend." },
@@ -10,9 +21,9 @@ const pillars = [
   { title: "Live Trading & Strategy", body: "Apply everything in real market conditions." },
 ];
 
-const pathways = [
+const pathways: Pathway[] = [
   {
-    icon: "📢",
+    icon: Megaphone,
     title: "FTS Channel",
     body: "Follow for market updates, trade ideas and community announcements.",
     cta: "Join Channel",
@@ -20,7 +31,7 @@ const pathways = [
     external: true,
   },
   {
-    icon: "📚",
+    icon: GraduationCap,
     title: "Boot Camp",
     body: "Structured 13-module forex education programme. Pioneer cohort now forming.",
     cta: "Apply Now",
@@ -28,7 +39,7 @@ const pathways = [
     external: false,
   },
   {
-    icon: "⚔️",
+    icon: Swords,
     title: "War Room",
     body: "Live trading sessions for active traders. Graduates only.",
     cta: "Learn More",
@@ -97,9 +108,13 @@ export default function Home() {
         <div className="mx-auto max-w-7xl">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Choose Your Path</h2>
           <div className="mt-12 grid gap-6 lg:grid-cols-3">
-            {pathways.map((p) => (
+            {pathways.map((p) => {
+              const Icon = p.icon;
+              return (
               <div key={p.title} className="flex flex-col border border-[#1f1f1f] bg-[#111111] p-6">
-                <div className="text-3xl">{p.icon}</div>
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#C9A84C]/30 bg-[#C9A84C]/10 text-[#C9A84C]">
+                  <Icon size={20} aria-hidden strokeWidth={1.75} />
+                </div>
                 <h3 className="mt-4 text-xl font-semibold text-white">{p.title}</h3>
                 <p className="mt-2 flex-1 text-sm text-white/70">{p.body}</p>
                 {p.external ? (
@@ -120,7 +135,8 @@ export default function Home() {
                   </Link>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
