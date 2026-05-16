@@ -32,15 +32,44 @@ export type WsStatus = {
   }>;
 };
 
+// Fetches the WS server's connection map. The endpoint is now a trusted
+// server→server channel: we send the shared WS_STATUS_SECRET as a Bearer
+// header, and the WS server rejects callers without it. If we don't have
+// the secret in env, treat the endpoint as unavailable (returns null) —
+// the UI degrades gracefully to "server offline" rather than leaking a
+// half-broken state. The default port is the WS server's local default
+// (8080), not 8081 which was a copy-paste from an older config.
 async function getWsStatus(): Promise<WsStatus | null> {
-  const url = process.env.WS_STATUS_URL ?? "http://localhost:8081/status";
+  const url = process.env.WS_STATUS_URL ?? "http://localhost:8080/status";
+  const secret = process.env.WS_STATUS_SECRET;
+  if (!secret) return null;
   try {
-    const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(2000) });
+    const res = await fetch(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(2000),
+      headers: { Authorization: `Bearer ${secret}` },
+    });
     if (!res.ok) return null;
     return (await res.json()) as WsStatus;
   } catch {
     return null;
   }
+}
+
+// Restrict the WS-server's full connection list to the calling user's own
+// active EA tokens. Without this filter, every authenticated user could
+// see every other user's connected token IDs.
+function filterStatusToUserTokens(
+  status: WsStatus | null,
+  userTokenIds: Set<string>,
+): WsStatus | null {
+  if (!status) return null;
+  const mine = status.connections.filter((c) => userTokenIds.has(c.token_id));
+  return {
+    ...status,
+    connected_clients: mine.length,
+    connections: mine,
+  };
 }
 
 export default async function EaSetupPage() {
@@ -65,7 +94,9 @@ export default async function EaSetupPage() {
 
   const brokerAccounts: BrokerAccountOption[] = (accountsData ?? []) as BrokerAccountOption[];
 
-  const wsStatus = await getWsStatus();
+  const rawStatus = await getWsStatus();
+  const myTokenIds = new Set(activeTokens.map((t) => t.id));
+  const wsStatus = filterStatusToUserTokens(rawStatus, myTokenIds);
   const connectionLog = await getEaConnectionLogAction();
 
   return (

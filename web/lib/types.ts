@@ -320,6 +320,9 @@ export interface NewsEvent {
   forecast: string | null;
   previous: string | null;
   actual: string | null;
+  /** Forex Factory's permalink for the event, parsed from <url> in the
+   *  XML feed. NULL for older rows imported before url ingestion shipped. */
+  url: string | null;
   source: string | null;
   created_at: string;
   updated_at: string;

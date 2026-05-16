@@ -155,6 +155,21 @@ export async function linkEaTokenToAccountAction(
   if (!uuidRe.test(tokenId)) return { error: "Invalid token id" };
   if (accountIdRaw && !uuidRe.test(accountIdRaw)) return { error: "Invalid account id" };
 
+  // Ownership guard: if linking (not unlinking), confirm the caller actually
+  // owns the broker_account before pointing a token at it. RLS on
+  // broker_accounts would also block a cross-user select, but this gives
+  // a precise error and prevents Daisy from linking her token to Bob's
+  // account via a hand-crafted POST.
+  if (accountIdRaw) {
+    const { data: account } = await supabase
+      .from("broker_accounts")
+      .select("id")
+      .eq("id", accountIdRaw)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!account) return { error: "Account not found" };
+  }
+
   const { error } = await supabase
     .from("ea_tokens")
     .update({ broker_account_id: accountIdRaw || null })

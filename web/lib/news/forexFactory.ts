@@ -44,6 +44,7 @@ export type RawEvent = {
   forecast: string;
   previous: string;
   actual: string;
+  url: string;
 };
 
 export type NormalizedEvent = {
@@ -54,6 +55,7 @@ export type NormalizedEvent = {
   forecast: string | null;
   previous: string | null;
   actual: string | null;
+  url: string | null;
   source: "forex_factory";
   updated_at: string;
 };
@@ -101,6 +103,7 @@ export function parseXml(xml: string): RawEvent[] {
       forecast: extractTag(b, "forecast"),
       previous: extractTag(b, "previous"),
       actual: extractTag(b, "actual"),
+      url: extractTag(b, "url"),
     });
   }
   return events;
@@ -210,6 +213,9 @@ export function normalize(
     forecast: e.forecast || null,
     previous: e.previous || null,
     actual: e.actual || null,
+    // Only accept absolute http(s) URLs — defensive against weird future
+    // feed formats. Falsy / non-string / non-http values fall back to null.
+    url: typeof e.url === "string" && /^https?:\/\//i.test(e.url) ? e.url : null,
     source: "forex_factory",
     updated_at: nowIso,
   };

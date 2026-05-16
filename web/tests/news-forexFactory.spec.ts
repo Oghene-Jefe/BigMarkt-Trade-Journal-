@@ -109,7 +109,7 @@ describe("extractTag", () => {
 });
 
 describe("parseXml", () => {
-  it("parses multiple events", () => {
+  it("parses multiple events including url", () => {
     const xml = `
       <weeklyevents>
         <event>
@@ -121,6 +121,7 @@ describe("parseXml", () => {
           <forecast><![CDATA[0.4%]]></forecast>
           <previous><![CDATA[0.3%]]></previous>
           <actual />
+          <url><![CDATA[https://www.forexfactory.com/calendar?day=may11.2026]]></url>
         </event>
         <event>
           <title><![CDATA[GDP q/q]]></title>
@@ -136,14 +137,16 @@ describe("parseXml", () => {
     expect(events).toHaveLength(2);
     expect(events[0].title).toBe("CPI m/m");
     expect(events[0].actual).toBe("");
+    expect(events[0].url).toBe("https://www.forexfactory.com/calendar?day=may11.2026");
     expect(events[1].forecast).toBe("");
+    expect(events[1].url).toBe("");
   });
 });
 
 describe("normalize", () => {
   const NOW = "2026-05-01T00:00:00.000Z";
 
-  it("maps a complete USD event row", () => {
+  it("maps a complete USD event row including url", () => {
     const row = normalize(
       {
         title: "CPI m/m",
@@ -154,6 +157,7 @@ describe("normalize", () => {
         forecast: "0.4%",
         previous: "0.3%",
         actual: "",
+        url: "https://www.forexfactory.com/calendar?day=may11.2026",
       },
       NOW,
     );
@@ -165,9 +169,48 @@ describe("normalize", () => {
       forecast: "0.4%",
       previous: "0.3%",
       actual: null,
+      url: "https://www.forexfactory.com/calendar?day=may11.2026",
       source: "forex_factory",
       updated_at: NOW,
     });
+  });
+
+  it("normalizes url to null when missing", () => {
+    const row = normalize(
+      {
+        title: "GDP q/q",
+        country: "GBP",
+        date: "05-12-2026",
+        time: "All Day",
+        impact: "medium",
+        forecast: "",
+        previous: "",
+        actual: "",
+        url: "",
+      },
+      NOW,
+    );
+    expect(row).not.toBeNull();
+    expect(row!.url).toBeNull();
+  });
+
+  it("rejects non-http urls (defensive against future feed changes)", () => {
+    const row = normalize(
+      {
+        title: "Random",
+        country: "USD",
+        date: "05-11-2026",
+        time: "9:00am",
+        impact: "low",
+        forecast: "",
+        previous: "",
+        actual: "",
+        url: "javascript:alert(1)",
+      },
+      NOW,
+    );
+    expect(row).not.toBeNull();
+    expect(row!.url).toBeNull();
   });
 
   it("returns null for unknown country (and skips the row)", () => {
@@ -181,6 +224,7 @@ describe("normalize", () => {
         forecast: "",
         previous: "",
         actual: "",
+        url: "",
       },
       NOW,
     );
@@ -202,6 +246,7 @@ describe("normalize", () => {
           forecast: "",
           previous: "",
           actual: "",
+          url: "",
         },
         NOW,
       ),
@@ -220,6 +265,7 @@ describe("normalize", () => {
           forecast: "",
           previous: "",
           actual: "",
+          url: "",
         },
         NOW,
       ),

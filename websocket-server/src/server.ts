@@ -118,6 +118,25 @@ const httpServer = createHttpServer((req, res) => {
   const url = (req.url ?? "").split("?")[0];
 
   if (req.method === "GET" && url === "/status") {
+    // /status was previously open to the internet — exposed connection
+    // counts and (worse) the raw EA token IDs of every active client.
+    // Now requires a shared bearer secret known only to the journal
+    // server, so connection-state polling stays on the trusted server →
+    // server channel.
+    const statusSecret = process.env.WS_STATUS_SECRET;
+    if (!statusSecret) {
+      console.error("WS_STATUS_SECRET is not set — refusing /status");
+      res.writeHead(503, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Status endpoint not configured" }));
+      return;
+    }
+    const auth = req.headers["authorization"] ?? "";
+    if (auth !== `Bearer ${statusSecret}`) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Unauthorized" }));
+      return;
+    }
+
     const now = Date.now();
     const connections = Array.from(authedSockets).map((s) => {
       const lastPing = s.lastPing ?? now;
@@ -135,9 +154,11 @@ const httpServer = createHttpServer((req, res) => {
       ts: now,
       connections,
     });
+    // No CORS header — this is a server-to-server endpoint, not for
+    // browser fetches. Removing it discourages anyone from re-introducing
+    // a client-side caller.
     res.writeHead(200, {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
       "Cache-Control": "no-store",
     });
     res.end(body);

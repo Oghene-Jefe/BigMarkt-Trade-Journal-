@@ -14,11 +14,12 @@ type Props = {
 const POLL_MS = 60_000;
 const PAGE_SIZE = 20;
 
-// Forex Factory doesn't expose a per-event permalink in its XML feed, and
-// Google News gives the most reliable surface for "what happened with this
-// release" coverage. We compose a search URL from the event's currency +
-// title; opens in a new tab.
+// Prefer the canonical Forex Factory permalink stored on the row (added in
+// migration 0039 and populated by the shared parser). Older rows imported
+// before url ingestion shipped don't have one — fall back to a Google
+// News search composed from the event's currency + title.
 function storyLink(e: NewsEvent): string {
+  if (e.url && /^https?:\/\//i.test(e.url)) return e.url;
   const parts: string[] = [];
   if (e.currency) parts.push(e.currency);
   parts.push(e.title);

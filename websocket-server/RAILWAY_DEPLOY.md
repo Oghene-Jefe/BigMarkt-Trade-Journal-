@@ -20,9 +20,14 @@ Set all of these in the Railway service's **Variables** tab before deploying.
 |---|---|---|
 | `SUPABASE_URL` | `https://<your-project-ref>.supabase.co` | Supabase dashboard → Project Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | `eyJ...` (service role JWT) | Supabase dashboard → Project Settings → API → **service_role** (secret) |
+| `WS_STATUS_SECRET` | Long random string (`openssl rand -base64 32`) | Generate locally; set the same value on Vercel's `WS_STATUS_SECRET` |
 
 > **Do not set `PORT` or `WS_PORT`** — Railway injects `PORT` automatically.
 > The server reads `process.env.PORT` first, so it just works.
+
+> **`WS_STATUS_SECRET` is required.** The `/status` endpoint refuses to serve
+> unless this env var is set; the journal server (Vercel) sends it as a
+> `Authorization: Bearer …` header. Use the same value on both sides.
 
 ---
 
@@ -46,6 +51,7 @@ In the Railway service → **Variables** tab, add:
 ```
 SUPABASE_URL=https://<your-project-ref>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<your-service-role-key>
+WS_STATUS_SECRET=<long random string, same value as in Vercel>
 ```
 
 ### 2c. Deploy
@@ -65,6 +71,7 @@ In **Vercel → web project → Settings → Environment Variables**, update:
 | Variable | New value |
 |---|---|
 | `WS_STATUS_URL` | `https://<railway-url>/status` |
+| `WS_STATUS_SECRET` | same value as on Railway |
 
 Redeploy the Vercel web project (or wait for the next push) for the change to take effect.
 

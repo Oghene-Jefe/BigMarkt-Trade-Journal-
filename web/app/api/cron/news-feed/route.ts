@@ -14,7 +14,15 @@ import { fetchAllFeeds, normalize } from "@/lib/news/forexFactory";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Misconfigured deploy: never let an unset secret degrade into accepting
+  // `Authorization: Bearer undefined`. Template-literally that's a real,
+  // matchable string — so prior code accepted any caller who supplied it.
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error("CRON_SECRET is not set — refusing to run cron");
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
+  if (req.headers.get("authorization") !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
