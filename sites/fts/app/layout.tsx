@@ -9,7 +9,13 @@ export const metadata: Metadata = {
     "Learn to trade properly. No hype. No expensive courses. The education arm of BigMarkt.",
   metadataBase: new URL("https://fts.bigmarkt.co"),
   icons: {
+    // First entry has no `media` so every browser/agent picks at least one
+    // icon — including those that ignore prefers-color-scheme on favicons
+    // (Safari historically) or that don't evaluate the media query at all
+    // (preview/RSS crawlers). The two conditional entries override when
+    // the user-agent honours the media query.
     icon: [
+      { url: "/favicon-dark.svg", type: "image/svg+xml" },
       { url: "/favicon-dark.svg", type: "image/svg+xml", media: "(prefers-color-scheme: dark)" },
       { url: "/favicon-light.svg", type: "image/svg+xml", media: "(prefers-color-scheme: light)" },
     ],

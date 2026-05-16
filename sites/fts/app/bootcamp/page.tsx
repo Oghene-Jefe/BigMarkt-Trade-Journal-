@@ -1,14 +1,18 @@
 import Link from "next/link";
+import { ClipboardList, Send, Video } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export const metadata = {
   title: "Boot Camp — FTS Free Trading Academy",
   description: "A structured 13-module forex education programme for beginners to intermediate traders.",
 };
 
-const howItWorks = [
-  { icon: "📱", title: "Telegram Group", body: "Join t.me/ftsbootcamp for community, support and announcements." },
-  { icon: "🎥", title: "Live Classes", body: "Weekly sessions on Zoom and Google Meet. Recorded for replay." },
-  { icon: "📝", title: "Assignments", body: "Each module has practical assignments to reinforce learning." },
+type Step = { icon: LucideIcon; title: string; body: string };
+
+const howItWorks: Step[] = [
+  { icon: Send,           title: "Telegram Group", body: "Join t.me/ftsbootcamp for community, support and announcements." },
+  { icon: Video,          title: "Live Classes",   body: "Weekly sessions on Zoom and Google Meet. Recorded for replay." },
+  { icon: ClipboardList,  title: "Assignments",    body: "Each module has practical assignments to reinforce learning." },
 ];
 
 const modules = [
@@ -61,13 +65,18 @@ export default function BootCampPage() {
         <div className="mx-auto max-w-7xl">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">How it works</h2>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {howItWorks.map((h) => (
-              <div key={h.title} className="border border-[#1f1f1f] bg-[#111111] p-6">
-                <div className="text-3xl">{h.icon}</div>
-                <h3 className="mt-4 text-lg font-semibold text-white">{h.title}</h3>
-                <p className="mt-2 text-sm text-white/70">{h.body}</p>
-              </div>
-            ))}
+            {howItWorks.map((h) => {
+              const Icon = h.icon;
+              return (
+                <div key={h.title} className="border border-[#1f1f1f] bg-[#111111] p-6">
+                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#C9A84C]/30 bg-[#C9A84C]/10 text-[#C9A84C]">
+                    <Icon size={20} aria-hidden strokeWidth={1.75} />
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-white">{h.title}</h3>
+                  <p className="mt-2 text-sm text-white/70">{h.body}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
