@@ -24,9 +24,9 @@ export default function Navbar() {
           className="flex items-center"
           onClick={() => setOpen(false)}
         >
-          <div className="flex flex-col items-start leading-none">
+          <div className="flex items-center gap-2 leading-none">
             <Logo size="sm" />
-            <span style={{ color: "#C9A84C", fontSize: "9px", letterSpacing: "0.2em", marginTop: "3px" }}>
+            <span style={{ color: "#C9A84C", fontSize: "10px", letterSpacing: "0.2em" }}>
               CLUB
             </span>
           </div>
