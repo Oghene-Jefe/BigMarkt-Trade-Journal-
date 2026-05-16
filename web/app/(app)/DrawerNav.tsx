@@ -41,7 +41,6 @@ const GROUPS: { label: string; items: LinkItem[] }[] = [
       { href: "/calculator", label: "Risk Calc" },
       { href: "/trades", label: "Trades" },
       { href: "/analytics", label: "Analytics" },
-      { href: "/challenges", label: "Challenges" },
     ],
   },
   {
@@ -49,6 +48,7 @@ const GROUPS: { label: string; items: LinkItem[] }[] = [
     items: [
       { href: "/leaderboard", label: "Leaderboard" },
       { href: "/subscriptions", label: "Subscriptions" },
+      { href: "/challenges", label: "Challenges" },
     ],
   },
   {
