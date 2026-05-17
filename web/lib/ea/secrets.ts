@@ -55,13 +55,31 @@ export type EncryptedSigningSecret = {
 export function checkSigningSecretSetup(): { ok: true } | { ok: false; reason: string } {
   const raw = process.env.EA_SIGNING_SECRET_ENCRYPTION_KEY;
   if (!raw) return { ok: false, reason: "not_set" };
+
+  // Node's Buffer.from(_, "base64") is permissive — it silently strips
+  // characters outside the base64 alphabet rather than throwing. That
+  // makes the catch-block below useless on its own. Do an explicit shape
+  // check AND a decode→re-encode round-trip; both must agree (modulo
+  // padding) before we accept the value.
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(raw)) {
+    return { ok: false, reason: "not_base64" };
+  }
   let buf: Buffer;
   try {
     buf = Buffer.from(raw, "base64");
   } catch {
     return { ok: false, reason: "not_base64" };
   }
+  // Re-encode and compare ignoring trailing '=' so we catch values that
+  // included stray characters that Buffer.from silently dropped.
+  const reencoded = buf.toString("base64");
+  const normalize = (s: string) => s.replace(/=+$/, "");
+  if (normalize(reencoded) !== normalize(raw)) {
+    return { ok: false, reason: "not_base64" };
+  }
+
   if (buf.length < KEY_BYTES) return { ok: false, reason: "too_short" };
+
   // Full round-trip with throwaway userId/tokenId, just to exercise the
   // cipher with this exact env value.
   try {

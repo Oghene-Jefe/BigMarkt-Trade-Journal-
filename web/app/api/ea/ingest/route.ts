@@ -346,13 +346,22 @@ export async function POST(req: NextRequest) {
     envelopeForReplay = env.envelope;
   }
 
-  // 9. Fetch account type to tag demo trades with trust_badge = 'demo'
+  // 9. Fetch account type to tag demo trades with trust_badge = 'demo'.
+  //    Defence in depth: scope the lookup to the calling user. The bearer
+  //    + broker_account_id pair on the token row is already user-owned
+  //    (linkEaTokenToAccountAction enforces ownership), but adding
+  //    .eq("user_id", userId) here means even a row that somehow slipped
+  //    through can't be read across users. If the account is missing or
+  //    isn't owned, default to non-demo (auto_verified) and continue —
+  //    we don't 401 here because that would leak existence of a specific
+  //    broker_account_id.
   let accountType: string | null = null;
   if (brokerAccountId) {
     const { data: account } = await supabase
       .from("broker_accounts")
       .select("account_type")
       .eq("id", brokerAccountId)
+      .eq("user_id", userId)
       .maybeSingle();
     accountType = (account?.account_type as string | null) ?? null;
   }

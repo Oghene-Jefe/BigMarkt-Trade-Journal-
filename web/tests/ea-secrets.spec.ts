@@ -93,4 +93,21 @@ describe("checkSigningSecretSetup — operational health probe", () => {
     const { checkSigningSecretSetup } = await import("@/lib/ea/secrets");
     expect(checkSigningSecretSetup()).toEqual({ ok: false, reason: "too_short" });
   });
+
+  it("reports not_base64 for strings with characters outside the base64 alphabet", async () => {
+    // The dollar sign is not in the base64 alphabet. Node's Buffer.from
+    // would silently strip it; the tightened shape check rejects up front.
+    process.env.EA_SIGNING_SECRET_ENCRYPTION_KEY = "not$valid$base64!!@@##" + "A".repeat(40);
+    const { checkSigningSecretSetup } = await import("@/lib/ea/secrets");
+    expect(checkSigningSecretSetup()).toEqual({ ok: false, reason: "not_base64" });
+  });
+
+  it("reports not_base64 when stray junk bytes are silently stripped", async () => {
+    // Valid 32-byte base64 with an embedded space (Buffer.from drops the
+    // space and decodes the rest, which would otherwise pass).
+    const valid = Buffer.from(new Uint8Array(32)).toString("base64");
+    process.env.EA_SIGNING_SECRET_ENCRYPTION_KEY = valid.slice(0, 10) + " " + valid.slice(10);
+    const { checkSigningSecretSetup } = await import("@/lib/ea/secrets");
+    expect(checkSigningSecretSetup()).toEqual({ ok: false, reason: "not_base64" });
+  });
 });

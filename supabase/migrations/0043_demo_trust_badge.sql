@@ -1,6 +1,14 @@
--- 0029_demo_trust_badge.sql
+-- 0043_demo_trust_badge.sql
 -- Adds 'demo' as a valid trust_badge value for EA trades from demo broker accounts.
 -- Demo trades are private: excluded from public profiles and the leaderboard.
+--
+-- HISTORY: this file was originally added to the repo as 0029_demo_trust_badge.sql
+-- alongside the existing 0029_support_chat.sql — a duplicate-name footgun for any
+-- future migration tooling. Production already had these objects applied directly
+-- via the Supabase SQL editor (the project does not use the supabase CLI's
+-- migration history table). Renamed to 0043 so the on-disk ordering is unique
+-- and deterministic. The statements below are idempotent (DROP CONSTRAINT IF
+-- EXISTS, CREATE OR REPLACE FUNCTION) so re-running against prod is a no-op.
 
 -- 1. Extend the trust_badge CHECK constraint to include 'demo'
 ALTER TABLE public.trades
