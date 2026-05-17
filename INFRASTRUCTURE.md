@@ -55,9 +55,19 @@ BigMarkt-Trade-Journal/                    ← monorepo root
 ├── README.md                               ← legacy README
 ├── SESSION_5_COMPLETE.md                   ← session log
 ├── .github/workflows/ci.yml                ← typecheck + test + build
-├── index.html, js/, css/, assets/, manifest.json   ← LEGACY static app, not deployed
+├── archive/legacy-static-app/              ← LEGACY pre-Next static app — reference only,
+│   │                                          NEVER deployed; Supabase URL + anon key
+│   │                                          scrubbed to placeholders in js/config.js
+│   └── README.md, index.html, manifest.json, js/, css/
 │
-├── supabase/migrations/                    ← 28 SQL files, idempotent, additive
+├── assets/                                  ← shared image assets
+│
+├── docs/
+│   ├── ea-replay-protocol.md               ← EA ingest v2 spec (SHIPPED status; canonical
+│   │                                          message format, MQL5 porting notes)
+│   └── live-readiness-checklist.{md,pdf}
+│
+├── supabase/migrations/                    ← 43 SQL files, idempotent, additive
 │
 ├── infra/
 │   └── bybit-proxy-worker.js               ← Cloudflare Worker (egress proxy)
@@ -74,10 +84,12 @@ BigMarkt-Trade-Journal/                    ← monorepo root
 │
 ├── sites/                                  ← Three independent Next.js marketing apps
 │   ├── marketing/                          ← bigmarkt.co
-│   ├── fts/                                ← fts.bigmarkt.co
-│   └── club/                               ← club.bigmarkt.co
+│   ├── fts/                                ← fts.bigmarkt.co (Turnstile widget + abuse helper)
+│   └── club/                               ← club.bigmarkt.co (Turnstile widget + abuse helper)
 │   (each has its own /public/favicon-{dark,light}.svg + lucide-react +
-│    SocialLinks component + ecosystem footer; tailwind v4)
+│    SocialLinks component + ecosystem footer; tailwind v4. fts + club each
+│    have an inlined copy of lib/abuse.ts + app/_components/Turnstile.tsx —
+│    the three Next apps don't share node_modules so the helper is duplicated.)
 │
 └── web/                                    ← The journal app (journal.bigmarkt.co)
     ├── package.json, tsconfig.json, tsconfig.typecheck.json, next.config.mjs, tailwind.config.ts
@@ -96,8 +108,11 @@ BigMarkt-Trade-Journal/                    ← monorepo root
     │       └── cron/
     │           ├── recalculate-scores/       ← daily 02:00 UTC score recalc
     │           └── news-feed/                ← daily 00:00 UTC Forex Factory ingest
-    ├── lib/                                  ← see Module Inventory (includes lib/news/)
+    ├── lib/                                  ← see Module Inventory (includes lib/news/,
+    │                                            lib/ea/{normalize,sig,secrets}.ts,
+    │                                            lib/upload/imageSniff.ts, lib/abuse.ts)
     ├── components/
+    │   ├── Turnstile.tsx                    ← explicit-render Cloudflare widget (web app)
     │   ├── ui/                              ← shared design primitives (Button, Section,
     │   │                                       StatusPill, EmptyState, PageHeader,
     │   │                                       MetricCard, EcosystemFooter, SocialLinks,
@@ -111,7 +126,7 @@ BigMarkt-Trade-Journal/                    ← monorepo root
 
 ---
 
-## Database schema (39 migrations)
+## Database schema (43 migrations)
 
 Migrations are **idempotent and additive**. Re-applying any of them against the live schema is a safe no-op (notice messages only). Detailed table-by-table column reference lives in the original write-up; this index links each migration to what it shipped.
 
@@ -171,7 +186,7 @@ Migrations are **idempotent and additive**. Re-applying any of them against the 
 | 0030 | `brokers` + `leaderboard_overrides` admin-curation tables; `notifications.type` gains `announcement` for broadcast |
 | 0031 | Notification triggers, challenge streak tracking, dispute resolution wiring, balance-reset score-recalc fix; rebuilds `notifications_type_check` (regressed `announcement` — see 0034) |
 
-### Onboarding + audit-pass hardening (0032–0040)
+### Onboarding + audit-pass hardening (0032–0043)
 | # | Purpose |
 |---|---|
 | 0032 | `handle_new_user` trigger reads `raw_user_meta_data.referred_by` so the `?ref=` query param on `/signup` lands on `profiles.referred_by` |
@@ -183,6 +198,9 @@ Migrations are **idempotent and additive**. Re-applying any of them against the 
 | 0038 | **Lock down `account_scores` writes.** Drops `scores_self_insert` and `scores_self_update` — any authed user could previously write rows where `user_id = auth.uid()` and climb the leaderboard via a raw REST call. Cron + manual recalc still work because they use service-role and bypass RLS. |
 | 0039 | `news_events.url text` — added so the news cron can store Forex Factory's per-event permalink. UI prefers this over the Google News fallback when present. |
 | 0040 | **`abuse_log` table** — append-only, service-role-only ledger backing the public-form (`fts_application`, `club_application`, `broker_submission`) and EA-ingest (`ea_ingest`) rate-limit + duplicate-suppression checks. Three partial indexes on `(scope, ip)`, `(scope, email)`, `(scope, token_hash)` keep lookups O(log n). Ships with `cleanup_abuse_log(interval)` for optional pruning. |
+| 0041 | **EA ingest v2: per-token signing secret columns.** Adds nullable `signing_secret_ciphertext` / `_iv` / `_tag` / `_key_version` to `ea_tokens`. Secret is AES-256-GCM encrypted with `EA_SIGNING_SECRET_ENCRYPTION_KEY` (HKDF info bound to `user_id`+`token_id`). Pre-0041 tokens have NULL → legacy mode (v1 protocol only). |
+| 0042 | **EA ingest v2: replay-nonce table.** `ea_request_nonces (token_hash, nonce, sent_at, seen_at)` with `PRIMARY KEY (token_hash, nonce)` — atomic INSERT-or-23505 is the replay check. Service-role only. `cleanup_ea_request_nonces(interval)` prunes >10-min-old rows. |
+| 0043 | **Demo trust badge.** Extends `trades_trust_badge_check` to allow `'demo'`. Updates `get_public_trades` to exclude demo trades and `get_leaderboard_scores` to exclude demo broker accounts via `account_type` join. Originally landed as duplicate-named `0029_demo_trust_badge.sql`; renamed to 0043 for unique ordering. Idempotent (`DROP CONSTRAINT IF EXISTS`, `CREATE OR REPLACE FUNCTION`). |
 
 ### Tables now in production
 **Core**: `profiles`, `trades`, `balance_resets`, `challenges`, `admin_users`, `subscriptions`, `notifications`, `disputes`.
@@ -191,6 +209,7 @@ Migrations are **idempotent and additive**. Re-applying any of them against the 
 **Applications**: `bootcamp_applications`, `club_applications`.
 **Session 9**: `news_events` (Forex Factory feed), `support_conversations`, `support_messages`, `brokers` (admin curation), `leaderboard_overrides`, `badges`.
 **Sanitized view**: `profiles_public`.
+**Audit-pass / EA v2**: `abuse_log` (rate-limit + dedupe ledger), `ea_request_nonces` (v2 replay-protection nonces).
 
 All FK-cascade from `auth.users` on delete; all base tables have RLS enabled. Writable tables have **self-only** policies, except where an explicit admin override exists (support_*, profiles SELECT). Service-role writes bypass RLS by design.
 
@@ -251,7 +270,15 @@ All FK-cascade from `auth.users` on delete; all base tables have RLS enabled. Wr
 - `bybit/sync.ts` — paginated fetch + upsert with composite-key dedupe
 
 ### `lib/ea/`
-- `normalize.ts` — MT4/MT5 EA payload → `trades` row (`buildEaTradeRow`, `deriveEaDirection`, `deriveEaResult`)
+- `normalize.ts` — full `eaTradeSchema` (zod, bounded fields), `buildEaTradeRow` translates EA payload → `trades` row; tags trade with `trust_badge='demo'` when `accountType==='demo'`, else `'auto_verified'`
+- `sig.ts` — canonical message + HMAC-SHA256 for v2 protocol. Fixed `TRADE_FIELD_ORDER` (13 fields, `key=value\n` join — NOT JSON.stringify, so MQL5 can replicate byte-for-byte). `verifySig()` uses `timingSafeEqual`. `isTimestampFresh()` enforces ±5-min `TIMESTAMP_WINDOW_MS`. See `docs/ea-replay-protocol.md`.
+- `secrets.ts` — AES-256-GCM + HKDF envelope encryption for per-token signing secrets. Mirrors `lib/exchanges/crypto.ts` pattern but uses its own master key (`EA_SIGNING_SECRET_ENCRYPTION_KEY`). Ships `checkSigningSecretSetup()` health probe with strict base64 validation (regex shape + decode-roundtrip), returning `not_set` / `not_base64` / `too_short` / `encrypt_failed` / `ok`.
+
+### `lib/upload/`
+- `imageSniff.ts` — magic-byte sniffer. Reads first 16 bytes of a `File`, returns `image/jpeg` | `image/png` | `image/webp` | `null`. GIF is intentionally rejected. Used by chart + avatar upload actions so browser-reported `file.type` is never trusted for Content-Type or extension.
+
+### `lib/`  ·  abuse barrier
+- `abuse.ts` — shared abuse-protection primitives. `INPUT_CAPS` (RFC-5321 email, 120/500/800 string bands), `capStr()`, `callerIp()` (xff/x-real-ip), `verifyTurnstile()` (Cloudflare server-side verify; fail-closed in prod when `TURNSTILE_SECRET_KEY` is missing, fail-open in dev), `checkAndLog()` (DB-backed IP rate-limit + email-dedupe via `abuse_log`; fail-closed on DB errors). Duplicated verbatim into `sites/fts/lib/abuse.ts` and `sites/club/lib/abuse.ts` because the three apps don't share node_modules.
 
 ### `lib/news/`
 - `forexFactory.ts` — shared parser used by both the Vercel cron route and the local `npm run news:run` script. Owns XML parsing (CDATA + self-closing tags), MM-DD-YYYY date parsing, Europe/London → UTC conversion (BST-aware via `londonUtcOffsetMinutes`), country → currency mapping, impact mapping, row normalisation, `<url>` extraction with http(s)-only validation. No Supabase / Next imports — dependency-free for unit tests.
@@ -310,9 +337,17 @@ POST /api/ea/ingest                                            (web/app/api/ea/i
 The user's MT5 EA also opens a WebSocket to `websocket-server/` for heartbeat + status. `ea_connection_log` records connect/disconnect events with timestamps. `/ea-setup` shows the connection's last-ping age.
 
 ### Token lifecycle
-- Generate: `web/lib/actions/ea-tokens.ts` mints a random token, stores `sha256(token)` in `ea_tokens`, returns plaintext once
+- Generate: `web/lib/actions/ea-tokens.ts` mints a random bearer token (stored as `sha256` in `token_hash`) AND a 32-byte signing secret (stored AES-256-GCM encrypted across `signing_secret_{ciphertext,iv,tag,key_version}` since migration 0041). Returns all three values once: `{ rawToken, signingSecret, id }`. The token id is pre-generated server-side so the secret can be HKDF-bound to it.
 - Revoke: row stays for audit trail but `revoked_at` is set; ingest rejects
-- One token per `broker_account` (since 0021)
+- One token per `broker_account` (since 0021); legacy tokens (pre-0041, `signing_secret_ciphertext IS NULL`) render a yellow "Legacy — regenerate for v2 replay protection" badge on `/ea-setup`.
+
+### Ingest v2 protocol (Session P, shipped server-side)
+Full spec at `docs/ea-replay-protocol.md`. Wire summary:
+- Header `X-Ingest-Protocol: v2` opts in. Missing header = v1 mode (allowed until `EA_INGEST_V1_CUTOFF_AT`).
+- Body envelope adds `sent_at` (ISO, ±5 min from server clock), `nonce` (16 random bytes hex), `sig` (HMAC-SHA256 hex over a canonical message of `protocol\n token_id\n sent_at\n nonce\n sha256(canonical_trade_fields)`).
+- Canonical trade fields use a fixed `TRADE_FIELD_ORDER` joined as `key=value\n` — NOT JSON.stringify — so the MQL5 EA can replicate byte-for-byte. Reference golden tests in `web/tests/ea-sig.spec.ts`.
+- Replay check: atomic `INSERT` into `ea_request_nonces (token_hash, nonce, sent_at)` after sig + zod payload validate pass, immediately before the trade upsert. `PRIMARY KEY (token_hash, nonce)` → unique-violation (Postgres 23505) → 409 "Replayed request".
+- MT5 EA still needs the v2 update to ship.
 
 ### Why service-role for ingest
 The EA has no Supabase session cookie — it's a desktop process posting from the user's home network. Service-role lets the ingest route write `trades` for whichever `user_id` the token resolves to, after authenticating the token itself. This is the **one** place in the app that bypasses RLS; documented and constrained.
@@ -354,6 +389,23 @@ BYBIT_PROXY_TOKEN=<shared secret>
 ```
 BYBIT_PROXY_TOKEN=<same shared secret>
 ```
+
+### All journal (`web`) env vars in production
+| Var | Purpose | Failure mode if unset |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Browser + RLS-gated server clients | Build fails; all RLS reads broken |
+| `SUPABASE_SERVICE_ROLE_KEY` | `lib/supabase/admin.ts` — bypasses RLS | EA ingest 500; cron 500; service-role probes fail |
+| `NEXT_PUBLIC_SITE_URL` | Trusted base URL for password-reset emails | Reset returns the generic "if that email…" reply + server warning (no longer 500) |
+| `CRON_SECRET` | Bearer auth on `/api/cron/*` | 500 (fail-closed); cron rejected |
+| `WS_STATUS_URL` / `WS_STATUS_SECRET` | journal → WS server `/status` probe | EA-setup card degrades to "offline" |
+| `EXCHANGE_CREDENTIAL_ENCRYPTION_KEY` | Bybit-credential encryption (HKDF + AES-256-GCM) | Connection create/decrypt throws |
+| `EA_SIGNING_SECRET_ENCRYPTION_KEY` | Per-token EA v2 signing-secret encryption | `generateEaTokenAction` returns "EA token setup is temporarily unavailable. Please contact support."; v2 ingest verify fails closed (401) |
+| `EA_INGEST_V1_CUTOFF_AT` | ISO timestamp; past it, v1 ingest returns 410 | Unset = v1 allowed indefinitely with per-token deprecation warning (default-safe — chosen so a missing env can't brick live EAs) |
+| `TURNSTILE_SECRET_KEY` | Server-side verify of `cf-turnstile-response` on public forms | Production: forms fail closed; dev: skipped |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Renders the widget on public forms | Widget not rendered; if `TURNSTILE_SECRET_KEY` is also unset, forms still work in dev |
+| `BYBIT_PROXY_TOKEN` / `BYBIT_MAINNET_BASE_URL` / `BYBIT_TESTNET_BASE_URL` | See "Bybit egress proxy" above | Bybit sync fails |
+
+Same `TURNSTILE_SECRET_KEY` + `NEXT_PUBLIC_TURNSTILE_SITE_KEY` are also set on `bigmarkt-fts` and `bigmarkt-club` (the shared Turnstile widget covers all three hostnames).
 
 ---
 
@@ -463,7 +515,11 @@ Privacy spec (`tests/privacy.spec.ts`) self-skips without `SUPABASE_SERVICE_ROLE
 | `bybit-normalize.spec.ts` | String → number, empty → null, ms → ISO, raw preservation |
 | `bybit-windows.spec.ts` | ≤7-day window splitter, contiguity, no-overshoot |
 | `exchange-crypto.spec.ts` | Encrypt round-trip, no plaintext substring, tamper, wrong-user, wrong-salt |
-| `ea-normalize.spec.ts` | MT buy/sell direction, EA trade row builder |
+| `ea-normalize.spec.ts` | MT buy/sell direction, EA trade row builder, full zod schema (bounded ticket/symbol/type/lots/prices/times/comment, rejects shell-y symbols, infinite numbers, out-of-window timestamps) |
+| `ea-sig.spec.ts` | canonicalization invariance under JS key reorder, HMAC verify good/bad-bit/wrong-key/malformed, timestamp clock-skew boundaries (4m59s passes, 5m01s rejects), `NONCE_RE` / `SIG_RE`, golden vector for MQL5 parity |
+| `ea-secrets.spec.ts` | AES-GCM round-trip, HKDF binding (wrong userId / tokenId rejected), tag tamper rejected, random IV per call, `checkSigningSecretSetup()` reasons (`not_set`, `not_base64` incl. silent-strip detection, `too_short`, `ok`) |
+| `ea-ingest-v2.spec.ts` | Route-handler integration with mocked Supabase: valid v2 → 200, stale ±6m → 409, replay → 409, bad sig → 401, missing/malformed envelope → 400, NULL signing-secret token + v2 → 401, v1 before/after `EA_INGEST_V1_CUTOFF_AT` → 200/410, unsupported protocol header → 400 |
+| `image-sniff.spec.ts` | JPEG/PNG/WebP detected by magic bytes; HTML-as-PNG and GIF rejected; too-small files rejected |
 | `news-forexFactory.spec.ts` | MM-DD-YYYY parsing, BST/GMT offset flips on DST boundaries, 12:00am vs 12:00pm, Tentative/All Day fallbacks, self-closing tags, missing `<actual>`, unknown country, impact map, `<url>` parse + non-http rejection |
 | `rendering.spec.tsx` | React text rendering escapes user content (XSS pin) |
 | `privacy.spec.ts` | Real-Supabase RLS coverage (skipped without service-role) |
@@ -594,13 +650,19 @@ The architecture preserves these across all changes:
 6. **EA tokens never stored in plaintext.** Only `sha256(token)` lands in `ea_tokens.token_hash`.
 7. **Admin operations require server-side `is_admin(auth.uid())`.** No client allowlist anywhere.
 8. **Cross-user data is unreachable.** RLS + defence-in-depth `.eq("user_id", auth.uid())` on every mutation.
-9. **Schema lives in version control.** 39 migrations, idempotent, applied to prod.
+9. **Schema lives in version control.** 43 migrations, idempotent, applied to prod (currently by hand via the Supabase SQL editor — the project doesn't use `supabase_migrations.schema_migrations` yet, so filename ordering is the only invariant).
 10. **Service-role key never imported from `app/` or `components/`.** Only `lib/supabase/admin.ts` exposes it, used by `/api/ea/ingest` (token-authed), the two cron routes, and `tests/privacy.spec.ts`.
 11. **Cron + status endpoints fail closed on missing secrets.** `CRON_SECRET` unset → 500. `WS_STATUS_SECRET` unset → 503. Template-string bypasses (`Bearer undefined`) are no longer possible.
 12. **`/status` cannot return the global active-connection map.** The WS server filters `authedSockets` against caller-supplied `?token_ids=…` before responding. Missing/empty → zero connections.
 13. **Leaderboard scores cannot be self-written.** `account_scores` SELECT-only for users; writes only via service-role cron + manual recalc (0038).
 14. **Support messages are immutable from the user side.** Users SELECT + INSERT (with `sender_role = 'user'`, `sender_id = auth.uid()`); only the `mark_support_messages_read` RPC flips `read_at` on admin messages.
-15. **EA token → broker_account links are ownership-checked** in `linkEaTokenToAccountAction` before write. Belt-and-braces alongside RLS on `broker_accounts`.
+15. **EA token → broker_account links are ownership-checked** in `linkEaTokenToAccountAction` before write. Belt-and-braces alongside RLS on `broker_accounts`. EA ingest's account-type lookup is also `.eq("user_id", userId)` scoped.
+16. **Public forms reach the DB only after bot+rate-limit checks.** `verifyTurnstile()` runs before `checkAndLog()` runs before any service-role insert in `submitApplication` (fts + club) and `submitBrokerAction`. Turnstile fails closed in production; abuse_log fails closed on any DB error (caller maps every `!ok` to the same generic user message).
+17. **EA ingest v2 is replay-resistant.** Per-token HMAC over a canonical message, `sent_at` within ±5 min, atomic nonce INSERT into `ea_request_nonces` (`PRIMARY KEY (token_hash, nonce)` is the replay check). Signing secret is per-token AES-256-GCM-encrypted with `EA_SIGNING_SECRET_ENCRYPTION_KEY`; HKDF info binds to `(user_id, token_id)` so a single leaked ciphertext can't be replayed under another row.
+18. **EA ingest body cap is 32 KB**, enforced by streaming reader. Raw DB errors stay server-side; clients see generic 400/401/409/410/413/429/500/503.
+19. **Image uploads are content-sniffed.** Chart + avatar paths read magic bytes via `lib/upload/imageSniff.ts`; storage Content-Type + extension come from the sniffed type, never `file.type` or `file.name`. GIF is rejected.
+20. **Password-reset redirect is env-locked.** `NEXT_PUBLIC_SITE_URL` (or `APP_URL`) is read at runtime; attacker-controlled `Origin:` header has no effect. Misconfiguration logs server-side and returns the same generic "if that email has an account…" reply.
+21. **Legacy static app is quarantined.** `archive/legacy-static-app/` is reference-only and the original Supabase URL + anon key were scrubbed to placeholders in `js/config.js`. No Vercel project deploys this tree.
 
 ---
 
@@ -632,6 +694,9 @@ The architecture preserves these across all changes:
 | Session L — Support chat | Customer support | Floating ChatWidget + admin inbox; migrations 0033 (insert-spoofing fix), 0035 (read-flag RPC), 0036 (admin profile SELECT for inbox names) |
 | Session M — Audit pass | Launch-blocking fixes | Cron auth bypass (template-undefined), `account_scores` writable RLS (0038), broker_account ownership in EA token linking, WS `/status` secret + `?token_ids=` allow-list, FF event URLs (0039) |
 | Session N — Defensive audit | Pre-launch abuse barrier | (0040) `abuse_log` table backs public-form + EA-ingest rate limits & dedupe; Cloudflare Turnstile (`lib/abuse.ts` × 3 apps) on `submitApplication` (fts + club); 32 KB body cap + full zod schema + per-token 60/min limit on EA ingest, raw DB errors no longer echoed; reset-password redirect locked to `NEXT_PUBLIC_SITE_URL` (no more attacker-controlled `Origin:`); legacy static app moved to `archive/legacy-static-app/`; Next bumped to `^15.5.18` + top-level postcss to `^8.5.10` (nested postcss in `next/node_modules/` still flagged — no non-`--force` fix available, near-zero exposure). |
+| Session O — Audit follow-up | Fail-closed everywhere | Broker submission gets a Turnstile widget (`web/components/Turnstile.tsx`); `lib/abuse.ts` fails closed on `abuse_log` DB errors (new `"abuse_log_error"` reason); EA ingest returns 503 if rate-limit count/insert fails; chart + avatar uploads use `lib/upload/imageSniff.ts` magic-byte sniff (JPEG/PNG/WebP only — GIF rejected); legacy `archive/legacy-static-app/js/config.js` scrubbed to placeholders; reset-password action wraps `trustedAppOrigin()` in try/catch and returns a generic message on env misconfiguration; `BRING_ONLINE.pdf` references removed from infra doc. |
+| Session P — EA ingest v2 | Replay protection | Per-token HMAC-signed envelope (`sent_at` + 16-byte `nonce` + `sig`) over a canonical message bound to `(protocol, token_id, sent_at, nonce, sha256(canonical_trade_fields))`. Signing secret per token is encrypted-at-rest with AES-256-GCM + HKDF (`lib/ea/secrets.ts`, master key `EA_SIGNING_SECRET_ENCRYPTION_KEY`). Migrations 0041 (signing-secret columns) + 0042 (`ea_request_nonces` table). Atomic replay check via `PRIMARY KEY (token_hash, nonce)` → unique-violation → 409. Soft cutover via `EA_INGEST_V1_CUTOFF_AT` env (default-allow v1, deprecation log per token id throttled to 1/hr). `/ea-setup` now shows token UUID + bearer + signing secret on generation, plus a "Legacy — regenerate" badge on pre-0041 tokens and a permanent `ID:` line on each row. Full spec in `docs/ea-replay-protocol.md`; 32 new tests across `ea-sig.spec.ts`, `ea-secrets.spec.ts`, `ea-ingest-v2.spec.ts`. |
+| Session Q — Demo badge + ops cleanup | Hygiene | (0043) `'demo'` added to `trades_trust_badge_check`; `get_public_trades` and `get_leaderboard_scores` updated to hide demo trades + accounts. EA ingest auto-tags trades from broker accounts where `account_type='demo'` (broker_account lookup now `.eq("user_id", userId)` scoped — defence in depth). Originally landed as duplicate-named `0029_demo_trust_badge.sql`; renamed to 0043 for unique ordering. `checkSigningSecretSetup()` base64 validation tightened (regex + roundtrip; catches values where Node's `Buffer.from(_, "base64")` would silently strip junk). Token-gen error path now distinguishes setup failure from transient DB error and surfaces `"EA token setup is temporarily unavailable. Please contact support."` with a `[ea-token-setup]` log marker. |
 
 ---
 
@@ -653,7 +718,10 @@ per item plus removing this row from the table when you do.
 
 | Priority | Item |
 |---|---|
-| Low | Delete legacy static files at repo root (`index.html`, `js/`, `css/`, `assets/`, `manifest.json`) — Vercel ignores them but they clutter |
+| High | **Ship the MT5 EA v2 update** (MQL5 source under `mql5/`). The journal already accepts v2; until the EA opts in, every connected client uses the v1 path and burns the deprecation log throttle. Once ≥95% of active tokens are on v2, set `EA_INGEST_V1_CUTOFF_AT` on the journal Vercel project to flip on the 410 cutoff. Use the golden vectors in `web/tests/ea-sig.spec.ts` to verify MQL5 byte-for-byte sig output before release. |
+| Medium | Wire `cleanup_ea_request_nonces()` and `cleanup_abuse_log()` into the existing Vercel cron (`/api/cron/recalculate-scores` is the existing daily job — drop two `select public.cleanup_*();` calls beside it). Tables stay bounded today by TTL semantics; cron just keeps row counts deterministic. |
+| Medium | Adopt `supabase_migrations.schema_migrations` so future migrations apply via tooling instead of by hand via the SQL editor. Without it, the duplicate-name footgun that landed `0029_demo_trust_badge.sql` is a class of bug that can repeat. Add the table + a one-off backfill of the existing 43 file hashes, then enforce CI checks for filename uniqueness. |
+| Low | Render the `checkSigningSecretSetup()` probe on `/admin` (a one-line call into the new `lib/ea/secrets.ts` export). Surfaces "EA token setup is broken" before users hit it. |
 | Low | `/journal/imports` — review UX for `exchange_closed_pnl` pending rows; Bybit auto-import is currently sync-only with no UI to promote to journal trades |
 | Low | Generated Supabase types via `supabase gen types typescript` — currently blocked on Docker requirement, `lib/types.ts` manual mirror is up to date |
 | Backlog | Edge Function for full `auth.users` deletion (admin "Purge data" currently leaves the auth row) |
@@ -666,4 +734,4 @@ per item plus removing this row from the table when you do.
 
 ---
 
-*Last updated: 2026-05-17 — refreshed to reflect 39 migrations, the audit-pass hardening (cron auth, account_scores RLS, WS `/status` secret + token allow-list), the news pipeline (shared parser + 14-day window + URL permalinks), the support-chat surface, the `components/ui/` design system, the ecosystem favicons and footer rollout, and the WS server's Railway migration. Keep in sync as future migrations land.*
+*Last updated: 2026-05-17 — refreshed for 43 migrations and Sessions N–Q: the defensive abuse barrier (0040 `abuse_log`, Turnstile on every public form, fail-closed-in-prod posture), EA ingest v2 replay protection (0041 signing-secret columns + 0042 replay-nonce table + `lib/ea/{sig,secrets}.ts` + 32 tests + `docs/ea-replay-protocol.md`), image-upload magic-byte sniffing (`lib/upload/imageSniff.ts`), env-locked password-reset redirect, legacy static app quarantined to `archive/legacy-static-app/`, the demo trust badge (0043, formerly the duplicate-named `0029_demo_trust_badge`), and the new `EA_SIGNING_SECRET_ENCRYPTION_KEY` env-var family. Total web tests now 138 (was 94). Keep in sync as future migrations land.*
