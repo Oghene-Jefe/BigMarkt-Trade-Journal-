@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import "dotenv/config";
 import type { TradePayload } from "./types.js";
+import { parseTokenIds } from "./statusQuery.js";
 
 export type { TradePayload };
 
@@ -115,14 +116,18 @@ async function handleTrade(socket: AuthedSocket, payload: TradePayload): Promise
 
 // ── Single HTTP server: handles /status + /healthz, and WS upgrades ─────────
 const httpServer = createHttpServer((req, res) => {
-  const url = (req.url ?? "").split("?")[0];
+  const rawUrl = req.url ?? "";
+  const [path, query = ""] = rawUrl.split("?");
 
-  if (req.method === "GET" && url === "/status") {
-    // /status was previously open to the internet — exposed connection
-    // counts and (worse) the raw EA token IDs of every active client.
-    // Now requires a shared bearer secret known only to the journal
-    // server, so connection-state polling stays on the trusted server →
-    // server channel.
+  if (req.method === "GET" && path === "/status") {
+    // Defense in depth:
+    //   1. WS_STATUS_SECRET gate — only the journal server can call.
+    //   2. The journal MUST supply ?token_ids=… listing the calling
+    //      user's active EA tokens. We filter `authedSockets` to that
+    //      allow-list before building the response.
+    // Result: the server never returns the global active-connection map,
+    // not even to the journal. A caller with the secret but no token_ids
+    // gets back zero connections — secure default.
     const statusSecret = process.env.WS_STATUS_SECRET;
     if (!statusSecret) {
       console.error("WS_STATUS_SECRET is not set — refusing /status");
@@ -137,19 +142,36 @@ const httpServer = createHttpServer((req, res) => {
       return;
     }
 
+    // Parse `?token_ids=uuid1,uuid2`. Junk inputs (non-UUID, empty
+    // entries) are silently dropped by parseTokenIds; missing param →
+    // empty allow-list → zero connections returned.
+    const params = new URLSearchParams(query);
+    const allowList = new Set(parseTokenIds(params.get("token_ids")));
+
     const now = Date.now();
-    const connections = Array.from(authedSockets).map((s) => {
-      const lastPing = s.lastPing ?? now;
-      const ago = now - lastPing;
-      const entry: { token_id: string; last_ping_ms_ago: number; stale?: boolean } = {
-        token_id: s.tokenId ?? "",
-        last_ping_ms_ago: ago,
-      };
-      if (ago > STALE_MS) entry.stale = true;
-      return entry;
-    });
+    const connections = allowList.size === 0
+      ? []
+      : Array.from(authedSockets)
+          .filter((s) => s.tokenId && allowList.has(s.tokenId))
+          .map((s) => {
+            const lastPing = s.lastPing ?? now;
+            const ago = now - lastPing;
+            const entry: {
+              token_id: string;
+              last_ping_ms_ago: number;
+              stale?: boolean;
+            } = {
+              token_id: s.tokenId ?? "",
+              last_ping_ms_ago: ago,
+            };
+            if (ago > STALE_MS) entry.stale = true;
+            return entry;
+          });
     const body = JSON.stringify({
-      connected_clients: authedSockets.size,
+      // connected_clients now reflects only what's visible to the caller,
+      // never the global tally. Server uptime + timestamp remain because
+      // they aren't sensitive and the EA-setup UI uses them.
+      connected_clients: connections.length,
       server_uptime_seconds: Math.floor(process.uptime()),
       ts: now,
       connections,
@@ -165,7 +187,7 @@ const httpServer = createHttpServer((req, res) => {
     return;
   }
 
-  if (req.method === "GET" && url === "/healthz") {
+  if (req.method === "GET" && path === "/healthz") {
     res.writeHead(200, { "Content-Type": "text/plain" });
     res.end("ok");
     return;

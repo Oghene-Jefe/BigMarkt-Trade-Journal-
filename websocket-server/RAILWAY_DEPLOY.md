@@ -79,18 +79,41 @@ Redeploy the Vercel web project (or wait for the next push) for the change to ta
 
 ## 4. Verify the deployment
 
+The `/status` endpoint is **server-to-server** and **scoped by caller**:
+the journal supplies the calling user's active EA token IDs in
+`?token_ids=` and the WS server filters its in-memory connection map
+against that allow-list **before responding**. There is no longer any way
+for `/status` to return the global active-connection map — even with the
+right `WS_STATUS_SECRET`. A caller with the secret but no `token_ids` gets
+back zero connections by design.
+
 ```bash
-# Health check
+# Health check — public, no auth.
 curl https://<railway-url>/healthz
 # → ok
 
-# Status endpoint (shows connected EA clients)
+# Status without the secret — must be rejected.
 curl https://<railway-url>/status
-# → {"connected_clients":0,"server_uptime_seconds":42,"ts":...,"connections":[]}
+# → {"error":"Unauthorized"}
+
+# Status with the secret but no token IDs — empty allow-list, zero
+# connections. Confirms the server doesn't leak its global map even to a
+# privileged caller.
+curl -s -H "Authorization: Bearer <secret>" https://<railway-url>/status
+# → {"connected_clients":0,"server_uptime_seconds":...,"ts":...,"connections":[]}
+
+# Status with the secret AND a specific token allow-list — returns only
+# matching connections. Replace UUIDs with real ones from your ea_tokens.
+curl -s \
+  -H "Authorization: Bearer <secret>" \
+  "https://<railway-url>/status?token_ids=11111111-2222-3333-4444-555555555555"
+# → {"connected_clients":0|1,...,"connections":[]|[{"token_id":...}]}
 ```
 
-The EA Setup page in the journal should now show a live connection status
-once an MT5 terminal connects with a valid bearer token.
+The journal's `/ea-setup` page builds the `token_ids` list automatically
+from the calling user's active rows in `ea_tokens` and sends it on every
+poll. Once an MT5 terminal connects with that token, the EA-setup status
+card shows it live.
 
 ---
 
@@ -98,10 +121,11 @@ once an MT5 terminal connects with a valid bearer token.
 
 ```bash
 cd websocket-server
-cp .env.example .env   # fill in SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
+cp .env.example .env   # fill in SUPABASE_URL, SERVICE_ROLE_KEY, WS_STATUS_SECRET
 npm install
 npm run dev            # tsx watch, port 8080
 ```
 
-Status endpoint locally: `http://localhost:8080/status`
+Status endpoint locally: `http://localhost:8080/status` (still requires the
+bearer secret + `?token_ids=` allow-list — same contract as production).
 WebSocket locally: `ws://localhost:8080`

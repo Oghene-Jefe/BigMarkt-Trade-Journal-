@@ -32,17 +32,35 @@ export type WsStatus = {
   }>;
 };
 
-// Fetches the WS server's connection map. The endpoint is now a trusted
-// server→server channel: we send the shared WS_STATUS_SECRET as a Bearer
-// header, and the WS server rejects callers without it. If we don't have
-// the secret in env, treat the endpoint as unavailable (returns null) —
-// the UI degrades gracefully to "server offline" rather than leaking a
-// half-broken state. The default port is the WS server's local default
-// (8080), not 8081 which was a copy-paste from an older config.
-async function getWsStatus(): Promise<WsStatus | null> {
-  const url = process.env.WS_STATUS_URL ?? "http://localhost:8080/status";
+// Fetches the WS server's connection state, scoped to the calling user's
+// active EA token IDs. The WS server's /status endpoint is the trust
+// boundary:
+//
+//   1. WS_STATUS_SECRET on the Authorization header gates access at all.
+//   2. ?token_ids=… is the allow-list the WS server uses to filter its
+//      in-memory authedSockets before returning. The server NEVER exposes
+//      its global connection map — even to us.
+//
+// So the right shape is: pass the user's active token IDs into this
+// fetcher, send them as a query param, and trust the response as-is. If
+// either env var is unset, return null and the UI degrades gracefully to
+// "server offline." The default port matches the WS server's local
+// default (WS_PORT=8080).
+async function getWsStatus(userTokenIds: string[]): Promise<WsStatus | null> {
+  const baseUrl = process.env.WS_STATUS_URL ?? "http://localhost:8080/status";
   const secret = process.env.WS_STATUS_SECRET;
   if (!secret) return null;
+  // No tokens to ask about → don't bother the WS server; it would just
+  // return an empty list. Saves a round-trip on fresh accounts.
+  if (userTokenIds.length === 0) {
+    return {
+      connected_clients: 0,
+      server_uptime_seconds: 0,
+      ts: Date.now(),
+      connections: [],
+    };
+  }
+  const url = `${baseUrl}${baseUrl.includes("?") ? "&" : "?"}token_ids=${encodeURIComponent(userTokenIds.join(","))}`;
   try {
     const res = await fetch(url, {
       cache: "no-store",
@@ -54,22 +72,6 @@ async function getWsStatus(): Promise<WsStatus | null> {
   } catch {
     return null;
   }
-}
-
-// Restrict the WS-server's full connection list to the calling user's own
-// active EA tokens. Without this filter, every authenticated user could
-// see every other user's connected token IDs.
-function filterStatusToUserTokens(
-  status: WsStatus | null,
-  userTokenIds: Set<string>,
-): WsStatus | null {
-  if (!status) return null;
-  const mine = status.connections.filter((c) => userTokenIds.has(c.token_id));
-  return {
-    ...status,
-    connected_clients: mine.length,
-    connections: mine,
-  };
 }
 
 export default async function EaSetupPage() {
@@ -94,9 +96,10 @@ export default async function EaSetupPage() {
 
   const brokerAccounts: BrokerAccountOption[] = (accountsData ?? []) as BrokerAccountOption[];
 
-  const rawStatus = await getWsStatus();
-  const myTokenIds = new Set(activeTokens.map((t) => t.id));
-  const wsStatus = filterStatusToUserTokens(rawStatus, myTokenIds);
+  // Pass the user's active token IDs straight to the WS server; it filters
+  // server-side before responding, so we don't (and can't) see any other
+  // user's tokens in the JSON we get back.
+  const wsStatus = await getWsStatus(activeTokens.map((t) => t.id));
   const connectionLog = await getEaConnectionLogAction();
 
   return (
