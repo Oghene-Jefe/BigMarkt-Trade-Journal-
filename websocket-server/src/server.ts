@@ -72,6 +72,25 @@ async function handleTrade(socket: AuthedSocket, payload: TradePayload): Promise
 
   const pnl = payload.profit ?? null;
 
+  let accountType: string | null = null;
+  if (socket.tokenId) {
+    const { data: tokenData } = await supabase
+      .from("ea_tokens")
+      .select("broker_account_id")
+      .eq("id", socket.tokenId)
+      .maybeSingle();
+    const brokerAccountId = (tokenData?.broker_account_id as string | null) ?? null;
+    if (brokerAccountId) {
+      const { data: account } = await supabase
+        .from("broker_accounts")
+        .select("account_type")
+        .eq("id", brokerAccountId)
+        .maybeSingle();
+      accountType = (account?.account_type as string | null) ?? null;
+    }
+  }
+  const trustBadge = accountType === "demo" ? "demo" : "auto_verified";
+
   const tradeRow = {
     user_id: socket.userId,
     ticket: payload.ticket,
@@ -89,7 +108,7 @@ async function handleTrade(socket: AuthedSocket, payload: TradePayload): Promise
     comment: payload.comment ?? null,
     result: deriveResult(pnl, payload.close_price, payload.close_time),
     capture_source: "ea",
-    trust_badge: "auto_verified",
+    trust_badge: trustBadge,
     core_fields_locked: true,
     auto_approved: true,
   };
