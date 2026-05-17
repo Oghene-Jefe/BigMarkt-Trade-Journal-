@@ -43,7 +43,10 @@ export async function callerIp(): Promise<string | null> {
  */
 export async function verifyTurnstile(token: string | null | undefined, ip: string | null): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret) return true; // not configured → fail-open in dev
+  // Fail-CLOSED in production: a misconfigured prod env (missing secret)
+  // must not silently disable the bot check. In dev/test we still
+  // fail-open so local work doesn't require Cloudflare creds.
+  if (!secret) return process.env.NODE_ENV !== "production";
   if (!token) return false;
   try {
     const body = new URLSearchParams({ secret, response: token });
