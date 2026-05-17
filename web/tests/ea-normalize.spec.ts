@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildEaTradeRow, deriveEaDirection, deriveEaResult } from "@/lib/ea/normalize";
+import { buildEaTradeRow, deriveEaDirection, deriveEaResult, eaTradeSchema } from "@/lib/ea/normalize";
 
 describe("EA trade normalization", () => {
   it("maps MT buy/sell types to DB direction enum values", () => {
@@ -49,5 +49,60 @@ describe("EA trade normalization", () => {
       core_fields_locked: true,
       auto_approved: true,
     });
+  });
+});
+
+describe("eaTradeSchema validation", () => {
+  const goodPayload = {
+    ticket: 1234567,
+    symbol: "eurusd.m",
+    type: "buy",
+    lots: 0.1,
+    open_price: 1.0876,
+    open_time: "2026-05-14T12:00:00Z",
+  };
+
+  it("accepts a minimal valid payload and uppercases the symbol", () => {
+    const parsed = eaTradeSchema.parse(goodPayload);
+    expect(parsed.symbol).toBe("EURUSD.M");
+    expect(parsed.ticket).toBe(1234567);
+  });
+
+  it("rejects symbols with shell/SQL-y characters", () => {
+    expect(eaTradeSchema.safeParse({ ...goodPayload, symbol: "EUR;DROP" }).success).toBe(false);
+    expect(eaTradeSchema.safeParse({ ...goodPayload, symbol: "EUR USD" }).success).toBe(false);
+    expect(eaTradeSchema.safeParse({ ...goodPayload, symbol: "a".repeat(33) }).success).toBe(false);
+  });
+
+  it("rejects non-finite numbers and absurd ranges", () => {
+    expect(eaTradeSchema.safeParse({ ...goodPayload, lots: 0 }).success).toBe(false);
+    expect(eaTradeSchema.safeParse({ ...goodPayload, lots: -1 }).success).toBe(false);
+    expect(eaTradeSchema.safeParse({ ...goodPayload, lots: Number.POSITIVE_INFINITY }).success).toBe(false);
+    expect(eaTradeSchema.safeParse({ ...goodPayload, open_price: 0 }).success).toBe(false);
+    expect(eaTradeSchema.safeParse({ ...goodPayload, open_price: 1e12 }).success).toBe(false);
+  });
+
+  it("rejects garbage timestamps and out-of-window times", () => {
+    expect(eaTradeSchema.safeParse({ ...goodPayload, open_time: "not a date" }).success).toBe(false);
+    expect(eaTradeSchema.safeParse({ ...goodPayload, open_time: "1999-12-31T23:59:59Z" }).success).toBe(false);
+    // > 2 years in the future
+    const future = new Date(Date.now() + 2 * 365 * 24 * 3600 * 1000).toISOString();
+    expect(eaTradeSchema.safeParse({ ...goodPayload, open_time: future }).success).toBe(false);
+  });
+
+  it("rejects types that don't contain buy/sell", () => {
+    expect(eaTradeSchema.safeParse({ ...goodPayload, type: "balance" }).success).toBe(false);
+    expect(eaTradeSchema.safeParse({ ...goodPayload, type: "" }).success).toBe(false);
+  });
+
+  it("rejects overlong comments", () => {
+    expect(eaTradeSchema.safeParse({ ...goodPayload, comment: "x".repeat(501) }).success).toBe(false);
+    expect(eaTradeSchema.safeParse({ ...goodPayload, comment: "x".repeat(500) }).success).toBe(true);
+  });
+
+  it("rejects ticket overflow / non-integer / negative", () => {
+    expect(eaTradeSchema.safeParse({ ...goodPayload, ticket: -1 }).success).toBe(false);
+    expect(eaTradeSchema.safeParse({ ...goodPayload, ticket: 1.5 }).success).toBe(false);
+    expect(eaTradeSchema.safeParse({ ...goodPayload, ticket: Number.MAX_SAFE_INTEGER + 10 }).success).toBe(false);
   });
 });

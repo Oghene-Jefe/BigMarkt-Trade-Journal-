@@ -172,7 +172,7 @@ Migrations are **idempotent and additive**. Re-applying any of them against the 
 | 0030 | `brokers` + `leaderboard_overrides` admin-curation tables; `notifications.type` gains `announcement` for broadcast |
 | 0031 | Notification triggers, challenge streak tracking, dispute resolution wiring, balance-reset score-recalc fix; rebuilds `notifications_type_check` (regressed `announcement` — see 0034) |
 
-### Onboarding + audit-pass hardening (0032–0039)
+### Onboarding + audit-pass hardening (0032–0040)
 | # | Purpose |
 |---|---|
 | 0032 | `handle_new_user` trigger reads `raw_user_meta_data.referred_by` so the `?ref=` query param on `/signup` lands on `profiles.referred_by` |
@@ -183,6 +183,7 @@ Migrations are **idempotent and additive**. Re-applying any of them against the 
 | 0037 | Aligns prod `news_events` with the schema 0028 *meant* to create: adds `title`/`forecast`/`previous`/`actual`/`updated_at`, relaxes `currency`/`impact`/`source` to nullable, adds the `UNIQUE (event_time, title)` constraint the cron upsert depends on, backfills `title` from legacy `event_name`. Legacy columns kept (no DROP) for safety. |
 | 0038 | **Lock down `account_scores` writes.** Drops `scores_self_insert` and `scores_self_update` — any authed user could previously write rows where `user_id = auth.uid()` and climb the leaderboard via a raw REST call. Cron + manual recalc still work because they use service-role and bypass RLS. |
 | 0039 | `news_events.url text` — added so the news cron can store Forex Factory's per-event permalink. UI prefers this over the Google News fallback when present. |
+| 0040 | **`abuse_log` table** — append-only, service-role-only ledger backing the public-form (`fts_application`, `club_application`, `broker_submission`) and EA-ingest (`ea_ingest`) rate-limit + duplicate-suppression checks. Three partial indexes on `(scope, ip)`, `(scope, email)`, `(scope, token_hash)` keep lookups O(log n). Ships with `cleanup_abuse_log(interval)` for optional pruning. |
 
 ### Tables now in production
 **Core**: `profiles`, `trades`, `balance_resets`, `challenges`, `admin_users`, `subscriptions`, `notifications`, `disputes`.
@@ -631,6 +632,7 @@ The architecture preserves these across all changes:
 | Session K — News tab | Forex Factory ingest | Migration 0037 aligns schema; cron + shared `lib/news/forexFactory.ts` with BST/GMT handling; 14-day window grouped by day; 20/page pagination; `<url>` permalink (0039); `npm run news:run` runner |
 | Session L — Support chat | Customer support | Floating ChatWidget + admin inbox; migrations 0033 (insert-spoofing fix), 0035 (read-flag RPC), 0036 (admin profile SELECT for inbox names) |
 | Session M — Audit pass | Launch-blocking fixes | Cron auth bypass (template-undefined), `account_scores` writable RLS (0038), broker_account ownership in EA token linking, WS `/status` secret + `?token_ids=` allow-list, FF event URLs (0039) |
+| Session N — Defensive audit | Pre-launch abuse barrier | (0040) `abuse_log` table backs public-form + EA-ingest rate limits & dedupe; Cloudflare Turnstile (`lib/abuse.ts` × 3 apps) on `submitApplication` (fts + club); 32 KB body cap + full zod schema + per-token 60/min limit on EA ingest, raw DB errors no longer echoed; reset-password redirect locked to `NEXT_PUBLIC_SITE_URL` (no more attacker-controlled `Origin:`); legacy static app moved to `archive/legacy-static-app/`; Next bumped to `^15.5.18` + top-level postcss to `^8.5.10` (nested postcss in `next/node_modules/` still flagged — no non-`--force` fix available, near-zero exposure). |
 
 ---
 

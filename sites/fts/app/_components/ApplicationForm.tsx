@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { submitApplication, type ApplicationState } from "../actions";
+import Turnstile from "./Turnstile";
 
 const initial: ApplicationState = { ok: false };
 
@@ -87,6 +88,8 @@ export default function ApplicationForm() {
           <option value="Other">Other</option>
         </select>
       </div>
+
+      <Turnstile />
 
       {state.error && (
         <p className="border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{state.error}</p>

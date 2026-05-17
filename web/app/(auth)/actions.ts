@@ -2,8 +2,22 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { supabaseServer } from "@/lib/supabase/server";
+
+// Trusted base URL for password-reset emails. Read from env at build/run
+// time — NEVER from request headers — so an attacker who forges an
+// `Origin:` header on the reset request cannot trick Supabase into
+// emailing a reset link that points to a domain they control.
+function trustedAppOrigin(): string {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.APP_URL ?? "";
+  // Strict allow-list: must be https on a real host. Strip trailing slash.
+  if (!/^https:\/\/[^\s/]+/i.test(raw)) {
+    throw new Error(
+      "NEXT_PUBLIC_SITE_URL (or APP_URL) must be set to the canonical https URL of the journal app",
+    );
+  }
+  return raw.replace(/\/$/, "");
+}
 import { loginSchema, signupSchema, resetRequestSchema, newPasswordSchema } from "@/lib/schemas";
 
 export type ActionState = { error?: string; ok?: string };
@@ -71,7 +85,7 @@ export async function requestResetAction(_: ActionState, formData: FormData): Pr
   const parsed = resetRequestSchema.safeParse({ email: formData.get("email") });
   if (!parsed.success) return { error: "Enter a valid email." };
   const sb = await supabaseServer();
-  const origin = (await headers()).get("origin") ?? "";
+  const origin = trustedAppOrigin();
   await sb.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${origin}/auth/callback?next=/reset/confirm`,
   });

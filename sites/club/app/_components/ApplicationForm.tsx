@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { submitApplication, type ApplicationState } from "../actions";
+import Turnstile from "./Turnstile";
 
 const initial: ApplicationState = { ok: false };
 
@@ -100,6 +101,8 @@ export default function ApplicationForm() {
         <textarea id="why_join" name="why_join" required maxLength={800} rows={5} className={`mt-2 ${fieldClass}`} />
         <p className="mt-1 text-xs text-white/40">Max 800 characters.</p>
       </div>
+
+      <Turnstile />
 
       {state.error && (
         <p className="border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{state.error}</p>

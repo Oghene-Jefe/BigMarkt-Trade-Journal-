@@ -1,18 +1,64 @@
-export type EaTradePayload = {
-  ticket: number;
-  symbol: string;
-  type: string;
-  lots: number;
-  open_price: number;
-  close_price?: number;
-  open_time: string;
-  close_time?: string;
-  profit?: number;
-  swap?: number;
-  commission?: number;
-  magic?: number;
-  comment?: string;
-};
+import { z } from "zod";
+
+// ── schema ───────────────────────────────────────────────────────────────────
+// Strict validation of trade payloads coming in from the MT5 Expert Advisor.
+// Every field has bounded length / range; anything that doesn't parse is
+// rejected at the API boundary so the rest of the pipeline (buildEaTradeRow,
+// the trades insert, scoring recalc) only ever sees clean data.
+
+const isoString = z
+  .string()
+  .min(1)
+  .max(40)
+  .refine((s) => {
+    const t = Date.parse(s);
+    if (!Number.isFinite(t)) return false;
+    // Reject obvious garbage timestamps: before 2000 or more than a year
+    // in the future. MT5 should never send anything outside this window.
+    const min = Date.UTC(2000, 0, 1);
+    const max = Date.now() + 365 * 24 * 60 * 60 * 1000;
+    return t >= min && t <= max;
+  }, "open_time/close_time must be a sane ISO timestamp");
+
+const finiteBounded = (max: number) =>
+  z.number().refine((n) => Number.isFinite(n) && Math.abs(n) <= max, {
+    message: `value must be finite and |value| ≤ ${max}`,
+  });
+
+export const eaTradeSchema = z.object({
+  // ticket: positive integer up to MT5's 64-bit ticket range; we cap at
+  // JS's safe-int ceiling so it round-trips through Number losslessly.
+  ticket: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  // symbol: 1-32 chars, alphanumeric + . / _ - (broker variants like
+  // "EURUSD.m", "XAU/USD"). Normalised to uppercase.
+  symbol: z
+    .string()
+    .min(1)
+    .max(32)
+    .regex(/^[A-Za-z0-9._/\-]+$/, "symbol contains invalid characters")
+    .transform((s) => s.toUpperCase()),
+  // type: free text but must contain buy or sell after lowercasing; capped
+  // at 32 chars (MT5 sends "buy", "sell", "buy_limit", etc).
+  type: z
+    .string()
+    .min(1)
+    .max(32)
+    .refine((s) => /buy|sell/i.test(s), "type must contain buy or sell"),
+  lots: finiteBounded(10_000).refine((n) => n > 0, "lots must be > 0"),
+  open_price: finiteBounded(1_000_000_000).refine((n) => n > 0, "open_price must be > 0"),
+  close_price: finiteBounded(1_000_000_000).optional(),
+  open_time: isoString,
+  close_time: isoString.optional(),
+  profit: finiteBounded(1_000_000_000).optional(),
+  swap: finiteBounded(1_000_000_000).optional(),
+  commission: finiteBounded(1_000_000_000).optional(),
+  magic: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
+  comment: z.string().max(500).optional(),
+});
+
+export type EaTradePayload = z.infer<typeof eaTradeSchema>;
+
+// ── derivations ──────────────────────────────────────────────────────────────
 
 export function deriveEaResult(profit?: number): "WIN" | "LOSS" | "BE" {
   if (!profit || profit === 0) return "BE";
