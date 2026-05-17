@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://journal.bigmarkt.co/sitemap.xml
+

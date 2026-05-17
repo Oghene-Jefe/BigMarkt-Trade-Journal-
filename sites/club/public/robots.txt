@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://club.bigmarkt.co/sitemap.xml
+

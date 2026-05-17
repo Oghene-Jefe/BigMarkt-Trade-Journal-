@@ -1,0 +1,5 @@
+Contact: mailto:security@bigmarkt.co
+Preferred-Languages: en
+Canonical: https://www.bigmarkt.co/.well-known/security.txt
+Policy: https://www.bigmarkt.co/security
+
