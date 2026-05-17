@@ -6,10 +6,10 @@ import Logo from "./Logo";
 
 const links = [
   { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
   { href: "/tracks", label: "Tracks" },
   { href: "/chapters", label: "Chapters" },
   { href: "/mentorship", label: "Mentorship" },
+  { href: "/about", label: "About" },
 ];
 
 export default function Navbar() {
