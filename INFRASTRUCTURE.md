@@ -2,7 +2,7 @@
 
 Single source of truth for what's deployed, where, and why. Covers the full ecosystem — journal app, marketing sites, EA, WebSocket server, Bybit proxy, schema.
 
-Started as a Next.js rebuild of a static SPA in May 2026. Has since grown into four Next.js apps + an MT5 Expert Advisor + a WebSocket server + a Cloudflare Worker, all backed by one Supabase project with 28 migrations.
+Started as a Next.js rebuild of a static SPA in May 2026. Has since grown into four Next.js apps + an MT5 Expert Advisor + a WebSocket server + a Cloudflare Worker, all backed by one Supabase project with **39 migrations**.
 
 ---
 
@@ -25,19 +25,24 @@ Started as a Next.js rebuild of a static SPA in May 2026. Has since grown into f
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Framework | Next.js 15.5 + React 19 + Turbopack | App Router, RSC, Server Actions |
+| Framework (journal) | Next.js 15.5 + React 19 + Turbopack | App Router, RSC, Server Actions |
+| Framework (sites/*) | Next.js 16.2.6 + React 19.2.4 | Marketing / FTS / Club; each its own deploy |
 | Language | TypeScript 5.6, strict | |
-| Styling | Tailwind 3.4 | Gold/black BigMarkt brand tokens |
+| Styling (journal) | Tailwind 3.4 | Gold/black BigMarkt brand tokens; CSS-var theming for light/dark |
+| Styling (sites/*) | Tailwind v4 | Per-site `@tailwindcss/postcss` |
+| Icons | `lucide-react` 1.16 | Across `web/` and all three `sites/*` — no emoji in operational UI |
 | Auth | Supabase Auth via `@supabase/ssr` | Cookie-based; RLS auto-applies |
-| Database | Supabase Postgres | 28 versioned migrations in `supabase/migrations/` |
+| Database | Supabase Postgres | 39 versioned migrations in `supabase/migrations/` |
 | Storage | Supabase Storage, private buckets | Signed URLs only, no permanent public links |
 | Validation | Zod | Shared client + server schemas |
-| Tests | Vitest 3.x | Unit suites; one privacy suite hits real Supabase |
+| Tests (journal) | Vitest 3.x | Unit suites; one privacy suite hits real Supabase |
+| Tests (ws-server) | `tsx --test` (node:test) | Pure-logic tests for `parseTokenIds` |
 | CI | GitHub Actions | typecheck + test + build on push |
 | Hosting | Vercel | All four Next apps deploy independently |
 | Bybit proxy | Cloudflare Worker | Token-gated egress for the journal's Bybit traffic |
-| Realtime | Custom Node/`ws` server | EA WebSocket heartbeat + trade push |
+| Realtime | Custom Node/`ws` server | EA WebSocket heartbeat + trade push; deployed to Railway |
 | Trade ingest | MT5 Expert Advisor (MQL5) | Pushes fills to the journal as they happen |
+| News cron | Vercel cron + Forex Factory XML | Daily Mon→Sun + next-week economic calendar |
 
 ---
 
@@ -60,17 +65,24 @@ BigMarkt-Trade-Journal/                    ← monorepo root
 ├── mql5/
 │   └── BigMarkt_EA.mq5                     ← MT5 Expert Advisor source
 │
-├── websocket-server/                       ← Node + ws server
-│   ├── package.json, tsconfig.json
-│   └── src/{server.ts, types.ts}
+├── websocket-server/                       ← Node + ws server (Railway-hosted)
+│   ├── package.json, tsconfig.json, railway.json
+│   ├── BRING_ONLINE.pdf                    ← shareable runbook for the team
+│   ├── RAILWAY_DEPLOY.md                   ← full deploy + verify walkthrough
+│   ├── .env.example
+│   ├── src/{server.ts, statusQuery.ts, types.ts}
+│   └── tests/statusQuery.test.ts           ← node:test via `tsx --test`
 │
 ├── sites/                                  ← Three independent Next.js marketing apps
 │   ├── marketing/                          ← bigmarkt.co
 │   ├── fts/                                ← fts.bigmarkt.co
 │   └── club/                               ← club.bigmarkt.co
+│   (each has its own /public/favicon-{dark,light}.svg + lucide-react +
+│    SocialLinks component + ecosystem footer; tailwind v4)
 │
 └── web/                                    ← The journal app (journal.bigmarkt.co)
-    ├── package.json, tsconfig.json, next.config.mjs, tailwind.config.ts
+    ├── package.json, tsconfig.json, tsconfig.typecheck.json, next.config.mjs, tailwind.config.ts
+    ├── .eslintrc.json                       ← next/core-web-vitals + @typescript-eslint
     ├── middleware.ts                       ← session refresh + @username rewrite + onboarding gate
     ├── app/
     │   ├── layout.tsx, page.tsx, globals.css
@@ -82,17 +94,25 @@ BigMarkt-Trade-Journal/                    ← monorepo root
     │   ├── auth/callback/route.ts            ← OAuth/email-link exchange
     │   └── api/
     │       ├── ea/ingest/route.ts            ← EA bearer-token trade ingest
-    │       └── cron/recalculate-scores/      ← daily score recalc
-    ├── lib/                                  ← see Module Inventory
+    │       └── cron/
+    │           ├── recalculate-scores/       ← daily 02:00 UTC score recalc
+    │           └── news-feed/                ← daily 00:00 UTC Forex Factory ingest
+    ├── lib/                                  ← see Module Inventory (includes lib/news/)
     ├── components/
+    │   ├── ui/                              ← shared design primitives (Button, Section,
+    │   │                                       StatusPill, EmptyState, PageHeader,
+    │   │                                       MetricCard, EcosystemFooter, SocialLinks,
+    │   │                                       Logo, …)
+    │   ├── analytics/, brokers/, heatmap/, reportCard/, support/, trade/
     ├── docs/EXCHANGE_SECURITY.md             ← Bybit credential encryption design
-    ├── tests/                                ← Vitest specs
-    └── scripts/                              ← one-off tsx smoke + seed scripts
+    ├── tests/                                ← Vitest specs (includes news-forexFactory)
+    ├── public/                              ← favicon-{dark,light}.svg + apple-touch-icon
+    └── scripts/                              ← one-off tsx smoke/seed/news scripts
 ```
 
 ---
 
-## Database schema (28 migrations)
+## Database schema (39 migrations)
 
 Migrations are **idempotent and additive**. Re-applying any of them against the live schema is a safe no-op (notice messages only). Detailed table-by-table column reference lives in the original write-up; this index links each migration to what it shipped.
 
@@ -138,16 +158,41 @@ Migrations are **idempotent and additive**. Re-applying any of them against the 
 ### Scoring + social + ops (Sessions 8–12)
 | # | Purpose |
 |---|---|
-| 0023 | Dual-tier performance scores; `score_tier` enum (`none`/`active`/`pro`) |
+| 0023 | `account_scores` dual-tier (ACTIVE / PRO); `score_tier` enum (`none`/`active`/`pro`) |
 | 0024 | `notifications.type` CHECK gains `new_follower` |
 | 0025 | `get_platform_stats()` anon-callable aggregate counts for marketing homepage |
 | 0026 | `bootcamp_applications` (used by fts.bigmarkt.co) |
 | 0027 | `club_applications` (used by club.bigmarkt.co) |
 
-### Tables now in production
-`profiles`, `trades`, `balance_resets`, `challenges`, `admin_users`, `subscriptions`, `notifications`, `disputes`, `ea_tokens`, `ea_connection_log`, `broker_accounts`, `broker_submissions`, `performance_scores`, `exchange_connections`, `exchange_sync_runs`, `exchange_closed_pnl`, `exchange_fills`, `exchange_import_mappings`, `bootcamp_applications`, `club_applications` + a sanitized view `profiles_public`.
+### Session 9 — calendar, support, news, admin (0028–0031)
+| # | Purpose |
+|---|---|
+| 0028 | `news_events` table for the Forex Factory economic-calendar feed; intended schema, but 0028's `CREATE TABLE IF NOT EXISTS` was a no-op against a pre-existing legacy shape — see 0037 |
+| 0029 | `support_conversations` + `support_messages` for the in-app chat widget; RLS with admin override via `is_admin()` |
+| 0030 | `brokers` + `leaderboard_overrides` admin-curation tables; `notifications.type` gains `announcement` for broadcast |
+| 0031 | Notification triggers, challenge streak tracking, dispute resolution wiring, balance-reset score-recalc fix; rebuilds `notifications_type_check` (regressed `announcement` — see 0034) |
 
-All FK-cascade from `auth.users` on delete; all base tables have RLS enabled with self-only policies.
+### Onboarding + audit-pass hardening (0032–0039)
+| # | Purpose |
+|---|---|
+| 0032 | `handle_new_user` trigger reads `raw_user_meta_data.referred_by` so the `?ref=` query param on `/signup` lands on `profiles.referred_by` |
+| 0033 | **Support-chat RLS hardening** — replaces the over-broad `users_own_messages` FOR ALL policy with explicit SELECT / UPDATE / INSERT. INSERT now checks `sender_id = auth.uid()` AND `sender_role = 'user'`, killing the admin-impersonation hole |
+| 0034 | Restores `announcement` to `notifications_type_check` (regression from 0031). Final type list: 12 values including `trade_approved`, `challenge_badge`, `announcement`, etc. |
+| 0035 | `mark_support_messages_read(p_conversation_id uuid)` SECURITY DEFINER RPC; drops the broad user UPDATE policy so users can only flip `read_at` on admin messages they own — never `body`/`sender_role`/`sender_id` |
+| 0036 | `profiles_admin_select` policy — admins can SELECT cross-user profile rows for the support inbox + admin user-management surfaces (was silently returning NULL before, hence "Trader" placeholders) |
+| 0037 | Aligns prod `news_events` with the schema 0028 *meant* to create: adds `title`/`forecast`/`previous`/`actual`/`updated_at`, relaxes `currency`/`impact`/`source` to nullable, adds the `UNIQUE (event_time, title)` constraint the cron upsert depends on, backfills `title` from legacy `event_name`. Legacy columns kept (no DROP) for safety. |
+| 0038 | **Lock down `account_scores` writes.** Drops `scores_self_insert` and `scores_self_update` — any authed user could previously write rows where `user_id = auth.uid()` and climb the leaderboard via a raw REST call. Cron + manual recalc still work because they use service-role and bypass RLS. |
+| 0039 | `news_events.url text` — added so the news cron can store Forex Factory's per-event permalink. UI prefers this over the Google News fallback when present. |
+
+### Tables now in production
+**Core**: `profiles`, `trades`, `balance_resets`, `challenges`, `admin_users`, `subscriptions`, `notifications`, `disputes`.
+**EA / accounts**: `ea_tokens`, `ea_connection_log`, `broker_accounts`, `broker_submissions`, `account_scores`.
+**Bybit (hidden feature)**: `exchange_connections`, `exchange_sync_runs`, `exchange_closed_pnl`, `exchange_fills`, `exchange_import_mappings`.
+**Applications**: `bootcamp_applications`, `club_applications`.
+**Session 9**: `news_events` (Forex Factory feed), `support_conversations`, `support_messages`, `brokers` (admin curation), `leaderboard_overrides`, `badges`.
+**Sanitized view**: `profiles_public`.
+
+All FK-cascade from `auth.users` on delete; all base tables have RLS enabled. Writable tables have **self-only** policies, except where an explicit admin override exists (support_*, profiles SELECT). Service-role writes bypass RLS by design.
 
 ---
 
@@ -166,27 +211,30 @@ All FK-cascade from `auth.users` on delete; all base tables have RLS enabled wit
 ### Authed (under `(app)/`, gate in middleware)
 | Route | Purpose |
 |---|---|
-| `/dashboard` | Stats + recent trades + onboarding banners |
-| `/journal`, `/journal/new`, `/journal/[id]/edit` | Manual trade CRUD |
+| `/dashboard` | Stats + recent trades + onboarding banners + monthly heatmap pulse |
+| `/journal`, `/journal/new`, `/journal/[id]/edit` | Manual trade CRUD; NEWS tab renders the 14-day Forex Factory window grouped by day, 20/page |
 | `/trades`, `/trades/[id]` | Trade list + detail view (separate from journal — single-trade focus) |
-| `/analytics` | Per-pair / session / emotion aggregations |
-| `/challenges` | Active + finished challenges |
+| `/analytics` | Equity curve, drawdown, win-rate-by-{pair, session, setup}, psychology advisor, weekly/monthly report cards |
+| `/challenges` | Active + finished challenges; streak tracking |
+| `/calculator` | Position-size / risk calculator (Trading dropdown) |
 | `/leaderboard` | Pro Traders / Active Traders tabs |
 | `/subscriptions` | People you follow + signal feed |
 | `/brokers` | Broker directory + unlisted submission form |
-| `/accounts`, `/accounts/[id]` | Broker accounts list + detail |
-| `/ea-setup` | Generate EA token, download EA, see connection status |
-| `/exchanges`, `/exchanges/new` | Bybit API key management |
+| `/accounts`, `/accounts/[id]` | Broker accounts list + detail with `account_scores` panel |
+| `/ea-setup` | 5-step token + install flow; live WS status card (filtered to user's own tokens) |
+| `/exchanges`, `/exchanges/new` | Bybit API key management — **gated behind `requireAdmin`** for UAT (see Hidden features) |
 | `/profile` | Display name, visibility, balance resets, referrals, avatar |
-| `/notifications` | Inbox (follows, disputes, score-tier changes) |
+| `/notifications` | Inbox (follows, disputes, score-tier changes, announcements, trade-approved, challenge-badge) |
 | `/disputes/new` | Raise a dispute on a trade |
-| `/admin` | Server-side gated admin console |
+| `/admin` | Server-side gated admin dashboard |
+| `/admin/users`, `/admin/trades`, `/admin/disputes`, `/admin/support`, `/admin/support/[id]`, `/admin/leaderboard`, `/admin/brokers`, `/admin/broadcast` | Admin sub-surfaces (all `requireAdmin` server-side) |
 
 ### API
 | Route | Purpose |
 |---|---|
 | `/api/ea/ingest` | POST endpoint the MT5 EA pushes trades to; bearer-token auth via `ea_tokens` (sha256-hashed); uses service-role to bypass RLS by design |
-| `/api/cron/recalculate-scores` | Daily 02:00 UTC; recomputes performance scores; cron-triggered |
+| `/api/cron/recalculate-scores` | Daily 02:00 UTC; recomputes `account_scores`; `CRON_SECRET` gated (refuses to run if env is unset) |
+| `/api/cron/news-feed` | Daily 00:00 UTC; fetches Forex Factory `thisweek.xml` + `nextweek.xml`, parses via `lib/news/forexFactory.ts`, upserts into `news_events`; `CRON_SECRET` gated |
 
 ---
 
@@ -205,6 +253,9 @@ All FK-cascade from `auth.users` on delete; all base tables have RLS enabled wit
 ### `lib/ea/`
 - `normalize.ts` — MT4/MT5 EA payload → `trades` row (`buildEaTradeRow`, `deriveEaDirection`, `deriveEaResult`)
 
+### `lib/news/`
+- `forexFactory.ts` — shared parser used by both the Vercel cron route and the local `npm run news:run` script. Owns XML parsing (CDATA + self-closing tags), MM-DD-YYYY date parsing, Europe/London → UTC conversion (BST-aware via `londonUtcOffsetMinutes`), country → currency mapping, impact mapping, row normalisation, `<url>` extraction with http(s)-only validation. No Supabase / Next imports — dependency-free for unit tests.
+
 ### `lib/supabase/`
 - `client.ts`, `server.ts`, `middleware.ts`, `admin.ts` (service-role, server-only)
 
@@ -212,10 +263,20 @@ All FK-cascade from `auth.users` on delete; all base tables have RLS enabled wit
 - `require-user.ts` — `redirect("/login")` if no session
 
 ### `lib/actions/`
-- `trades.ts`, `disputes.ts`, `ea-tokens.ts`, `notifications.ts`, `create-notification.ts`, `subscriptions.ts`, `scores.ts`
+- `trades.ts`, `disputes.ts`, `ea-tokens.ts`, `notifications.ts`, `create-notification.ts`, `subscriptions.ts`, `scores.ts`, `notificationTriggers.ts`
 
 ### Top-level lib
-- `admin.ts`, `brokers.ts`, `format.ts`, `schemas.ts`, `scoring.ts`, `scoring-recalculate.ts`, `storage.ts`, `types.ts`
+- `admin.ts`, `analytics.ts`, `brokers.ts`, `challengeStreak.ts`, `export.ts`, `format.ts`, `heatmap.ts`, `reportCard.ts`, `schemas.ts`, `scoring.ts`, `scoring-recalculate.ts`, `storage.ts`, `types.ts`
+
+### `components/ui/` (design primitives)
+Introduced during the UI-hygiene pass. Shared across every authed page so styling stays consistent and additions don't drift back into one-off AI-template patterns.
+
+- **Layout**: `PageHeader`, `Section`, `ActionBar`, `EcosystemFooter`, `Logo`
+- **Inputs**: `Button`, `Input`, `Field`, `Select`
+- **Display**: `StatusPill`, `MetricCard`, `EmptyState`
+- **Brand**: `SocialLinks` (also mirrored into each `sites/*` independently)
+
+Rules captured in `components/ui/README.md`: `rounded-md` / `rounded-lg` only, sentence case, lucide icons only, gold reserved for primary action, no inline style islands.
 
 ---
 
@@ -308,36 +369,58 @@ Three Next.js apps under `sites/`. Each is an **independent** Next project — i
 
 Application forms on `fts` and `club` insert into `bootcamp_applications` / `club_applications` (migrations 0026, 0027) via anon Supabase client — RLS allows anonymous inserts, admin-only reads.
 
+### Shared visual identity across sites
+- **Favicon**: each site ships `public/favicon-{dark,light}.svg` (the B + gold A glyph) wired via `metadata.icons` in `app/layout.tsx`. Default-icon entry is unconditional + two `prefers-color-scheme` variants for themed browsers. The scaffold `app/favicon.ico` files were deleted across all three sites — they were overriding `metadata.icons` via Next's file convention.
+- **Logo**: each site has its own `app/_components/Logo.tsx` rendering `/images/bigmarkt-logo.png` with the `.bigmarkt-logo` class that picks up the `:root.light` filter trick (`invert(1) hue-rotate(180deg)`) so the white wordmark stays legible on light surfaces.
+- **Lucide icons**: each site pins `lucide-react@^1.16.0` independently. FTS Boot Camp + pathways and Club "Six tracks" all use the same gold-tile motif (`h-10 w-10 rounded-md border-[#C9A84C]/30 bg-[#C9A84C]/10`).
+- **Footer**: each site has a `SocialLinks` component mirroring the journal's, plus the shared ecosystem-link footer pattern.
+
 ---
 
 ## WebSocket server
 
-`websocket-server/` is a tiny Node + `ws` ESM service hosted separately from the Next.js apps (Vercel doesn't support long-lived WebSocket connections on Hobby tier).
+`websocket-server/` is a tiny Node + `ws` ESM service hosted **on Railway** (see `RAILWAY_DEPLOY.md` and the shareable `BRING_ONLINE.pdf`). One HTTP server handles WS upgrades plus `/status` and `/healthz` on the same port — Railway injects `PORT`, the server reads `process.env.PORT ?? WS_PORT ?? 8080`.
 
-- Port: `WS_PORT` (default 8080)
+### WebSocket connection
 - Auth: each connection sends a bearer token; server sha256-hashes and looks up in `ea_tokens` via service-role
 - On connect: inserts `ea_connection_log` row with `event='connected'`
 - On disconnect: same with `event='disconnected'`
 - `lastPing` tracked per connection; 60s staleness threshold
 - Inserts incoming `TradePayload` messages into `trades` via service-role (same shape as `/api/ea/ingest`)
 
-`/ea-setup` queries `ea_connection_log` to show the user "your EA is connected" or "last seen 5 minutes ago."
+### `/status` endpoint (server-to-server only)
+The journal's `/ea-setup` page polls `/status` to show "your EA is connected" + last-ping timestamps. The endpoint is **doubly gated**:
+
+1. **`WS_STATUS_SECRET`** required as `Authorization: Bearer …`. Without it the WS server returns `503` (missing env) or `401` (bad bearer). Drops the CORS header too — this is not a browser-facing route.
+2. **`?token_ids=uuid1,uuid2`** allow-list parsed by `src/statusQuery.ts`. The WS server filters `authedSockets` against this list **before** building the response. Missing or empty → returns zero connections. The server literally cannot leak the global active-connection map, even to a privileged caller.
+
+`connected_clients` in the response is the filtered count, never a global tally. The journal supplies the calling user's active token IDs on every poll; rotating that list per user is the natural place to enforce per-user scoping since the WS server has no concept of "journal users."
+
+### `/healthz`
+Public, returns `200 ok`. Used by Railway's healthcheck.
+
+### Tests
+`tests/statusQuery.test.ts` — 9 cases for `parseTokenIds` (null/empty, single, comma list, dedupe, case, whitespace, 200-cap, junk rejection). Runs via `tsx --test` (`npm test`) with zero dev deps beyond `tsx`.
 
 ---
 
-## RLS posture (unchanged from rebuild)
+## RLS posture (with audit-pass hardening)
 
 | Table | Policy |
 |---|---|
-| `profiles` | self-only SELECT/INSERT/UPDATE |
+| `profiles` | self-only SELECT/INSERT/UPDATE; admin SELECT override (`profiles_admin_select`, 0036) so admin support + user-management can see cross-user rows |
 | `trades` | self-only CRUD |
 | `balance_resets`, `challenges` | self-only |
 | `subscriptions`, `notifications`, `disputes` | self-only on `user_id` |
 | `exchange_*` (5 tables) | self-only on `user_id` |
-| `ea_tokens` | self-only |
+| `ea_tokens` | self-only; `linkEaTokenToAccountAction` also runs an explicit ownership check on `broker_account_id` before linking |
 | `broker_accounts` | self-only |
 | `broker_submissions` | anon INSERT allowed, no SELECT/UPDATE/DELETE for anon (service-role only) |
 | `bootcamp_applications`, `club_applications` | anon INSERT allowed, admin SELECT |
+| `news_events` | authenticated SELECT (everyone reads); writes only via service-role cron |
+| `account_scores` | **SELECT-only for users** (0038 dropped the writable policies — writes go through service-role cron / manual recalc which bypass RLS) |
+| `support_conversations` | self-only + admin override (`admin_all_conversations`) |
+| `support_messages` | SELECT self-only + admin override; INSERT requires `sender_id = auth.uid()` AND `sender_role = 'user'` (0033); UPDATE only via `mark_support_messages_read` RPC (0035) — never direct |
 | `admin_users` | RLS enabled, no policies → no direct access; reads via `is_admin()` |
 | Public discovery | `get_leaderboard`, `get_public_profile`, `get_public_trades`, `get_platform_stats` SECURITY DEFINER RPCs |
 
@@ -372,6 +455,7 @@ Privacy spec (`tests/privacy.spec.ts`) self-skips without `SUPABASE_SERVICE_ROLE
 
 ## Tests
 
+### `web/tests/` (Vitest)
 | File | Pins |
 |---|---|
 | `bybit-signing.spec.ts` | HMAC-SHA256 signing matches openssl fixture; query canonicalization; header presence |
@@ -380,9 +464,15 @@ Privacy spec (`tests/privacy.spec.ts`) self-skips without `SUPABASE_SERVICE_ROLE
 | `bybit-windows.spec.ts` | ≤7-day window splitter, contiguity, no-overshoot |
 | `exchange-crypto.spec.ts` | Encrypt round-trip, no plaintext substring, tamper, wrong-user, wrong-salt |
 | `ea-normalize.spec.ts` | MT buy/sell direction, EA trade row builder |
+| `news-forexFactory.spec.ts` | MM-DD-YYYY parsing, BST/GMT offset flips on DST boundaries, 12:00am vs 12:00pm, Tentative/All Day fallbacks, self-closing tags, missing `<actual>`, unknown country, impact map, `<url>` parse + non-http rejection |
 | `rendering.spec.tsx` | React text rendering escapes user content (XSS pin) |
 | `privacy.spec.ts` | Real-Supabase RLS coverage (skipped without service-role) |
 | `server-only-stub.ts` | Vitest helper that stubs the `server-only` package |
+
+### `websocket-server/tests/` (node:test via `tsx --test`)
+| File | Pins |
+|---|---|
+| `statusQuery.test.ts` | `parseTokenIds`: null/empty, single UUID, comma-list, lowercase, dedupe, whitespace trim, 200-cap, junk + SQL-fragment rejection |
 
 ---
 
@@ -437,9 +527,23 @@ values ('<user_id>', '<broker_account_id>', encode(sha256('your-token'::bytea), 
 
 ### Smoke-test prod
 ```bash
-curl -sS https://journal.bigmarkt.co/login | grep "ENTER THE MARKET"
-curl -sS "https://journal.bigmarkt.co/p/<community-profile-id>" | grep "PUBLIC TRADES"
+curl -sS https://journal.bigmarkt.co/login | grep "Log in"
+curl -sS "https://journal.bigmarkt.co/p/<community-profile-id>" | grep "Public trades"
 curl -sS "$SUPABASE_URL/rest/v1/profiles?select=email" -H "apikey: $ANON" | jq length   # must be 0
+
+# News-feed cron: requires CRON_SECRET — should 401 without and 200 with
+curl -sS https://journal.bigmarkt.co/api/cron/news-feed
+curl -sS -H "Authorization: Bearer $CRON_SECRET" https://journal.bigmarkt.co/api/cron/news-feed
+
+# WS /status: requires WS_STATUS_SECRET AND ?token_ids=… (see RAILWAY_DEPLOY.md)
+curl -sS -H "Authorization: Bearer $WS_STATUS_SECRET" https://<railway>/status
+# → { connected_clients: 0, connections: [] }   ← empty because no token_ids supplied
+```
+
+### Backfill news manually
+```bash
+cd web
+npm run news:run        # tsx scripts/run-news-cron.ts — uses the same shared parser
 ```
 
 ### Local dev (journal)
@@ -490,8 +594,13 @@ The architecture preserves these across all changes:
 6. **EA tokens never stored in plaintext.** Only `sha256(token)` lands in `ea_tokens.token_hash`.
 7. **Admin operations require server-side `is_admin(auth.uid())`.** No client allowlist anywhere.
 8. **Cross-user data is unreachable.** RLS + defence-in-depth `.eq("user_id", auth.uid())` on every mutation.
-9. **Schema lives in version control.** 28 migrations, idempotent, applied to prod.
-10. **Service-role key never imported from `app/` or `components/`.** Only `lib/supabase/admin.ts` exposes it, used by `/api/ea/ingest` (token-authed) and `tests/privacy.spec.ts`.
+9. **Schema lives in version control.** 39 migrations, idempotent, applied to prod.
+10. **Service-role key never imported from `app/` or `components/`.** Only `lib/supabase/admin.ts` exposes it, used by `/api/ea/ingest` (token-authed), the two cron routes, and `tests/privacy.spec.ts`.
+11. **Cron + status endpoints fail closed on missing secrets.** `CRON_SECRET` unset → 500. `WS_STATUS_SECRET` unset → 503. Template-string bypasses (`Bearer undefined`) are no longer possible.
+12. **`/status` cannot return the global active-connection map.** The WS server filters `authedSockets` against caller-supplied `?token_ids=…` before responding. Missing/empty → zero connections.
+13. **Leaderboard scores cannot be self-written.** `account_scores` SELECT-only for users; writes only via service-role cron + manual recalc (0038).
+14. **Support messages are immutable from the user side.** Users SELECT + INSERT (with `sender_role = 'user'`, `sender_id = auth.uid()`); only the `mark_support_messages_read` RPC flips `read_at` on admin messages.
+15. **EA token → broker_account links are ownership-checked** in `linkEaTokenToAccountAction` before write. Belt-and-braces alongside RLS on `broker_accounts`.
 
 ---
 
@@ -518,6 +627,10 @@ The architecture preserves these across all changes:
 | Session F | Homepage refresh | Live stats RPC, leaderboard preview, ecosystem cards |
 | Sessions G-I | Sister sites | bigmarkt.co marketing, fts.bigmarkt.co academy, club.bigmarkt.co campus |
 | Latest 3 | Hardening | Verified trade edits, EA ingest + Bybit error stabilization, Bybit egress proxy |
+| Session J — UI hygiene | Design system | `components/ui/` primitives + lucide-react across all surfaces; emoji removal sweep; sentence-case headings; favicon dark/light variants; ecosystem footer; theme bootstrap via `next/script` (kills the dark-flash); social links across all four sites |
+| Session K — News tab | Forex Factory ingest | Migration 0037 aligns schema; cron + shared `lib/news/forexFactory.ts` with BST/GMT handling; 14-day window grouped by day; 20/page pagination; `<url>` permalink (0039); `npm run news:run` runner |
+| Session L — Support chat | Customer support | Floating ChatWidget + admin inbox; migrations 0033 (insert-spoofing fix), 0035 (read-flag RPC), 0036 (admin profile SELECT for inbox names) |
+| Session M — Audit pass | Launch-blocking fixes | Cron auth bypass (template-undefined), `account_scores` writable RLS (0038), broker_account ownership in EA token linking, WS `/status` secret + `?token_ids=` allow-list, FF event URLs (0039) |
 
 ---
 
@@ -545,7 +658,11 @@ per item plus removing this row from the table when you do.
 | Backlog | Edge Function for full `auth.users` deletion (admin "Purge data" currently leaves the auth row) |
 | Backlog | Streak / badge automation in `challenges` |
 | Backlog | Performance score recalc as a Supabase trigger rather than a daily cron — would catch suspensions faster |
+| Backlog | Drop the legacy `news_events` columns (`event_name`, `affected_pairs`, `notified`) — 0037 leaves them in place; safe to remove in a future migration once we've verified no environment has rows that still use them |
+| Backlog | `apple-touch-icon.png` for the three `sites/*` (only the journal ships one currently); regenerate a 180×180 PNG from the new B+A SVG and drop into each `public/` |
+| Backlog | Health-check widget on `/admin` showing "last news upsert", "last score recalc", "WS clients connected" — would surface stuck crons within a day instead of waiting for a user report |
+| Backlog | `app/favicon.ico` scrub as part of any new `sites/*` scaffold (the file-convention override gotcha we hit with three sites at once) |
 
 ---
 
-*Last updated: refreshed to reflect 28 migrations + EA architecture + sister sites + Bybit proxy. Keep in sync as future migrations land.*
+*Last updated: 2026-05-17 — refreshed to reflect 39 migrations, the audit-pass hardening (cron auth, account_scores RLS, WS `/status` secret + token allow-list), the news pipeline (shared parser + 14-day window + URL permalinks), the support-chat surface, the `components/ui/` design system, the ecosystem favicons and footer rollout, and the WS server's Railway migration. Keep in sync as future migrations land.*
