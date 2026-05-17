@@ -43,3 +43,5 @@ Thumbs.db
 # ── Tooling caches ──────────────────────────────────────────────────────
 .npm-cache/
 .cache/
+INFRASTRUCTURE.md
+docs/ea-replay-protocol.md
