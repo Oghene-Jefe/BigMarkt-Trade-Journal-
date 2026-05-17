@@ -121,13 +121,38 @@ export default async function EaSetupPage() {
     <div className="space-y-6">
       <PageHeader
         title="EA setup"
-        description="Install the BigMarkt read-only EA on MT4/MT5 and stream every fill into your journal. Five steps, about three minutes."
+        description="Install the BigMarkt read-only EA on MT5 and stream every fill into your journal. Five steps, about five minutes."
       />
 
-      <Step n={1} title="Generate a token">
-        <p className="mb-4 text-sm text-muted">
-          A token authenticates your EA. Each MT4/MT5 terminal should use its own. Maximum of 5 active tokens per account.
-        </p>
+      <Step n={1} title="Generate your token">
+        <div className="mb-4 space-y-2 text-sm text-muted">
+          <p>
+            Give your MT5 terminal a label (e.g. <span className="text-white/80">ICMarkets MT5</span>)
+            and click <span className="text-white/80 font-medium">Generate token</span>.
+          </p>
+          <p>
+            Three values will appear — copy <em className="text-white/80">all three</em> before
+            dismissing. They are never shown again.
+          </p>
+          <ul className="mt-1 ml-4 list-disc space-y-1 text-white/70">
+            <li>
+              <span className="font-medium text-white/90">Token UUID</span> — the unique ID
+              bound into every signed trade payload
+            </li>
+            <li>
+              <span className="font-medium text-white/90">Bearer Token</span> — authenticates
+              your EA to the server
+            </li>
+            <li>
+              <span className="font-medium text-white/90">Signing Secret</span> — signs each
+              trade payload (v2 replay protection)
+            </li>
+          </ul>
+          <p>
+            Click <span className="text-white/80 font-medium">I've saved all three — dismiss</span>{" "}
+            only after you have copied everything. Maximum 5 active tokens per account.
+          </p>
+        </div>
         <EaTokenManager
           tokens={activeTokens}
           wsStatus={wsStatus}
@@ -138,7 +163,7 @@ export default async function EaSetupPage() {
 
       <Step n={2} title="Download the EA">
         <p className="mb-4 text-sm text-muted">
-          One MQL5 file. Works on both MT4 and MT5 builds 1300+.
+          One file. Recommended for MT5; also works on MT4 builds 1300+.
         </p>
         <a
           href="/downloads/BigMarkt_EA.mq5"
@@ -154,28 +179,27 @@ export default async function EaSetupPage() {
         </p>
       </Step>
 
-      <Step n={3} title="Install in MetaTrader and paste your token">
+      <Step n={3} title="Install in MetaTrader">
         <ol className="space-y-2 text-sm text-white/80">
           <li>
-            Open <em>File → Open Data Folder</em>, then drop{" "}
-            <Mono>BigMarkt_EA.mq5</Mono> into <Mono>MQL5/Experts</Mono> (or{" "}
-            <Mono>MQL4/Experts</Mono> on MT4).
+            In MT5, go to <em>File → Open Data Folder</em>. Open the{" "}
+            <Mono>MQL5 → Experts</Mono> folder and copy{" "}
+            <Mono>BigMarkt_EA.mq5</Mono> into it.
           </li>
           <li>
-            Right-click <em>Expert Advisors</em> in the Navigator panel and pick{" "}
-            <em>Refresh</em>. Double-click the file in MetaEditor to compile.
+            Back in MT5, open the <em>Navigator</em> panel, right-click{" "}
+            <em>Expert Advisors</em>, and choose <em>Refresh</em>.{" "}
+            <Mono>BigMarkt EA</Mono> will appear in the list.
           </li>
           <li>
-            Drag <Mono>BigMarkt_EA</Mono> onto any chart and paste the token from
-            Step 1 into the <Mono>ApiToken</Mono> input.
+            Drag <Mono>BigMarkt EA</Mono> from the Navigator onto any chart.
+            An inputs dialog will open — configure it in Step 4 below.
           </li>
           <li>
             In <em>Tools → Options → Expert Advisors</em>, tick{" "}
             <em>Allow WebRequest for listed URL</em> and add{" "}
-            <Mono>https://journal.bigmarkt.co</Mono>.
-          </li>
-          <li>
-            Click <em>AutoTrading</em> in the top toolbar so it turns green.
+            <Mono>https://journal.bigmarkt.co</Mono>. This lets the EA call
+            home.
           </li>
         </ol>
         <details className="mt-4">
@@ -186,17 +210,34 @@ export default async function EaSetupPage() {
         </details>
       </Step>
 
-      <Step n={4} title="Send a test trade">
-        <p className="text-sm text-white/80">
-          Place a tiny test trade (0.01 lot) or wait for your next fill.
+      <Step n={4} title="Configure the EA inputs">
+        <p className="mb-3 text-sm text-muted">
+          Paste all three values from Step 1 into the matching fields. The EA
+          will not connect if any of the three are missing.
+        </p>
+        <div className="space-y-1.5">
+          <InputRow name="TokenId" label="TOKEN UUID" description="Paste your Token UUID from Step 1" required />
+          <InputRow name="ApiToken" label="BEARER TOKEN" description="Paste your Bearer Token from Step 1" required />
+          <InputRow name="SigningSecret" label="SIGNING SECRET" description="Paste your Signing Secret from Step 1" required />
+          <InputRow name="ApiEndpoint" description="Leave as default — already points to journal.bigmarkt.co" />
+          <InputRow name="DebugMode" description='Set to true while testing — shows live logs in the MT5 Experts tab' />
+          <InputRow name="FilterMagic" description="-1 captures all trades. 0 = manual only. Any positive number = that EA's magic only." />
+        </div>
+        <p className="mt-3 text-xs text-muted">
+          Click <span className="text-white/80 font-medium">OK</span> to attach the EA to the chart.
         </p>
       </Step>
 
-      <Step n={5} title="Confirm the connection">
-        <p className="text-sm text-white/80">Within a few seconds you should see:</p>
-        <ul className="mt-2 ml-5 list-disc space-y-1 text-sm text-white/80">
+      <Step n={5} title="Enable AutoTrading and confirm">
+        <ol className="space-y-2 text-sm text-white/80">
           <li>
-            A new row in your{" "}
+            Click the <em>AutoTrading</em> button in the MT5 toolbar — it must
+            turn <span className="text-emerald-300 font-medium">green</span>. The
+            EA face on the chart corner should be a smiley, not an X.
+          </li>
+          <li>
+            Place a 0.01-lot test trade (or wait for your next fill). Within a few
+            seconds you should see a new row in your{" "}
             <a href="/journal" className="text-gold underline hover:text-white">
               journal
             </a>{" "}
@@ -206,8 +247,11 @@ export default async function EaSetupPage() {
             </span>
             .
           </li>
-          <li>The token's <em>Last used</em> timestamp updating above.</li>
-        </ul>
+          <li>
+            Refresh this page within 10 seconds — your token should show a{" "}
+            <em>Last used</em> timestamp confirming the EA reached the server.
+          </li>
+        </ol>
         <details className="mt-4">
           <summary className="cursor-pointer text-xs text-muted hover:text-white">
             Troubleshooting
@@ -279,6 +323,37 @@ function Mono({ children }: { children: ReactNode }) {
   );
 }
 
+function InputRow({
+  name,
+  label,
+  description,
+  required,
+}: {
+  name: string;
+  label?: string;
+  description: string;
+  required?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 rounded-md border border-white/10 bg-black/20 px-3 py-2">
+      <div className="flex items-center gap-1.5 shrink-0">
+        <Mono>{name}</Mono>
+        {required && (
+          <span className="rounded bg-gold/15 px-1 py-0.5 text-[10px] font-medium text-gold">
+            required
+          </span>
+        )}
+        {label && (
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+            → {label}
+          </span>
+        )}
+      </div>
+      <span className="text-xs text-white/60">{description}</span>
+    </div>
+  );
+}
+
 function AdvancedSetup() {
   return (
     <div className="mt-3 space-y-3 rounded-md border border-white/10 bg-black/30 p-3 text-xs text-white/80">
@@ -319,22 +394,28 @@ function Troubleshooting() {
   return (
     <ul className="mt-3 ml-4 list-disc space-y-2 rounded-md border border-white/10 bg-black/30 p-3 text-xs text-white/80">
       <li>
-        <span className="text-white">No trades appearing?</span> Toggle{" "}
+        <span className="text-white">No trades appearing?</span> Set{" "}
         <Mono>DebugMode = true</Mono> in the EA inputs and check the{" "}
-        <em>Experts</em> tab in MT5 for error logs.
+        <em>Experts</em> tab in MT5 for error messages.
       </li>
       <li>
-        <span className="text-white">HTTP 401 in logs?</span> The token is wrong
-        or revoked — generate a fresh one in Step 1.
+        <span className="text-white">HTTP 401 in logs?</span> One of your three
+        values (TokenId, ApiToken, or SigningSecret) is wrong or was pasted
+        incorrectly. Generate a new token in Step 1 and re-paste all three.
       </li>
       <li>
-        <span className="text-white">HTTP 4060?</span> WebRequest URL not
-        allowed. Re-check Step 3, item 4, and that the URL is exactly{" "}
+        <span className="text-white">HTTP 409 — Stale request?</span> Your MT5
+        system clock is more than 5 minutes off. Sync your PC clock and retry.
+      </li>
+      <li>
+        <span className="text-white">HTTP 4060 in logs?</span> WebRequest is not
+        allowed. Go to <em>Tools → Options → Expert Advisors</em>, tick{" "}
+        <em>Allow WebRequest for listed URL</em>, and add{" "}
         <Mono>https://journal.bigmarkt.co</Mono>.
       </li>
       <li>
-        <span className="text-white">AutoTrading off?</span> Click the
-        top-toolbar button so it turns green.
+        <span className="text-white">Smiley face turned to an X?</span> AutoTrading
+        was disabled. Click the toolbar button until it turns green again.
       </li>
     </ul>
   );
