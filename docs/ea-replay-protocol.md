@@ -110,9 +110,15 @@ library. Instead:
    - empty string `""` if the field is absent / `null` / `undefined`
    - `String(n)` for numbers (uses JavaScript's shortest round-trip
      representation, e.g. `1.0876`, `0.1`, `-12.5`). MQL5 must emit the
-     same representation — `DoubleToString(value, 0)` with default
-     precision and trailing-zero trimming matches for typical price/lot
-     magnitudes within IEEE-754 limits.
+     **exact shortest decimal representation matching JavaScript
+     `String(n)`** — do NOT use `DoubleToString(value, 0)` (rounds to
+     zero decimal places) or `DoubleToString(value, 8)` (always emits
+     8 decimals incl. trailing zeros). Implement a small helper that
+     trims trailing zeros and the trailing `.` and verify the MQL5
+     output against the golden vectors in `web/tests/ea-sig.spec.ts`
+     for at least: integers (`123`), tight fractionals (`1.0876`),
+     small numbers (`0.1`), negatives (`-12.5`), and whole-number
+     prices (`2300`).
    - the string itself for strings
 3. Join the 13 lines with `\n` (no trailing newline).
 4. `tradeHash = lowercase(hex(sha256(joined)))`.

@@ -63,8 +63,16 @@ export async function generateEaTokenAction(
   try {
     encrypted = encryptSigningSecret(signingSecret, user.id, tokenId);
   } catch (err) {
-    console.error("generateEaTokenAction encrypt failed:", err);
-    return { error: "Failed to create token. Please try again." };
+    // Distinguish setup failure (missing/invalid env) from a transient bug
+    // so on-call can grep for the marker line. The user-facing message
+    // points them to support rather than asking them to retry forever.
+    // Never echo env-var names or stack traces to the user.
+    console.error(
+      "[ea-token-setup] EA_SIGNING_SECRET_ENCRYPTION_KEY is missing or " +
+        "invalid — token generation is disabled until ops sets it. Underlying error:",
+      err,
+    );
+    return { error: "EA token setup is temporarily unavailable. Please contact support." };
   }
 
   const insertPayload: {

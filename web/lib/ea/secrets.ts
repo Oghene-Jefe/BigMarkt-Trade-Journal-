@@ -40,6 +40,40 @@ export type EncryptedSigningSecret = {
   keyVersion: number;
 };
 
+/**
+ * Cheap self-check the admin health view can call to confirm
+ * EA_SIGNING_SECRET_ENCRYPTION_KEY is configured correctly. Does NOT
+ * touch the database. Returns a plain `{ ok, reason }` shape so it can
+ * be rendered server-side without leaking the key.
+ *
+ * Reasons:
+ *   - "not_set"       — env var missing
+ *   - "not_base64"    — env var present but not valid base64
+ *   - "too_short"     — base64 decodes to <32 bytes
+ *   - "encrypt_failed" — full round-trip threw
+ */
+export function checkSigningSecretSetup(): { ok: true } | { ok: false; reason: string } {
+  const raw = process.env.EA_SIGNING_SECRET_ENCRYPTION_KEY;
+  if (!raw) return { ok: false, reason: "not_set" };
+  let buf: Buffer;
+  try {
+    buf = Buffer.from(raw, "base64");
+  } catch {
+    return { ok: false, reason: "not_base64" };
+  }
+  if (buf.length < KEY_BYTES) return { ok: false, reason: "too_short" };
+  // Full round-trip with throwaway userId/tokenId, just to exercise the
+  // cipher with this exact env value.
+  try {
+    const blob = encryptSigningSecret("self-check", "_health_", "_health_");
+    const back = decryptSigningSecret(blob, "_health_", "_health_");
+    if (back !== "self-check") return { ok: false, reason: "encrypt_failed" };
+  } catch {
+    return { ok: false, reason: "encrypt_failed" };
+  }
+  return { ok: true };
+}
+
 function masterKey(version: number): Buffer {
   // Today we only have one master key. When you rotate, switch on `version`
   // and read from EA_SIGNING_SECRET_ENCRYPTION_KEY_V2 etc.
