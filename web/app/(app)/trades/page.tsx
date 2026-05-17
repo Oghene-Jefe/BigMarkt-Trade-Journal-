@@ -18,6 +18,7 @@ const TRUST_BADGES: Record<
   draft: { label: "Draft", className: "bg-gray-700 text-gray-300" },
   edited: { label: "Edited", className: "bg-red-900 text-red-200" },
   prop_firm: { label: "Prop", className: "bg-orange-900 text-orange-200" },
+  demo: { label: "Demo", className: "bg-purple-900 text-purple-200" },
 };
 
 function parseFilter(value: string | undefined): TradeFilter {

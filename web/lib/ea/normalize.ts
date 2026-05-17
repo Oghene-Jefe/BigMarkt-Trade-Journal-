@@ -76,9 +76,12 @@ export function buildEaTradeRow(args: {
   payload: EaTradePayload;
   userId: string;
   brokerAccountId?: string | null;
+  accountType?: string | null;
 }) {
   const direction = deriveEaDirection(args.payload.type);
   if (!direction) return { error: "Trade type must include buy or sell" } as const;
+
+  const trustBadge = args.accountType === "demo" ? "demo" : "auto_verified";
 
   const row: Record<string, unknown> = {
     user_id: args.userId,
@@ -97,7 +100,7 @@ export function buildEaTradeRow(args: {
     comment: args.payload.comment ?? null,
     result: deriveEaResult(args.payload.profit),
     capture_source: "ea",
-    trust_badge: "auto_verified",
+    trust_badge: trustBadge,
     core_fields_locked: true,
     auto_approved: true,
   };

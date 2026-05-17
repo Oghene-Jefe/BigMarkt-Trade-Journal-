@@ -12,7 +12,10 @@
       "Bash(sed -n '420,455p' assets/_share_base.js)",
       "Bash(sed -n '586,596p' assets/_share_base.js)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\AEGEAN AJENO\\\\Desktop\\\\bigmarkt-trade-journal\" -File)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(npx tsc *)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(openssl rand *)"
     ]
   }
 }

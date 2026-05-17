@@ -2,7 +2,7 @@
 // Session 1: trust_badge, capture_source, core_fields_locked, auto_approved, journal_mode
 // Session 2: username on profiles, followers_only on trades visibility
 
-export type TrustBadge = 'manual' | 'auto_verified' | 'draft' | 'edited' | 'prop_firm';
+export type TrustBadge = 'manual' | 'auto_verified' | 'draft' | 'edited' | 'prop_firm' | 'demo';
 export type CaptureSource = 'manual' | 'ea' | 'websocket' | 'signal';
 export type JournalMode = 'manual' | 'automated';
 

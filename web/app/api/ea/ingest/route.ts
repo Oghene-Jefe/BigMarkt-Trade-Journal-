@@ -346,14 +346,25 @@ export async function POST(req: NextRequest) {
     envelopeForReplay = env.envelope;
   }
 
-  // 9. Build the canonical DB row
-  const built = buildEaTradeRow({ payload: parsed.data, userId, brokerAccountId });
+  // 9. Fetch account type to tag demo trades with trust_badge = 'demo'
+  let accountType: string | null = null;
+  if (brokerAccountId) {
+    const { data: account } = await supabase
+      .from("broker_accounts")
+      .select("account_type")
+      .eq("id", brokerAccountId)
+      .maybeSingle();
+    accountType = (account?.account_type as string | null) ?? null;
+  }
+
+  // 10. Build the canonical DB row
+  const built = buildEaTradeRow({ payload: parsed.data, userId, brokerAccountId, accountType });
   if ("error" in built) {
     return NextResponse.json({ error: "Invalid trade payload" }, { status: 400 });
   }
   const tradeRow = built.row;
 
-  // 10. v2 only: insert the nonce LAST — after envelope + payload validation
+  // 11. v2 only: insert the nonce LAST — after envelope + payload validation
   //     pass, immediately before the trade write. Atomic; a duplicate is the
   //     replay check.
   if (isV2 && envelopeForReplay) {
@@ -361,7 +372,7 @@ export async function POST(req: NextRequest) {
     if (!nonceRes.ok) return nonceRes.res;
   }
 
-  // 11. Save the trade — explicit lookup + insert/update (existing logic;
+  // 12. Save the trade — explicit lookup + insert/update (existing logic;
   //     trades has a partial unique index on (user_id, ticket)).
   const { data: existingTrade, error: lookupError } = await supabase
     .from("trades")
@@ -389,13 +400,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
   }
 
-  // 12. Update last_used_at (best-effort)
+  // 13. Update last_used_at (best-effort)
   await supabase
     .from("ea_tokens")
     .update({ last_used_at: new Date().toISOString() })
     .eq("id", tokenRow.id);
 
-  // 13. Recalculate account score (best-effort; never fail ingest on error)
+  // 14. Recalculate account score (best-effort; never fail ingest on error)
   if (brokerAccountId) {
     const scoreResult = await recalculateAccountScoreWithClient(supabase, userId, brokerAccountId);
     if ("error" in scoreResult) {
