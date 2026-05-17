@@ -2,6 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { submitBrokerAction } from "@/actions/brokers";
+import Turnstile from "@/components/Turnstile";
+
+// Public site key is build-time inlined; reading it here is just so the
+// component can fall back to a no-Turnstile form when dev is unconfigured.
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 export default function BrokerSubmissionForm() {
   const [open, setOpen] = useState(false);
@@ -9,6 +14,8 @@ export default function BrokerSubmissionForm() {
   const [platform, setPlatform] = useState("");
   const [website, setWebsite] = useState("");
   const [notes, setNotes] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -17,15 +24,28 @@ export default function BrokerSubmissionForm() {
     e.preventDefault();
     setError(null);
     setOk(false);
+
+    // If Turnstile is configured but we don't have a token yet, block on
+    // the client too — the server-side gate already enforces this, but
+    // catching it client-side avoids a wasted round-trip.
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError("Please complete the human verification.");
+      return;
+    }
+
     startTransition(async () => {
       const res = await submitBrokerAction({
         brokerName,
         platform,
         website: website || undefined,
         notes: notes || undefined,
+        turnstileToken: turnstileToken || undefined,
       });
       if (res.error) {
         setError(res.error);
+        // Force a Turnstile re-render so the (one-shot) token is replaced.
+        setTurnstileToken("");
+        setTurnstileResetKey((k) => k + 1);
         return;
       }
       setOk(true);
@@ -33,6 +53,8 @@ export default function BrokerSubmissionForm() {
       setPlatform("");
       setWebsite("");
       setNotes("");
+      setTurnstileToken("");
+      setTurnstileResetKey((k) => k + 1);
     });
   }
 
@@ -101,6 +123,8 @@ export default function BrokerSubmissionForm() {
               className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
             />
           </label>
+
+          <Turnstile onToken={setTurnstileToken} resetKey={turnstileResetKey} />
 
           {error ? <p className="text-sm text-rose-400">{error}</p> : null}
           {ok ? (

@@ -6,11 +6,11 @@ import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { tradeSchema, tradeVisibility } from "@/lib/schemas";
 import { updateChallengeStreak } from "@/lib/challengeStreak";
+import { extForSniffedType, sniffImageType } from "@/lib/upload/imageSniff";
 
 export type TradeActionState = { error?: string; ok?: string; fieldErrors?: Record<string, string> };
 
 const MAX_CHART_BYTES = 5 * 1024 * 1024; // 5 MB
-const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 function parseTradeForm(fd: FormData) {
   const num = (k: string) => {
@@ -70,20 +70,18 @@ async function uploadChartIfPresent(
 ): Promise<{ path: string } | { error: string } | null> {
   if (!file || file.size === 0) return null;
   if (file.size > MAX_CHART_BYTES) return { error: "Chart too large (5 MB max)." };
-  if (!ALLOWED_IMAGE_TYPES.has(file.type)) return { error: "Chart must be a JPEG/PNG/WebP/GIF image." };
 
-  const extByType: Record<string, string> = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/gif": "gif",
-    "image/webp": "webp",
-  };
-  const safeExt = extByType[file.type] ?? "png";
-  const path = `${userId}/${tradeId}/chart-${Date.now()}.${safeExt}`;
+  // Magic-byte sniff — don't trust browser-reported file.type. The detected
+  // type drives both the storage Content-Type and the file extension, so a
+  // spoofed .png that's really HTML/JS is rejected here.
+  const sniffed = await sniffImageType(file);
+  if (!sniffed) return { error: "Chart must be a JPEG, PNG, or WebP image." };
+
+  const path = `${userId}/${tradeId}/chart-${Date.now()}.${extForSniffedType(sniffed)}`;
 
   const { error } = await sb.storage
     .from("trade-charts")
-    .upload(path, file, { contentType: file.type, upsert: false });
+    .upload(path, file, { contentType: sniffed, upsert: false });
   if (error) return { error: `Chart upload failed: ${error.message}` };
   return { path };
 }

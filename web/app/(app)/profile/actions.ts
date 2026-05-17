@@ -5,11 +5,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { profileVisibility, journalMode, usernameSchema } from "@/lib/schemas";
+import { extForSniffedType, sniffImageType } from "@/lib/upload/imageSniff";
 
 export type ProfileActionState = { error?: string; ok?: string };
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024; // 2 MB
-const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const updateSchema = z.object({
   display_name: z.string().min(1).max(40).transform((s) => s.trim()),
@@ -55,10 +55,14 @@ export async function updateProfileAction(_: ProfileActionState, fd: FormData): 
   const file = fd.get("avatar") as File | null;
   if (file && file.size > 0) {
     if (file.size > MAX_AVATAR_BYTES) return { error: "Avatar too large (2 MB max)." };
-    if (!ALLOWED_IMAGE_TYPES.has(file.type)) return { error: "Avatar must be JPEG / PNG / WebP." };
 
-    const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 4) || "jpg";
-    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+    // Magic-byte sniff — don't trust browser-reported file.type or the
+    // user-supplied filename. The detected type drives both storage
+    // Content-Type and the file extension.
+    const sniffed = await sniffImageType(file);
+    if (!sniffed) return { error: "Avatar must be a JPEG, PNG, or WebP image." };
+
+    const path = `${user.id}/avatar-${Date.now()}.${extForSniffedType(sniffed)}`;
 
     // Look up existing path so we can delete the old object after upload.
     const { data: existing } = await sb.from("profiles")
@@ -66,7 +70,7 @@ export async function updateProfileAction(_: ProfileActionState, fd: FormData): 
 
     const { error: upErr } = await sb.storage
       .from("avatars")
-      .upload(path, file, { contentType: file.type, upsert: false });
+      .upload(path, file, { contentType: sniffed, upsert: false });
     if (upErr) return { error: `Avatar upload failed: ${upErr.message}` };
 
     await sb.from("profiles").upsert({ id: user.id, email: user.email, avatar_path: path });

@@ -67,7 +67,6 @@ BigMarkt-Trade-Journal/                    ← monorepo root
 │
 ├── websocket-server/                       ← Node + ws server (Railway-hosted)
 │   ├── package.json, tsconfig.json, railway.json
-│   ├── BRING_ONLINE.pdf                    ← shareable runbook for the team
 │   ├── RAILWAY_DEPLOY.md                   ← full deploy + verify walkthrough
 │   ├── .env.example
 │   ├── src/{server.ts, statusQuery.ts, types.ts}
@@ -380,7 +379,7 @@ Application forms on `fts` and `club` insert into `bootcamp_applications` / `clu
 
 ## WebSocket server
 
-`websocket-server/` is a tiny Node + `ws` ESM service hosted **on Railway** (see `RAILWAY_DEPLOY.md` and the shareable `BRING_ONLINE.pdf`). One HTTP server handles WS upgrades plus `/status` and `/healthz` on the same port — Railway injects `PORT`, the server reads `process.env.PORT ?? WS_PORT ?? 8080`.
+`websocket-server/` is a tiny Node + `ws` ESM service hosted **on Railway** (see `RAILWAY_DEPLOY.md` for the deploy + verify walkthrough). One HTTP server handles WS upgrades plus `/status` and `/healthz` on the same port — Railway injects `PORT`, the server reads `process.env.PORT ?? WS_PORT ?? 8080`.
 
 ### WebSocket connection
 - Auth: each connection sends a bearer token; server sha256-hashes and looks up in `ea_tokens` via service-role

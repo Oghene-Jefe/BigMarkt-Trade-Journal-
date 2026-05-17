@@ -72,19 +72,29 @@ export async function POST(req: NextRequest) {
 
   // 3. Per-token rate limit. abuse_log (migration 0040) is service-role
   //    only. Window = 60s, cap = 60 ingests → 1/sec sustained, with bursts.
+  //    Fail-CLOSED: if the abuse_log table can't be read or written, we
+  //    can't honor the rate limit, so we return 503 rather than continue.
   const since = new Date(Date.now() - TOKEN_RATE_WINDOW_SEC * 1000).toISOString();
-  const { count: recent } = await supabase
+  const countRes = await supabase
     .from("abuse_log")
     .select("id", { head: true, count: "exact" })
     .eq("scope", "ea_ingest")
     .eq("token_hash", hash)
     .gte("created_at", since);
-  if ((recent ?? 0) >= TOKEN_RATE_LIMIT) {
+  if (countRes.error) {
+    console.error("EA ingest abuse_log count failed:", countRes.error.message);
+    return NextResponse.json({ error: "Ingest temporarily unavailable" }, { status: 503 });
+  }
+  if ((countRes.count ?? 0) >= TOKEN_RATE_LIMIT) {
     // Don't leak token-id details in the response.
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
   // Log this attempt up front so even a malformed flood gets counted.
-  await supabase.from("abuse_log").insert({ scope: "ea_ingest", token_hash: hash });
+  const logRes = await supabase.from("abuse_log").insert({ scope: "ea_ingest", token_hash: hash });
+  if (logRes.error) {
+    console.error("EA ingest abuse_log insert failed:", logRes.error.message);
+    return NextResponse.json({ error: "Ingest temporarily unavailable" }, { status: 503 });
+  }
 
   // 4. Read body under a 32 KB cap.
   const bodyText = await readCappedBody(req);

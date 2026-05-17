@@ -81,11 +81,16 @@ export type RateCheckArgs = {
 
 export type RateCheckResult =
   | { ok: true }
-  | { ok: false; reason: "rate_limited" | "duplicate" };
+  | { ok: false; reason: "rate_limited" | "duplicate" | "abuse_log_error" };
 
 /**
- * Check IP rate + email duplicate, then log this attempt. Logging always
- * happens last so a failing request still consumes its slot.
+ * Check IP rate + email duplicate, then log this attempt.
+ *
+ * Fail-CLOSED on any abuse_log infrastructure error: if the table is
+ * missing, RLS denies the call, the network blips, etc. — we block
+ * the submission rather than silently letting it through.
+ * Errors are logged server-side with scope + operation; the caller
+ * always shows a generic user-facing message.
  */
 export async function checkAndLog(
   admin: SupabaseClient,
@@ -103,14 +108,22 @@ export async function checkAndLog(
   // IP rate cap
   if (ip) {
     const since = new Date(Date.now() - ipWindowSec * 1000).toISOString();
-    const { count } = await admin
+    const { count, error } = await admin
       .from("abuse_log")
       .select("id", { head: true, count: "exact" })
       .eq("scope", scope)
       .eq("ip", ip)
       .gte("created_at", since);
+    if (error) {
+      console.error("abuse_log ip-count failed:", { scope, ip, error: error.message });
+      return { ok: false, reason: "abuse_log_error" };
+    }
     if ((count ?? 0) >= ipLimit) {
-      await admin.from("abuse_log").insert({ scope, ip, email });
+      const ins = await admin.from("abuse_log").insert({ scope, ip, email });
+      if (ins.error) {
+        console.error("abuse_log insert (rate_limited path) failed:", { scope, error: ins.error.message });
+        return { ok: false, reason: "abuse_log_error" };
+      }
       return { ok: false, reason: "rate_limited" };
     }
   }
@@ -118,18 +131,30 @@ export async function checkAndLog(
   // Email duplicate suppression
   if (email) {
     const since = new Date(Date.now() - dedupeWindowSec * 1000).toISOString();
-    const { count } = await admin
+    const { count, error } = await admin
       .from("abuse_log")
       .select("id", { head: true, count: "exact" })
       .eq("scope", scope)
       .eq("email", email)
       .gte("created_at", since);
+    if (error) {
+      console.error("abuse_log email-count failed:", { scope, error: error.message });
+      return { ok: false, reason: "abuse_log_error" };
+    }
     if ((count ?? 0) >= 1) {
-      await admin.from("abuse_log").insert({ scope, ip, email });
+      const ins = await admin.from("abuse_log").insert({ scope, ip, email });
+      if (ins.error) {
+        console.error("abuse_log insert (duplicate path) failed:", { scope, error: ins.error.message });
+        return { ok: false, reason: "abuse_log_error" };
+      }
       return { ok: false, reason: "duplicate" };
     }
   }
 
-  await admin.from("abuse_log").insert({ scope, ip, email });
+  const ins = await admin.from("abuse_log").insert({ scope, ip, email });
+  if (ins.error) {
+    console.error("abuse_log insert (ok path) failed:", { scope, error: ins.error.message });
+    return { ok: false, reason: "abuse_log_error" };
+  }
   return { ok: true };
 }

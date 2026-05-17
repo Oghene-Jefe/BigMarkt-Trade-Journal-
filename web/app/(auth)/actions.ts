@@ -85,7 +85,17 @@ export async function requestResetAction(_: ActionState, formData: FormData): Pr
   const parsed = resetRequestSchema.safeParse({ email: formData.get("email") });
   if (!parsed.success) return { error: "Enter a valid email." };
   const sb = await supabaseServer();
-  const origin = trustedAppOrigin();
+  let origin: string;
+  try {
+    origin = trustedAppOrigin();
+  } catch (e) {
+    // Misconfiguration: NEXT_PUBLIC_SITE_URL / APP_URL not set in this
+    // env. Log server-side so ops can fix it; show a generic message
+    // to the user instead of a 500. We deliberately don't leak which
+    // env var is missing — that's an attacker-useful detail.
+    console.error("requestResetAction trustedAppOrigin failed:", e);
+    return { ok: "If that email has an account, a reset link is on its way." };
+  }
   await sb.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${origin}/auth/callback?next=/reset/confirm`,
   });

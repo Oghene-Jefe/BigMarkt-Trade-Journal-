@@ -1,6 +1,12 @@
 // ── SUPABASE INIT ──────────────────────────────────────────────
-const SUPABASE_URL = 'https://awvrylniqppybwaiwzse.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3dnJ5bG5pcXBweWJ3YWl3enNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2NjU2MTMsImV4cCI6MjA5MzI0MTYxM30.i_gbMGZGuJRsHumk-DqpVNVDIjaJ25x4sS8zqQdkPLY';
+// The original BigMarkt project URL and anon key that lived here have
+// been scrubbed. This archive is reference-only — do NOT deploy. If you
+// ever need to run this old code against a sandbox database, supply
+// your own URL/key below. Consider rotating the production anon key in
+// Supabase → Settings → API if there's any chance the original was
+// copied elsewhere before this scrub.
+const SUPABASE_URL = 'https://YOUR-PROJECT-REF.supabase.co';
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
 // Guard: if CDN didn't load (network error, ad blocker, etc.) show friendly error
 if (typeof supabase === 'undefined') {
