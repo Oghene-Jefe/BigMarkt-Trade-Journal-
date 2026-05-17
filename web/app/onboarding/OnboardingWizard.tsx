@@ -106,9 +106,14 @@ export default function OnboardingWizard(props: Props) {
         setError(res.error);
         return;
       }
-      router.push("/dashboard");
+      // Both paths land on the activation hub. The ActivationPanel on
+      // /dashboard picks up the path-specific next action (log first
+      // trade vs connect account / pair EA).
+      router.push("/dashboard?activation=1");
     });
   }
+
+  const finishLabel = mode === "automated" ? "Go connect account" : "Go log first trade";
 
   function handleSkip() {
     setError(null);
@@ -183,18 +188,23 @@ export default function OnboardingWizard(props: Props) {
             <h1 className="text-2xl font-semibold text-white sm:text-3xl">
               How will you journal your trades?
             </h1>
+            <p className="text-sm text-muted">
+              Pick the path that fits how you trade. Your next action depends on this choice.
+            </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <ModeCard
                 Icon={PenLine}
                 title="Manual"
-                body="I will log trades myself after each session"
+                body="I will log trades myself after each session."
+                hint="Next: log your first trade"
                 selected={mode === "manual"}
                 onSelect={() => setMode("manual")}
               />
               <ModeCard
                 Icon={Bot}
                 title="Automated"
-                body="I will connect my broker and capture trades automatically"
+                body="I will connect my broker and capture trades automatically."
+                hint="Next: connect your trading account"
                 selected={mode === "automated"}
                 onSelect={() => setMode("automated")}
               />
@@ -206,8 +216,11 @@ export default function OnboardingWizard(props: Props) {
         {step === 3 ? (
           <section className="space-y-5">
             <h1 className="text-2xl font-semibold text-white sm:text-3xl">
-              Who can see your trading profile?
+              Prepare your public proof profile
             </h1>
+            <p className="text-sm text-muted">
+              Visibility controls who can see your verified trading record. Start private — you can open this up any time once your performance is ready to share.
+            </p>
             <div className="flex flex-col gap-3">
               <ModeCard
                 Icon={Lock}
@@ -287,7 +300,7 @@ export default function OnboardingWizard(props: Props) {
             disabled={pending}
             className="rounded-md bg-gold px-4 py-3 text-sm font-medium text-black hover:bg-gold/90 disabled:opacity-50 sm:w-auto"
           >
-            {pending ? "Saving…" : "Finish"}
+            {pending ? "Saving…" : finishLabel}
           </button>
         ) : null}
       </footer>
@@ -299,6 +312,7 @@ function ModeCard({
   Icon,
   title,
   body,
+  hint,
   selected,
   onSelect,
   stacked,
@@ -306,6 +320,7 @@ function ModeCard({
   Icon: LucideIcon;
   title: string;
   body: string;
+  hint?: string;
   selected: boolean;
   onSelect: () => void;
   stacked?: boolean;
@@ -329,6 +344,11 @@ function ModeCard({
         <div className="min-w-0">
           <p className={`font-medium ${selected ? "text-gold" : "text-white"}`}>{title}</p>
           <p className="mt-1 text-xs text-muted">{body}</p>
+          {hint ? (
+            <p className={`mt-2 text-xs font-medium ${selected ? "text-gold" : "text-muted"}`}>
+              {hint}
+            </p>
+          ) : null}
         </div>
       </div>
     </button>

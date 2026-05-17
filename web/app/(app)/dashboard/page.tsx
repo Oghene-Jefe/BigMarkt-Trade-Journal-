@@ -5,7 +5,9 @@ import type { TradeRow } from "@/lib/types";
 import { fmtMoney, fmtDate, fmtPct } from "@/lib/format";
 import { getMonthPulse } from "@/lib/heatmap";
 import { PageHeader, MetricCard, Section, StatusPill } from "@/components/ui";
+import { buildActivationSummary } from "@/lib/activation";
 import Banners from "./Banners";
+import ActivationPanel from "./ActivationPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -13,22 +15,44 @@ export default async function DashboardPage() {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
 
-  const [{ data: tradesData }, { data: profileData }, { count: brokerAccountCountRaw }] =
-    await Promise.all([
-      sb.from("trades").select("*").order("created_at", { ascending: false }),
-      sb.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
-      sb
-        .from("broker_accounts")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user!.id),
-    ]);
+  const [
+    { data: tradesData },
+    { data: profileData },
+    { count: brokerAccountCountRaw },
+    { count: eaTokenCountRaw },
+  ] = await Promise.all([
+    sb.from("trades").select("*").order("created_at", { ascending: false }),
+    sb.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
+    sb
+      .from("broker_accounts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user!.id),
+    // Active (non-revoked) EA tokens only — codex tweak 1 in
+    // docs/claude-activation-build-proposal.md Section 11.
+    sb
+      .from("ea_tokens")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user!.id)
+      .is("revoked_at", null),
+  ]);
   const brokerAccountCount = brokerAccountCountRaw ?? 0;
+  const eaTokenCount = eaTokenCountRaw ?? 0;
   const trades = (tradesData ?? []) as TradeRow[];
   const startBal = profileData?.starting_balance ?? null;
   const journalMode = (profileData?.journal_mode ?? null) as
     | "automated"
     | "manual"
     | null;
+
+  const activationSummary = buildActivationSummary({
+    displayName: profileData?.display_name ?? null,
+    username: profileData?.username ?? null,
+    journalMode,
+    visibility: profileData?.visibility ?? null,
+    tradeCount: trades.length,
+    brokerAccountCount,
+    eaTokenCount,
+  });
 
   const wins = trades.filter((t) => t.result === "WIN").length;
   const losses = trades.filter((t) => t.result === "LOSS").length;
@@ -54,11 +78,21 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <PageHeader title="Dashboard" />
 
-      <Banners
-        journalMode={journalMode}
-        brokerAccountCount={brokerAccountCount}
-        tradeCount={trades.length}
-      />
+      <ActivationPanel summary={activationSummary} />
+
+      {/*
+        Banners only render once activation is complete. While the
+        activation panel is showing it owns the first-action CTA, so
+        Banners would be a duplicate surface. Codex tweak 2 in
+        docs/claude-activation-build-proposal.md Section 11.
+      */}
+      {activationSummary.nextStep === null ? (
+        <Banners
+          journalMode={journalMode}
+          brokerAccountCount={brokerAccountCount}
+          tradeCount={trades.length}
+        />
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-3 text-xs">
         <span className="text-muted">Journal mode</span>
