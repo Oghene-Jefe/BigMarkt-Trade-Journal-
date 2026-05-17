@@ -405,7 +405,8 @@ function Troubleshooting() {
       </li>
       <li>
         <span className="text-white">HTTP 409 — Stale request?</span> Your MT5
-        system clock is more than 5 minutes off. Sync your PC clock and retry.
+        timestamp is more than 5 minutes away from server UTC. Update to the
+        latest BigMarkt EA, then sync your PC clock and retry.
       </li>
       <li>
         <span className="text-white">HTTP 4060 in logs?</span> WebRequest is not

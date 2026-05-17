@@ -323,7 +323,9 @@ void SendDeal(ulong dealTicket)
 
    if(useV2)
    {
-      string sentAt    = ToISO8601(TimeCurrent());
+      // sent_at is validated by the server as UTC within a tight replay
+      // window. TimeCurrent() is broker-server time, so use GMT here.
+      string sentAt    = ToISO8601(TimeGMT());
       string nonce     = GenerateNonce();
       string tradeHash = ComputeTradeFieldsHash(
          dealTicket, symbolUp, typeStr,
@@ -353,7 +355,7 @@ void SendDeal(ulong dealTicket)
       headers += "X-Ingest-Protocol: v2\r\n";
       headers += "X-BigMarkt-Token-Id: "    + TokenId                              + "\r\n";
       headers += "X-BigMarkt-Signature: "   + sig                                  + "\r\n";
-      headers += "X-BigMarkt-Timestamp: "   + IntegerToString((long)TimeCurrent()) + "\r\n";
+      headers += "X-BigMarkt-Timestamp: "   + IntegerToString((long)TimeGMT())    + "\r\n";
       headers += "X-BigMarkt-Nonce: "       + nonce                                + "\r\n";
    }
    else
