@@ -95,9 +95,40 @@ v2\n
 <nonce>\n
 <sha256-hex-of-canonical-trade-fields>
 ```
-Where the canonical trade fields are: the JSON-serialized object containing only the existing `eaTradeSchema` fields, with keys in lexicographic order and no whitespace. (Pinning key order kills "tampering by reordering JSON" attacks and lets the EA and server agree on the bytes-to-hash.)
 
-`sig = hex(hmac_sha256(signing_secret, message))` — case-insensitive compare server-side.
+### Canonical trade-fields hash (shipped)
+The canonical trade-fields hash is **NOT** `JSON.stringify`. We deliberately
+avoid JSON canonicalization so the MQL5 EA doesn't need a JSON canonicalizer
+library. Instead:
+
+1. Iterate this **fixed field list** in this **exact order**:
+   ```
+   ticket, symbol, type, lots, open_price, close_price, open_time,
+   close_time, profit, swap, commission, magic, comment
+   ```
+2. For each field, build a line `<field-name>=<value>` where the value is:
+   - empty string `""` if the field is absent / `null` / `undefined`
+   - `String(n)` for numbers (uses JavaScript's shortest round-trip
+     representation, e.g. `1.0876`, `0.1`, `-12.5`). MQL5 must emit the
+     same representation — `DoubleToString(value, 0)` with default
+     precision and trailing-zero trimming matches for typical price/lot
+     magnitudes within IEEE-754 limits.
+   - the string itself for strings
+3. Join the 13 lines with `\n` (no trailing newline).
+4. `tradeHash = lowercase(hex(sha256(joined)))`.
+
+The full signing message is then the five lines above joined with `\n`.
+`sig = lowercase(hex(hmac_sha256(signing_secret, message)))`.
+
+Server-side compare is constant-time via `crypto.timingSafeEqual` after a
+length pre-check. Case-insensitive compare is achieved by lowercasing both
+sides before the hex→Buffer conversion.
+
+Reference implementation: `web/lib/ea/sig.ts` (`TRADE_FIELD_ORDER`,
+`tradeFieldsHash`, `canonicalMessage`, `signMessage`, `verifySig`).
+Golden tests in `web/tests/ea-sig.spec.ts` lock in the byte-for-byte
+output for a fixed input — port these vectors to MQL5 to verify the EA
+produces identical signatures.
 
 ### Why include the bearer-token-id, not the raw token, in the message
 - The bearer is in the `Authorization` header, not the body, so signing it would let an attacker who captures the body alone replay against any token. Binding to the **token id** (UUID returned from `ea_tokens.id`) means the EA must know its own row id, which the server can look up from the bearer at sign-verification time.
@@ -204,8 +235,8 @@ revoke all on function public.cleanup_ea_request_nonces(interval) from public;
 
 ### Per-token migration
 - Existing tokens have `signing_secret = NULL`. They keep working in v1 mode until cutover.
-- Regenerating a token (existing flow) gets a new `signing_secret` and the user must update their MT5 config with BOTH the bearer AND the signing secret.
-- The `/ea-setup` UI shows the signing secret **once** at generation time, same as the bearer, with the same "you'll never see this again" warning.
+- Regenerating a token (existing flow) gets a new `signing_secret` and the user must update their MT5 config with the **token UUID**, the **bearer**, and the **signing secret** — all three are needed for v2 signing.
+- The `/ea-setup` UI shows all three **once** at generation time with the "you'll never see these again" warning. The **token UUID is also visible permanently** on each token's row in the list, so users who saved bearer + secret but not the UUID can still configure their EA without regenerating.
 
 ---
 

@@ -161,7 +161,8 @@ export default function EaTokenManager({
   const [label, setLabel] = useState("");
   const [freshToken, setFreshToken] = useState<string | null>(null);
   const [freshSigningSecret, setFreshSigningSecret] = useState<string | null>(null);
-  const [copied, setCopied] = useState<"token" | "secret" | null>(null);
+  const [freshTokenId, setFreshTokenId] = useState<string | null>(null);
+  const [copied, setCopied] = useState<"token" | "secret" | "id" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -178,6 +179,7 @@ export default function EaTokenManager({
       }
       setFreshToken(res.rawToken);
       setFreshSigningSecret(res.signingSecret);
+      setFreshTokenId(res.id);
       setLabel("");
     });
   }
@@ -191,8 +193,9 @@ export default function EaTokenManager({
     });
   }
 
-  async function onCopy(which: "token" | "secret") {
-    const text = which === "token" ? freshToken : freshSigningSecret;
+  async function onCopy(which: "token" | "secret" | "id") {
+    const text =
+      which === "token" ? freshToken : which === "secret" ? freshSigningSecret : freshTokenId;
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
@@ -210,14 +213,40 @@ export default function EaTokenManager({
       {freshToken ? (
         <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-4">
           <p className="text-xs font-semibold text-emerald-300">
-            New token — copy BOTH values now
+            New token — copy ALL THREE values now
           </p>
           <p className="mt-1 text-[11px] text-emerald-200/80">
             This is the only time these values will be shown. The MT5 EA needs
-            both: the bearer token authenticates the request, and the signing
-            secret signs each trade payload (v2 replay protection). If you
-            lose either, you'll have to generate a new token.
+            all three: the token UUID is bound into every signed payload, the
+            bearer token authenticates the request, and the signing secret
+            signs each trade payload (v2 replay protection). If you lose any
+            of them, you'll have to generate a new token.
           </p>
+
+          <div className="mt-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-200/80">
+              Token UUID
+            </p>
+            <div className="mt-1 flex items-center gap-2">
+              <code className="flex-1 break-all rounded bg-black/50 px-3 py-2 text-xs font-mono text-emerald-200">
+                {freshTokenId}
+              </code>
+              <button
+                type="button"
+                onClick={() => onCopy("id")}
+                className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700"
+              >
+                {copied === "id" ? (
+                  <>
+                    <Check size={12} aria-hidden />
+                    <span>Copied</span>
+                  </>
+                ) : (
+                  "Copy"
+                )}
+              </button>
+            </div>
+          </div>
 
           <div className="mt-3">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-200/80">
@@ -275,10 +304,11 @@ export default function EaTokenManager({
               onClick={() => {
                 setFreshToken(null);
                 setFreshSigningSecret(null);
+                setFreshTokenId(null);
               }}
               className="rounded-md border border-white/15 px-3 py-2 text-xs text-muted hover:text-white"
             >
-              I've saved both — dismiss
+              I've saved all three — dismiss
             </button>
           </div>
         </div>
@@ -342,6 +372,9 @@ export default function EaTokenManager({
                   <p className="text-[11px] text-muted">
                     Created {formatDate(t.created_at)} · Last used{" "}
                     {formatDate(t.last_used_at)}
+                  </p>
+                  <p className="mt-0.5 break-all font-mono text-[10px] text-muted">
+                    ID: {t.id}
                   </p>
                   <p className="mt-1 text-[11px] text-muted">
                     {linkedLabel ? (
