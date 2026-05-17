@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { verifyCronAuth } from "@/lib/cron/auth";
 
 // Vercel cron — runs daily at 03:00 UTC.
 // Prunes two append-only housekeeping tables that grow unbounded without
@@ -7,24 +8,14 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 //   • ea_request_nonces  — replay-protection nonces older than 10 minutes
 //   • abuse_log          — rate-limit ledger entries older than 7 days
 // Both RPCs are SECURITY DEFINER and revoked from public; must be called
-// via the service role. Protected by CRON_SECRET — Vercel sets the
-// "Authorization: Bearer ${CRON_SECRET}" header automatically on cron
-// invocations.
+// via the service role. Protected by CRON_SECRET via `verifyCronAuth`
+// (constant-time compare — audit findings H-8 + H-9).
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  // Misconfigured deploy: never let an unset secret degrade into accepting
-  // `Authorization: Bearer undefined`. Template-literally that's a real,
-  // matchable string — so prior code accepted any caller who supplied it.
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    console.error("CRON_SECRET is not set — refusing to run cron");
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
-  }
-  if (req.headers.get("authorization") !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authErr = verifyCronAuth(req);
+  if (authErr) return authErr;
 
   const sb = supabaseAdmin();
 
@@ -35,11 +26,11 @@ export async function GET(req: Request) {
 
   if (noncesRes.error) {
     console.error("Cron cleanup: cleanup_ea_request_nonces failed", noncesRes.error);
-    return NextResponse.json({ error: noncesRes.error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
   if (abuseRes.error) {
     console.error("Cron cleanup: cleanup_abuse_log failed", abuseRes.error);
-    return NextResponse.json({ error: abuseRes.error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 
   const noncesDeleted = noncesRes.data as number;

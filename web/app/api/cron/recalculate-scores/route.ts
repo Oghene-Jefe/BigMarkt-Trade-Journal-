@@ -1,26 +1,18 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { recalculateAccountScoreWithClient } from "@/lib/scoring-recalculate";
+import { verifyCronAuth } from "@/lib/cron/auth";
 
 // Vercel cron — runs daily at 02:00 UTC.
 // Recalculates scores for every broker account with auto_verified trades in
-// the last 24 hours. Protected by CRON_SECRET — Vercel sets the
-// "Authorization: Bearer ${CRON_SECRET}" header automatically on cron invocations.
+// the last 24 hours. Protected by CRON_SECRET via `verifyCronAuth`
+// (constant-time compare — audit findings H-8 + H-9).
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  // Misconfigured deploy: never let an unset secret degrade into accepting
-  // `Authorization: Bearer undefined`. Template-literally that's a real,
-  // matchable string — so prior code accepted any caller who supplied it.
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    console.error("CRON_SECRET is not set — refusing to run cron");
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
-  }
-  if (req.headers.get("authorization") !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authErr = verifyCronAuth(req);
+  if (authErr) return authErr;
 
   const sb = supabaseAdmin();
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -34,7 +26,7 @@ export async function GET(req: Request) {
 
   if (error) {
     console.error("Cron: failed to fetch active accounts", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 
   // Deduplicate by broker_account_id (keep the first user_id seen per account)

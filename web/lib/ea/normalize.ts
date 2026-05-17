@@ -81,7 +81,25 @@ export function buildEaTradeRow(args: {
   const direction = deriveEaDirection(args.payload.type);
   if (!direction) return { error: "Trade type must include buy or sell" } as const;
 
-  const trustBadge = args.accountType === "demo" ? "demo" : "auto_verified";
+  // Trust badge derives from the broker account's type:
+  //   • demo      → tagged "demo" so the UI shows a demo badge and the
+  //                 leaderboard excludes the row from verified rankings.
+  //   • prop_firm → tagged "prop_firm" so followers can see the trade
+  //                 belongs to a funded account, not a live retail one.
+  //                 Project rule: prop firm accounts are journal-only;
+  //                 they never affect copy execution. The trust badge
+  //                 must reflect that reality even before the scoring
+  //                 gate filters them out.
+  //   • everything else (live / unknown) → "auto_verified".
+  // Closes audit finding H-6a in docs/security-audit-2026-05-17.md.
+  // H-6b (updating get_public_trades to label or filter prop_firm rows)
+  // ships in a separate batch — needs a migration.
+  const trustBadge =
+    args.accountType === "demo"
+      ? "demo"
+      : args.accountType === "prop_firm"
+        ? "prop_firm"
+        : "auto_verified";
 
   const row: Record<string, unknown> = {
     user_id: args.userId,

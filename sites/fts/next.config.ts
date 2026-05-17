@@ -18,6 +18,13 @@ const securityHeaders = [
       "upgrade-insecure-requests",
     ].join("; "),
   },
+  // HSTS — 2-year max-age, subdomain coverage, preload-list ready.
+  // Closes the gap codex's own SECURITY_HARDENING_CHECKLIST.md lists as
+  // required but which wasn't shipped in commit 66638d8.
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains; preload",
+  },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
-import { createHash, randomBytes } from "crypto";
+import { createHash, randomBytes, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import {
   encryptSigningSecret,
@@ -52,10 +52,12 @@ export async function generateEaTokenAction(
   // Pre-generate the token id so we can bind the signing-secret encryption
   // to it (HKDF info includes the token id). Postgres normally fills this
   // via gen_random_uuid() — we provide it explicitly instead.
-  const tokenId = randomBytes(16).toString("hex").replace(
-    /^(.{8})(.{4})(.{4})(.{4})(.{12})$/,
-    "$1-$2-$3-$4-$5",
-  );
+  //
+  // Audit L-9: was randomBytes(16) formatted with a regex into UUID shape,
+  // which produced a non-v4 UUID (no version/variant bits set). Any future
+  // client that validates strict v4 would reject it. `crypto.randomUUID()`
+  // is v4-conforming and exactly the same call shape.
+  const tokenId = randomUUID();
 
   const signingSecret = generateSigningSecret(); // 64 hex chars, shown once
 

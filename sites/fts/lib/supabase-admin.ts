@@ -1,3 +1,7 @@
+// Service-role Supabase client for the fts site. Bypasses RLS — server-side
+// only. `server-only` makes accidental client import a build error.
+// Closes audit finding H-14.
+import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let cached: SupabaseClient | null = null;

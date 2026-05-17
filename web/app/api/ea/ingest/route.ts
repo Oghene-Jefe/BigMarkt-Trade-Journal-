@@ -274,7 +274,25 @@ export async function POST(req: NextRequest) {
   }
   const isV2 = protocolHeader === PROTOCOL_VERSION;
 
-  // Cutover check for v1
+  // Audit H-3: a token that has been provisioned with a signing secret
+  // (i.e. a v2-capable token) MUST NOT accept v1 unsigned requests, no
+  // matter what `EA_INGEST_V1_CUTOFF_AT` is set to. The env-driven cutoff
+  // is for retiring LEGACY v1-only tokens; it's not a per-token policy.
+  // Without this check, an attacker with only the raw bearer (no signing
+  // secret) can downgrade the protocol by omitting the v2 header and
+  // bypass the entire HMAC + nonce + freshness stack — defeating the
+  // whole reason v2 exists.
+  if (!isV2 && encryptedSecret) {
+    return NextResponse.json(
+      {
+        error:
+          "This token requires the v2 ingest protocol. Update your EA to the latest version.",
+      },
+      { status: 401 },
+    );
+  }
+
+  // Cutover check for legacy v1-only tokens (no signing secret on file).
   if (!isV2) {
     const allow = v1Allowed();
     if (!allow.allowed) {

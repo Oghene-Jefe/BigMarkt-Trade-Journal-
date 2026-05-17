@@ -50,6 +50,71 @@ describe("EA trade normalization", () => {
       auto_approved: true,
     });
   });
+
+  // Codex audit H-6a: trust_badge must reflect broker account type so
+  // public surfaces don't render prop-firm trades as live retail.
+  describe("trust_badge mapping by account type", () => {
+    const basePayload = {
+      ticket: 1,
+      symbol: "EURUSD",
+      type: "buy",
+      lots: 0.01,
+      open_price: 1.1,
+      open_time: "2026-05-14T12:00:00.000Z",
+    };
+
+    it("tags demo accounts with trust_badge='demo'", () => {
+      const built = buildEaTradeRow({
+        userId: "u",
+        brokerAccountId: "a",
+        accountType: "demo",
+        payload: basePayload,
+      });
+      if ("error" in built) throw new Error(built.error);
+      expect(built.row.trust_badge).toBe("demo");
+    });
+
+    it("tags prop_firm accounts with trust_badge='prop_firm' (not 'auto_verified')", () => {
+      const built = buildEaTradeRow({
+        userId: "u",
+        brokerAccountId: "a",
+        accountType: "prop_firm",
+        payload: basePayload,
+      });
+      if ("error" in built) throw new Error(built.error);
+      expect(built.row.trust_badge).toBe("prop_firm");
+    });
+
+    it("tags live accounts with trust_badge='auto_verified'", () => {
+      const built = buildEaTradeRow({
+        userId: "u",
+        brokerAccountId: "a",
+        accountType: "live",
+        payload: basePayload,
+      });
+      if ("error" in built) throw new Error(built.error);
+      expect(built.row.trust_badge).toBe("auto_verified");
+    });
+
+    it("defaults missing/unknown accountType to trust_badge='auto_verified'", () => {
+      const builtNull = buildEaTradeRow({
+        userId: "u",
+        brokerAccountId: "a",
+        accountType: null,
+        payload: basePayload,
+      });
+      const builtUnknown = buildEaTradeRow({
+        userId: "u",
+        brokerAccountId: "a",
+        accountType: "mystery",
+        payload: basePayload,
+      });
+      if ("error" in builtNull) throw new Error(builtNull.error);
+      if ("error" in builtUnknown) throw new Error(builtUnknown.error);
+      expect(builtNull.row.trust_badge).toBe("auto_verified");
+      expect(builtUnknown.row.trust_badge).toBe("auto_verified");
+    });
+  });
 });
 
 describe("eaTradeSchema validation", () => {
