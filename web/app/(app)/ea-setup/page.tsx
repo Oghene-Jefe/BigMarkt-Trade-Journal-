@@ -14,6 +14,9 @@ export type EaTokenRow = {
   created_at: string;
   last_used_at: string | null;
   broker_account_id: string | null;
+  /** True for tokens predating migration 0041 (no encrypted signing secret).
+   *  Surfaced in the UI as a "legacy / regenerate to enable v2" badge. */
+  is_legacy: boolean;
 };
 
 export type BrokerAccountOption = {
@@ -80,12 +83,24 @@ export default async function EaSetupPage() {
 
   const { data: tokens } = await sb
     .from("ea_tokens")
-    .select("id, label, created_at, last_used_at, broker_account_id")
+    .select(
+      "id, label, created_at, last_used_at, broker_account_id, signing_secret_ciphertext",
+    )
     .eq("user_id", user.id)
     .is("revoked_at", null)
     .order("created_at", { ascending: false });
 
-  const activeTokens: EaTokenRow[] = (tokens ?? []) as EaTokenRow[];
+  const activeTokens: EaTokenRow[] = (tokens ?? []).map((t) => {
+    const row = t as { signing_secret_ciphertext: string | null } & Omit<EaTokenRow, "is_legacy">;
+    return {
+      id: row.id,
+      label: row.label,
+      created_at: row.created_at,
+      last_used_at: row.last_used_at,
+      broker_account_id: row.broker_account_id,
+      is_legacy: !row.signing_secret_ciphertext,
+    };
+  });
 
   const { data: accountsData } = await sb
     .from("broker_accounts")

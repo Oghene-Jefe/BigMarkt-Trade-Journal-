@@ -1,8 +1,8 @@
 # EA ingest — replay-protection protocol (v2)
 
-**Status:** PROPOSAL — not yet implemented. Awaiting Codex sign-off.
+**Status:** SHIPPED (server side). Migrations 0041 + 0042 applied; v2 accepted at `/api/ea/ingest`. MT5 EA-side change tracked separately (still needs to be released).
 **Owner:** journal/`web/app/api/ea/ingest`
-**Related:** TODO at the bottom of `web/app/api/ea/ingest/route.ts`
+**Implementation:** `web/lib/ea/sig.ts`, `web/lib/ea/secrets.ts`, `web/app/api/ea/ingest/route.ts`, `web/lib/actions/ea-tokens.ts`
 
 ---
 
@@ -81,8 +81,11 @@ Always-generic error strings; no internal details leak.
 
 ### Per-token signing secret
 - On `generateEaTokenAction()`, generate **two** independent 32-byte random hex strings: the **bearer token** (`raw`, displayed once) and a **signing secret** (`raw_sig`, displayed once).
-- Store both: existing `token_hash` (sha256 of bearer) + new `signing_secret` column (plaintext, 64 hex chars).
-- We must store `signing_secret` in plaintext because the server needs to recompute HMAC. The trade-off: a DB compromise (read of `ea_tokens`) leaks all signing secrets. We accept this because a service-role-key compromise already lets the attacker insert trades directly — adding "leaks signing secrets" doesn't widen that blast radius.
+- The bearer is stored as `token_hash` (SHA-256, lookup key, existing).
+- The signing secret is **encrypted at rest** via AES-256-GCM + HKDF, modeled on `web/lib/exchanges/crypto.ts`. Columns added in migration 0041: `signing_secret_ciphertext`, `signing_secret_iv`, `signing_secret_tag`, `signing_secret_key_version`. Implementation in `web/lib/ea/secrets.ts`.
+- Master key env var: `EA_SIGNING_SECRET_ENCRYPTION_KEY` (base64-encoded ≥32 bytes; generate with `openssl rand -base64 32`). Distinct from `EXCHANGE_CREDENTIAL_ENCRYPTION_KEY` so the two key custodies stay independent.
+- HKDF info is bound to `(user_id, token_id)` so even an attacker with the master key + a single ciphertext row can't replay it under a different token id.
+- `signing_secret_key_version` is recorded so future master-key rotation can read old rows while encrypting new ones with a v2 key.
 
 ### Canonical signing message
 ```
@@ -137,19 +140,14 @@ Corrected order: 4a → 4b → 5 → 6 → 4c → 7.
 
 ## 5. Storage
 
-### Existing table changes
-```sql
--- migration 0041_ea_tokens_signing_secret.sql
-alter table public.ea_tokens
-  add column if not exists signing_secret text;
+### Existing table changes — `0041_ea_tokens_signing_secret.sql` (shipped)
+Adds nullable columns:
+- `signing_secret_ciphertext text` — base64 AES-256-GCM ciphertext
+- `signing_secret_iv text` — base64 12-byte IV
+- `signing_secret_tag text` — base64 16-byte GCM auth tag
+- `signing_secret_key_version integer` — master-key version, currently `1`
 
--- For tokens created before this migration, signing_secret is NULL.
--- The route handler treats those tokens as v1-only — they will fail
--- v2 verification with 401 because there's no secret to HMAC with.
--- Users must regenerate their token to get a signing secret. The
--- /ea-setup UI surfaces this with a "Token uses legacy protocol —
--- regenerate to enable replay protection" badge.
-```
+Legacy tokens (pre-0041) have NULL for all four. The route returns `401 Invalid signature` on v2 requests against legacy tokens — bailing BEFORE attempting decryption — and `/ea-setup` shows a yellow "Legacy — regenerate for v2 replay protection" badge on the token row.
 
 ### New nonce table
 ```sql
@@ -240,25 +238,34 @@ revoke all on function public.cleanup_ea_request_nonces(interval) from public;
 
 ---
 
-## 8. Open questions for Codex review
+## 8. Decisions baked into the shipped implementation
 
-1. **Are we OK storing `signing_secret` in plaintext in `ea_tokens`?** Alternative: encrypt-at-rest with `EA_SIGNING_SECRET_KEK` env var via `crypto.createCipheriv(aes-256-gcm, ...)`. Adds one moving part for marginal benefit (encrypted-at-rest if attacker has DB but not env). I lean: skip it, but flag it if you disagree.
-2. **Window size:** ±5 min was chosen for MT5 hosts that may have drifted clocks. Tighter (±2 min) is more robust but risks rejecting legitimate requests from VPS instances without NTP. Looser (±10 min) widens the replay window. OK with ±5?
-3. **Cutover:** 30-day window with a hard 410 cutoff. Or do you prefer a softer rolling cutoff (e.g. v1 gets stricter rate limit, then 410)?
-4. **Should `cleanup_ea_request_nonces` run from a Vercel cron**, or is it fine to rely on the table staying small (10 min TTL × 60 req/min peak × N tokens ≈ trivial)?
-5. **Header name** — `X-Ingest-Protocol` vs `X-EA-Protocol-Version`. I went with the former for parallel with HTTP convention; happy to bikeshed.
+Codex's review settled the open questions:
+
+1. **Encrypted-at-rest with envelope encryption** — implemented in `web/lib/ea/secrets.ts` mirroring the exchange-credential pattern. Separate env var: `EA_SIGNING_SECRET_ENCRYPTION_KEY`.
+2. **±5 min timestamp window** — `TIMESTAMP_WINDOW_MS` in `web/lib/ea/sig.ts`.
+3. **Soft cutover via `EA_INGEST_V1_CUTOFF_AT` env flag.** If unset, v1 is allowed (with a clear server warning, gated per token id) so a missing env var can't accidentally brick existing users. Once set and past, v1 returns `410 Gone`.
+4. **Cleanup function shipped but not cron-wired** — the table is bounded (10-min TTL × peak ~60 req/min/token); `cleanup_ea_request_nonces()` is callable manually or by a future cron.
+5. **Header:** `X-Ingest-Protocol: v2`.
 
 ---
 
-## 9. Rough implementation order (once approved)
+## 9. Shipped implementation
 
-1. Migrations `0041_ea_tokens_signing_secret.sql` + `0042_ea_request_nonces.sql`
-2. `web/lib/ea/sig.ts` — `canonicalMessage()`, `verifySig()`, plus EA-side reference TypeScript that can be ported to MQL5
-3. `web/lib/actions/ea-tokens.ts` — `generateEaTokenAction` returns `{ rawToken, signingSecret, id }` and inserts both
-4. `web/app/api/ea/ingest/route.ts` — protocol-version branch, v2 validation pipeline
-5. `web/app/(app)/ea-setup/...` — show signing secret once on generation; "legacy token" badge for NULL-signing-secret tokens
-6. MT5 EA update (MQL5 source under `mql5/`) — send `X-Ingest-Protocol: v2`, compute HMAC, manage nonce counter (likely random GUID per send)
-7. Tests above
-8. Deprecation banner + cutover env flag
+| Order | Component | File |
+|---|---|---|
+| 1 | Migration: signing-secret columns on `ea_tokens` | `supabase/migrations/0041_ea_tokens_signing_secret.sql` |
+| 2 | Migration: replay-nonce table | `supabase/migrations/0042_ea_request_nonces.sql` |
+| 3 | Crypto helper (AES-256-GCM + HKDF) | `web/lib/ea/secrets.ts` |
+| 4 | Canonicalization + HMAC + envelope rules | `web/lib/ea/sig.ts` |
+| 5 | Token gen action returns `{ rawToken, signingSecret, id }` | `web/lib/actions/ea-tokens.ts` |
+| 6 | Route handler: protocol-version branch, v2 validation pipeline, atomic nonce insert, soft cutover | `web/app/api/ea/ingest/route.ts` |
+| 7 | UI: show signing secret once + "Legacy" badge on legacy rows | `web/app/(app)/ea-setup/EaTokenManager.tsx`, `web/app/(app)/ea-setup/page.tsx` |
+| 8 | Tests (32 new): canonicalization, HMAC, encryption round-trip, integration | `web/tests/ea-sig.spec.ts`, `web/tests/ea-secrets.spec.ts`, `web/tests/ea-ingest-v2.spec.ts` |
 
-Total work: ~1 focused day for server + tests, separate day for MT5 EA.
+### Still to ship
+- **MT5 EA update (MQL5 under `mql5/`)** — needs to compute HMAC-SHA256 over the canonical message, send `X-Ingest-Protocol: v2`, generate a fresh 16-byte random nonce per send, and stop trying to retry the same body when the server returns 409 (the nonce is burnt; regenerate).
+- **Set `EA_SIGNING_SECRET_ENCRYPTION_KEY`** in Vercel (Production + Preview) on the `big-markt-trade-journal` project. `openssl rand -base64 32` and paste. The action will fail with a clear error if it's missing.
+- **Apply migrations 0041 + 0042** in Supabase.
+- **Optional:** set `EA_INGEST_V1_CUTOFF_AT` to enforce the v1 sunset on a chosen date (suggest T + 30 days after the MT5 EA update ships).
+- **Optional:** wire `cleanup_ea_request_nonces()` into the existing Vercel cron alongside `cleanup_abuse_log()`.

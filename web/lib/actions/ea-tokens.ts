@@ -4,6 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
 import { createHash, randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
+import {
+  encryptSigningSecret,
+  generateSigningSecret,
+} from "@/lib/ea/secrets";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -24,7 +28,10 @@ function hashToken(raw: string): string {
 export async function generateEaTokenAction(
   label: string,
   broker_account_id?: string
-): Promise<{ rawToken: string; id: string } | { error: string }> {
+): Promise<
+  | { rawToken: string; signingSecret: string; id: string }
+  | { error: string }
+> {
   const user = await requireUser();
   const supabase = await createClient();
 
@@ -42,15 +49,43 @@ export async function generateEaTokenAction(
   const raw = generateRawToken();
   const hash = hashToken(raw);
 
+  // Pre-generate the token id so we can bind the signing-secret encryption
+  // to it (HKDF info includes the token id). Postgres normally fills this
+  // via gen_random_uuid() — we provide it explicitly instead.
+  const tokenId = randomBytes(16).toString("hex").replace(
+    /^(.{8})(.{4})(.{4})(.{4})(.{12})$/,
+    "$1-$2-$3-$4-$5",
+  );
+
+  const signingSecret = generateSigningSecret(); // 64 hex chars, shown once
+
+  let encrypted;
+  try {
+    encrypted = encryptSigningSecret(signingSecret, user.id, tokenId);
+  } catch (err) {
+    console.error("generateEaTokenAction encrypt failed:", err);
+    return { error: "Failed to create token. Please try again." };
+  }
+
   const insertPayload: {
+    id: string;
     user_id: string;
     token_hash: string;
     label: string;
+    signing_secret_ciphertext: string;
+    signing_secret_iv: string;
+    signing_secret_tag: string;
+    signing_secret_key_version: number;
     broker_account_id?: string;
   } = {
+    id: tokenId,
     user_id: user.id,
     token_hash: hash,
     label: label.trim().slice(0, 60) || "My EA",
+    signing_secret_ciphertext: encrypted.ciphertext,
+    signing_secret_iv: encrypted.iv,
+    signing_secret_tag: encrypted.tag,
+    signing_secret_key_version: encrypted.keyVersion,
   };
   if (broker_account_id) insertPayload.broker_account_id = broker_account_id;
 
@@ -61,11 +96,12 @@ export async function generateEaTokenAction(
     .single();
 
   if (error || !data) {
+    console.error("generateEaTokenAction insert failed:", error);
     return { error: "Failed to create token. Please try again." };
   }
 
   revalidatePath("/ea-setup");
-  return { rawToken: raw, id: data.id };
+  return { rawToken: raw, signingSecret, id: data.id };
 }
 
 export type EaConnectionLogEntry = {

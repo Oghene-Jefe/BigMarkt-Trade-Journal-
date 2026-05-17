@@ -160,7 +160,8 @@ export default function EaTokenManager({
 }) {
   const [label, setLabel] = useState("");
   const [freshToken, setFreshToken] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [freshSigningSecret, setFreshSigningSecret] = useState<string | null>(null);
+  const [copied, setCopied] = useState<"token" | "secret" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -168,7 +169,7 @@ export default function EaTokenManager({
 
   function onGenerate() {
     setError(null);
-    setCopied(false);
+    setCopied(null);
     startTransition(async () => {
       const res = await generateEaTokenAction(label || "My EA");
       if ("error" in res) {
@@ -176,6 +177,7 @@ export default function EaTokenManager({
         return;
       }
       setFreshToken(res.rawToken);
+      setFreshSigningSecret(res.signingSecret);
       setLabel("");
     });
   }
@@ -189,12 +191,13 @@ export default function EaTokenManager({
     });
   }
 
-  async function onCopy() {
-    if (!freshToken) return;
+  async function onCopy(which: "token" | "secret") {
+    const text = which === "token" ? freshToken : freshSigningSecret;
+    if (!text) return;
     try {
-      await navigator.clipboard.writeText(freshToken);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(text);
+      setCopied(which);
+      setTimeout(() => setCopied(null), 2000);
     } catch {
       setError("Could not copy — select and copy manually.");
     }
@@ -207,36 +210,75 @@ export default function EaTokenManager({
       {freshToken ? (
         <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 p-4">
           <p className="text-xs font-semibold text-emerald-300">
-            New token — copy it now
+            New token — copy BOTH values now
           </p>
           <p className="mt-1 text-[11px] text-emerald-200/80">
-            This is the only time the raw token will be shown. If you lose it
-            you'll have to generate a new one.
+            This is the only time these values will be shown. The MT5 EA needs
+            both: the bearer token authenticates the request, and the signing
+            secret signs each trade payload (v2 replay protection). If you
+            lose either, you'll have to generate a new token.
           </p>
-          <div className="mt-3 flex items-center gap-2">
-            <code className="flex-1 break-all rounded bg-black/50 px-3 py-2 text-xs font-mono text-emerald-200">
-              {freshToken}
-            </code>
+
+          <div className="mt-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-200/80">
+              Bearer token
+            </p>
+            <div className="mt-1 flex items-center gap-2">
+              <code className="flex-1 break-all rounded bg-black/50 px-3 py-2 text-xs font-mono text-emerald-200">
+                {freshToken}
+              </code>
+              <button
+                type="button"
+                onClick={() => onCopy("token")}
+                className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700"
+              >
+                {copied === "token" ? (
+                  <>
+                    <Check size={12} aria-hidden />
+                    <span>Copied</span>
+                  </>
+                ) : (
+                  "Copy"
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-200/80">
+              Signing secret
+            </p>
+            <div className="mt-1 flex items-center gap-2">
+              <code className="flex-1 break-all rounded bg-black/50 px-3 py-2 text-xs font-mono text-emerald-200">
+                {freshSigningSecret}
+              </code>
+              <button
+                type="button"
+                onClick={() => onCopy("secret")}
+                className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700"
+              >
+                {copied === "secret" ? (
+                  <>
+                    <Check size={12} aria-hidden />
+                    <span>Copied</span>
+                  </>
+                ) : (
+                  "Copy"
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 flex justify-end">
             <button
               type="button"
-              onClick={onCopy}
-              className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700"
-            >
-              {copied ? (
-                <>
-                  <Check size={12} aria-hidden />
-                  <span>Copied</span>
-                </>
-              ) : (
-                "Copy"
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setFreshToken(null)}
+              onClick={() => {
+                setFreshToken(null);
+                setFreshSigningSecret(null);
+              }}
               className="rounded-md border border-white/15 px-3 py-2 text-xs text-muted hover:text-white"
             >
-              Dismiss
+              I've saved both — dismiss
             </button>
           </div>
         </div>
@@ -286,8 +328,16 @@ export default function EaTokenManager({
                 className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-black/30 p-3"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-white">
-                    {t.label}
+                  <p className="flex items-center gap-2 truncate text-sm font-medium text-white">
+                    <span className="truncate">{t.label}</span>
+                    {t.is_legacy ? (
+                      <StatusPill
+                        tone="warn"
+                        icon={<AlertTriangle size={10} aria-hidden />}
+                      >
+                        Legacy — regenerate for v2 replay protection
+                      </StatusPill>
+                    ) : null}
                   </p>
                   <p className="text-[11px] text-muted">
                     Created {formatDate(t.created_at)} · Last used{" "}
