@@ -10,7 +10,6 @@ const links = [
   { href: "/tracks", label: "Tracks" },
   { href: "/chapters", label: "Chapters" },
   { href: "/mentorship", label: "Mentorship" },
-  { href: "/join", label: "Join" },
 ];
 
 export default function Navbar() {
