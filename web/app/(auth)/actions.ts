@@ -84,18 +84,31 @@ export async function signupAction(_: ActionState, formData: FormData): Promise<
     options: { data: meta },
   });
   if (error) {
-    // Audit N-H6: previous code disambiguated "already registered" from
-    // "everything else", giving any caller a yes/no oracle for whether an
-    // email is in the system. H-10 closed the same oracle on the login
-    // form; this is the symmetric closure on signup. Both branches now
-    // return a single generic message.
-    //
-    // If the email IS already registered, Supabase still side-effects a
-    // "you already have an account" email out-of-band (handled in the
-    // auth.signUp internals) — that's the right channel to surface
-    // duplicate-signup intent, not the form response.
+    // Other Supabase auth errors (rate-limited, weak password rejected
+    // by server-side policy, etc.) collapse into a single generic
+    // message — same shape as the H-10 login closure.
     console.error("signupAction signUp failed:", { code: error.code, message: error.message });
     return { error: "Signup failed. Try again." };
+  }
+
+  // Supabase anti-enumeration behavior: when an existing email tries to
+  // sign up again, signUp() returns a "fake" user object with an empty
+  // `identities` array AND no error. That's how Supabase prevents the
+  // login-form-style enumeration oracle on signup.
+  //
+  // N-H6 / UX-tradeoff note: the original audit recommendation was to
+  // KEEP the silent behavior so an attacker can't probe which emails
+  // are registered. But real users hitting "Check your inbox at X"
+  // when X already has an account and never receiving an email is a
+  // confusing dead-end — they assume the form is broken. Product
+  // decision (2026-05-18): explicitly surface "email already has an
+  // account" on this branch. Email enumeration is currently mitigated
+  // by Turnstile; the signup abuse_log gate is tracked as the N-M11
+  // follow-up. Documented re-opening in
+  // docs/security-audit-2026-05-18-rescan.md (N-H6 "Reverted for UX").
+  const identities = data.user?.identities;
+  if (Array.isArray(identities) && identities.length === 0) {
+    return { error: "This email already has an account — log in instead." };
   }
 
   // Profile row gets created by the auth trigger in 0005 (added later) OR by
