@@ -78,10 +78,34 @@ export async function signupAction(_: ActionState, formData: FormData): Promise<
   // (migration 0032) copies it into profiles.referred_by at insert time.
   const meta: Record<string, string> = { name: parsed.data.name };
   if (parsed.data.referred_by) meta.referred_by = parsed.data.referred_by;
+
+  // Verification-email destination. Without this, Supabase falls back to
+  // the project's "Site URL" setting in the dashboard — which currently
+  // points at https://bigmarkt.co (the marketing site, no auth handling)
+  // so verified users land on the marketing home page and nothing
+  // happens. Pin the redirect to the journal's /auth/callback so it
+  // exchanges the code for a session and forwards the user to the
+  // dashboard — where (app)/layout.tsx picks them up, sees an empty
+  // profile, and forwards to /onboarding (H-12 onboarding gate).
+  //
+  // trustedAppOrigin() is the same env-locked allow-list the password
+  // reset uses; it can't be tricked by an `Origin:` header on the
+  // signup request.
+  let origin: string;
+  try {
+    origin = trustedAppOrigin();
+  } catch (e) {
+    console.error("signupAction trustedAppOrigin failed:", e);
+    return { error: "Signup failed. Try again." };
+  }
+
   const { data, error } = await sb.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
-    options: { data: meta },
+    options: {
+      data: meta,
+      emailRedirectTo: `${origin}/auth/callback?next=/dashboard`,
+    },
   });
   if (error) {
     // Other Supabase auth errors (rate-limited, weak password rejected
