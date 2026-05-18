@@ -25,10 +25,16 @@ type MockState = {
   tokenRow:
     | (Record<string, unknown> & { id: string; user_id: string; revoked_at: string | null })
     | null;
-  // abuse_log count for rate-limit query
+  // Post-INSERT count returned by the ea_ingest_rate_check_and_log RPC.
+  // (Audit H-7 / migration 0045 collapsed the old SELECT+INSERT pair into
+  // a single atomic RPC call. The RPC already includes the just-written
+  // row in its count, so setting this to 61 simulates "you just hit the
+  // 61st request in the window" and the route returns 429.)
   abuseCount: number;
+  // RPC error — fail-CLOSED, route returns 503.
   abuseCountError?: { message: string } | null;
-  // abuse_log insert error (null = success)
+  // Retained for transitional compatibility — no current code path uses it
+  // (the old abuse_log.insert was folded into the RPC). Tests can ignore.
   abuseInsertError?: { message: string } | null;
   // ea_request_nonces insert error (e.g. { code: '23505' })
   nonceInsertError?: { message: string; code?: string } | null;
@@ -132,9 +138,32 @@ vi.mock("@/lib/supabase/admin", () => {
     return builder;
   }
 
+  // Mock the RPC surface used by the route's atomic rate-limit gate
+  // (migration 0045 / audit H-7). The real function returns the
+  // post-INSERT count for the (token_hash, window) bucket; the route
+  // returns 429 when that count exceeds the limit. Our mock returns
+  // `abuseCount` (interpreted as the same post-INSERT count) and
+  // surfaces `abuseCountError` as a transport failure for the
+  // fail-closed 503 path.
+  async function rpcFn(
+    name: string,
+    _params?: Record<string, unknown>,
+  ): Promise<MockResult> {
+    if (name === "ea_ingest_rate_check_and_log") {
+      if (mockState.abuseCountError) {
+        return { error: mockState.abuseCountError };
+      }
+      return { data: mockState.abuseCount, error: null };
+    }
+    // Any other RPC name returns a benign empty result so unrelated
+    // future tests don't blow up unexpectedly.
+    return { data: null, error: null };
+  }
+
   return {
     supabaseAdmin: () => ({
       from: (table: string) => makeBuilder(table),
+      rpc: rpcFn,
     }),
   };
 });
