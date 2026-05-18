@@ -308,25 +308,34 @@ export async function POST(req: NextRequest) {
     logV1Deprecation(tokenId);
   }
 
-  // 4. Per-token rate limit (applies to BOTH v1 and v2)
-  const since = new Date(Date.now() - TOKEN_RATE_WINDOW_SEC * 1000).toISOString();
-  const countRes = await supabase
-    .from("abuse_log")
-    .select("id", { head: true, count: "exact" })
-    .eq("scope", "ea_ingest")
-    .eq("token_hash", hash)
-    .gte("created_at", since);
-  if (countRes.error) {
-    console.error("EA ingest abuse_log count failed:", countRes.error.message);
+  // 4. Per-token rate limit (applies to BOTH v1 and v2).
+  //
+  // Audit H-7: the previous implementation did a SELECT count(*) and a
+  // separate INSERT in two round-trips, leaving a TOCTOU race window.
+  // Two concurrent requests with the same Bearer could both observe
+  // count < limit, both insert, both proceed — the cap was effectively
+  // multiplied by the parallelism factor under bursty load.
+  //
+  // The RPC below (migration 0045) collapses the INSERT + count into a
+  // single transactional unit. INSERT happens first to claim a slot;
+  // the count read afterward includes the just-written row, so
+  // concurrent callers see each other's INSERT before deciding. Cap
+  // holds under any parallelism. Rejected requests still consume a
+  // slot from the attacker's bucket — sustained burst is correctly
+  // rate-limited rather than spiking through.
+  const rateRes = await supabase.rpc("ea_ingest_rate_check_and_log", {
+    p_token_hash: hash,
+    p_limit: TOKEN_RATE_LIMIT,
+    p_window_sec: TOKEN_RATE_WINDOW_SEC,
+  });
+  if (rateRes.error) {
+    console.error("EA ingest rate-limit RPC failed:", rateRes.error.message);
+    // Fail-CLOSED: a broken rate-limiter must not become an open gate.
     return NextResponse.json({ error: "Ingest temporarily unavailable" }, { status: 503 });
   }
-  if ((countRes.count ?? 0) >= TOKEN_RATE_LIMIT) {
+  const newCount = typeof rateRes.data === "number" ? rateRes.data : 0;
+  if (newCount > TOKEN_RATE_LIMIT) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-  }
-  const logRes = await supabase.from("abuse_log").insert({ scope: "ea_ingest", token_hash: hash });
-  if (logRes.error) {
-    console.error("EA ingest abuse_log insert failed:", logRes.error.message);
-    return NextResponse.json({ error: "Ingest temporarily unavailable" }, { status: 503 });
   }
 
   // 5. Read body under a 32 KB cap.

@@ -1,36 +1,32 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-// Routes under the (app) shell that require a completed profile. Onboarding
-// is considered complete the moment profile.display_name is non-null.
-const APP_ROUTE_PREFIXES = [
-  "/dashboard",
-  "/journal",
-  "/trades",
-  "/analytics",
-  "/challenges",
-  "/leaderboard",
-  "/subscriptions",
-  "/brokers",
-  "/accounts",
-  "/ea-setup",
-  "/exchanges",
-  "/profile",
-  "/admin",
-  "/notifications",
-  "/disputes",
-];
-
-function isAppRoute(pathname: string): boolean {
-  return APP_ROUTE_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(p + "/"),
-  );
-}
+// Edge middleware. Two responsibilities — kept narrow:
+//   1. /@username slug rewrites (anon-friendly profile URLs)
+//   2. Refresh the Supabase auth-session cookie on every matched request
+//
+// Notably NOT responsible for: onboarding redirects, app-route auth gating,
+// or any DB lookups. Those moved into the (app)/layout.tsx in audit H-12
+// because:
+//   • Middleware fires on every matched request (incl. assets the matcher
+//     doesn't exclude), so a DB query here meant 2 round-trips per page-
+//     view AND a soft-DoS surface against the connection pool.
+//   • The original isAppRoute(pathname) check ran AFTER the /@slug rewrite,
+//     using the pre-rewrite pathname. An attacker could send /@dashboard
+//     → rewrite to /dashboard → middleware's onboarding gate skipped because
+//     pathname.startsWith("/@") not "/dashboard". (app)/layout.tsx runs
+//     after the rewrite hits its target route, so this bypass is closed.
+//   • Onboarding state needs profile.display_name; layout already loads
+//     the profile row for username derivation. Same query, no extra cost.
+//
+// Audit ref: docs/security-audit-2026-05-17.md H-12.
 
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
   const pathname = url.pathname;
 
+  // /@username → /username (public profile route). Done as a rewrite so
+  // the canonical share URL stays short and friendly.
   if (pathname.startsWith("/@")) {
     const slug = pathname.slice(2);
     if (slug && slug.length > 0) {
@@ -39,29 +35,18 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  const { supabase, response } = await updateSession(request);
-
-  if (isAppRoute(pathname)) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (!profile?.display_name) {
-        const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = "/onboarding";
-        return NextResponse.redirect(redirectUrl);
-      }
-    }
-  }
-
+  // Refresh the Supabase auth cookie. updateSession also surfaces the
+  // server-bound supabase client, but we don't need it here anymore —
+  // the layout handles auth/onboarding gating itself.
+  const { response } = await updateSession(request);
   return response;
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|p/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Excludes static assets, favicon, image extensions, public share
+    // routes (/p/[id]), AND the entire /api tree — API routes handle
+    // their own auth and don't need session-refresh cookies.
+    "/((?!api|_next/static|_next/image|favicon.ico|p/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

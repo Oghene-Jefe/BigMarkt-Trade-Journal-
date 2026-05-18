@@ -8,22 +8,41 @@ import Logo from "@/components/ui/Logo";
 import { EcosystemFooter } from "@/components/ui/EcosystemFooter";
 import ChatWidgetMount from "@/components/support/ChatWidgetMount";
 
-// Auth gate for the app shell. Every page under (app) requires a session.
-// Admin link only renders if is_admin(auth.uid()) — non-admins never see
-// the Admin nav, but the actual gate is still on /admin's server check.
+// Auth + onboarding gate for the app shell. Every page under (app)
+// requires a session AND a completed profile (display_name set).
+//
+// Audit H-12: the onboarding-redirect logic used to live in
+// middleware.ts, which forced a DB lookup on every matched request
+// (assets + APIs + page renders alike) and was bypassable via the
+// /@slug rewrite (which short-circuited before the gate ran). Both
+// problems gone — the gate now fires here, exactly once per page
+// view, after the /@slug rewrite has resolved to its target route.
+// The same `profiles` row is also used downstream for username
+// derivation, so this is a single read.
+//
+// Admin link only renders if is_admin(auth.uid()) — non-admins never
+// see the Admin nav, but the actual gate is still on /admin's server
+// check.
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) redirect("/login");
-  const admin = await isAdmin();
-  const unreadRes = await getUnreadNotificationCountAction();
-  const unreadCount = ("count" in unreadRes ? unreadRes.count : 0) ?? 0;
 
   const { data: profile } = await sb
     .from("profiles")
     .select("username, display_name")
     .eq("id", user.id)
     .maybeSingle();
+
+  // Onboarding gate. profile.display_name being non-null is the
+  // signal that the user finished onboarding step 1. Send anyone
+  // who skipped or is mid-flow back to /onboarding.
+  if (!profile?.display_name) redirect("/onboarding");
+
+  const admin = await isAdmin();
+  const unreadRes = await getUnreadNotificationCountAction();
+  const unreadCount = ("count" in unreadRes ? unreadRes.count : 0) ?? 0;
+
   const username =
     (profile?.username && profile.username.trim()) ||
     (profile?.display_name && profile.display_name.trim()) ||
