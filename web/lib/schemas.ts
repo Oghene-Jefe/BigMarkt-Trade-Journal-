@@ -1,7 +1,22 @@
 import { z } from "zod";
 
 export const emailSchema = z.string().email().max(254).transform((s) => s.toLowerCase().trim());
+
+// Audit L-1: previous policy was min(6) — below NIST 800-63B baseline (8)
+// and well below OWASP recommendation (12). For a financial app that
+// holds trader PnL, the bar should be higher than chat-app territory.
+//
+// Split into two schemas so existing users (who may have created
+// 6–11 char passwords before this change) can still log in. New
+// signups and password-reset confirmations require min(12).
+//
+//   • passwordSchema       — login. Min 6 for legacy compat.
+//   • signupPasswordSchema — new account + reset confirm. Min 12.
 export const passwordSchema = z.string().min(6).max(72);
+export const signupPasswordSchema = z
+  .string()
+  .min(12, "Use at least 12 characters")
+  .max(72);
 
 export const loginSchema = z.object({
   email: emailSchema,
@@ -11,9 +26,14 @@ export type LoginInput = z.infer<typeof loginSchema>;
 
 export const signupSchema = z.object({
   email: emailSchema,
-  password: passwordSchema,
+  password: signupPasswordSchema,
   name: z.string().min(1).max(80).transform((s) => s.trim()),
   website: z.string().optional(),
+  // Optional Turnstile token (web-app signup form). Audit L-2.
+  // Validated against Cloudflare server-side via verifyTurnstile in the
+  // signup action; absent in local dev (verifyTurnstile fails open when
+  // TURNSTILE_SECRET_KEY is unset outside production).
+  turnstile_token: z.string().max(4096).optional(),
   // Optional referral code. The profile referral codes are 12-char base64
   // slices of a UUID, so any allowed code matches /^[A-Za-z0-9+/]{1,32}$/.
   // Empty string normalizes to undefined.
@@ -30,7 +50,12 @@ export type SignupInput = z.infer<typeof signupSchema>;
 export const resetRequestSchema = z.object({ email: emailSchema });
 
 export const newPasswordSchema = z
-  .object({ password: passwordSchema, confirm: passwordSchema })
+  .object({
+    // Reset-confirm uses the stricter signup floor — there's no legacy
+    // compat reason to allow a sub-12 password on a fresh credential.
+    password: signupPasswordSchema,
+    confirm: signupPasswordSchema,
+  })
   .refine((v) => v.password === v.confirm, { message: "Passwords do not match", path: ["confirm"] });
 
 export const tradeVisibility = z.enum(["private", "public", "exclude", "followers_only"]);

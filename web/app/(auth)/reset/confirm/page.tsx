@@ -20,13 +20,16 @@ export default function ResetConfirmPage() {
 
         <label className="block text-sm">
           <span className="mb-1 block text-muted">New password</span>
-          <input name="password" type="password" required minLength={6}
+          <input name="password" type="password" required minLength={12}
             className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2" />
+          <span className="mt-1 block text-xs text-muted">
+            At least 12 characters.
+          </span>
         </label>
 
         <label className="block text-sm">
           <span className="mb-1 block text-muted">Confirm password</span>
-          <input name="confirm" type="password" required minLength={6}
+          <input name="confirm" type="password" required minLength={12}
             className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2" />
         </label>
 

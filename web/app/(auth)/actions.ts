@@ -19,6 +19,7 @@ function trustedAppOrigin(): string {
   return raw.replace(/\/$/, "");
 }
 import { loginSchema, signupSchema, resetRequestSchema, newPasswordSchema } from "@/lib/schemas";
+import { callerIp, verifyTurnstile } from "@/lib/abuse";
 
 export type ActionState = { error?: string; ok?: string };
 
@@ -32,10 +33,15 @@ export async function loginAction(_: ActionState, formData: FormData): Promise<A
   const sb = await supabaseServer();
   const { error } = await sb.auth.signInWithPassword(parsed.data);
   if (error) {
-    const msg = error.message.toLowerCase();
-    if (msg.includes("invalid")) return { error: "Wrong email or password." };
-    if (msg.includes("not confirmed")) return { error: "Verify your email first — check your inbox." };
-    return { error: "Login failed. Try again." };
+    // Audit H-10: previous code disambiguated "invalid" (unknown email or
+    // wrong password) from "not confirmed" (email exists but unverified).
+    // That gave any caller a free yes/no oracle for whether an email is
+    // registered — direct account enumeration via the public login form.
+    // Both branches now return the same generic message; the "check your
+    // inbox" hint is only surfaced on the signup-success path, where the
+    // user has just submitted the email themselves.
+    console.error("loginAction signIn failed:", { code: error.code, message: error.message });
+    return { error: "Wrong email or password." };
   }
   redirect("/dashboard");
 }
@@ -46,11 +52,25 @@ export async function signupAction(_: ActionState, formData: FormData): Promise<
     password: formData.get("password"),
     name: formData.get("name"),
     website: formData.get("website"), // honeypot
+    turnstile_token: formData.get("turnstile_token"),
     referred_by: formData.get("referred_by"),
   });
-  if (!parsed.success) return { error: "Check your inputs and try again." };
+  if (!parsed.success) {
+    // Surface the first zod issue (e.g. "Use at least 12 characters" for
+    // the new L-1 password floor). None of the schema messages leak
+    // account-existence info, so this is safe to show. Falls back to the
+    // generic string for anything we don't have a tailored message for.
+    const first = parsed.error.issues[0]?.message ?? "Check your inputs and try again.";
+    return { error: first };
+  }
   // Honeypot tripped → silently succeed (don't tell bots).
   if (parsed.data.website && parsed.data.website.length > 0) return { error: "Bot detected" };
+
+  // Audit L-2: Turnstile bot check. Fails OPEN in local dev (no secret),
+  // fails CLOSED in production (verifyTurnstile checks NODE_ENV).
+  const ip = await callerIp();
+  const human = await verifyTurnstile(parsed.data.turnstile_token, ip);
+  if (!human) return { error: "Couldn't verify you're human. Please try again." };
 
   const sb = await supabaseServer();
   // referred_by goes into raw_user_meta_data; the handle_new_user trigger

@@ -2,7 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/require-user";
+import { callerIp, checkAndLog } from "@/lib/abuse";
 import {
   onboardingDisplayNameSchema,
   onboardingUsernameSchema,
@@ -31,8 +33,33 @@ export async function checkUsernameAvailableAction(
   if (!parsed.success) {
     return { available: false, error: parsed.error.issues[0]?.message ?? "Invalid username" };
   }
-  const sb = await supabaseServer();
+
+  // Audit H-11: this action deterministically returns { available: false }
+  // for taken usernames and previously had no rate-limit gate. Any
+  // authenticated session could script it as a wordlist enumerator,
+  // pivoting hits to /@<username> for profile harvesting. Cap at 30
+  // checks per IP per hour — well above a legitimate onboarding flow's
+  // 2–5 blur-checks, low enough to neuter scripted enumeration. Email
+  // is omitted so repeat checks from the same user during onboarding
+  // don't fire the duplicate-suppression branch.
   const user = await requireUser();
+  const ip = await callerIp();
+  const admin = supabaseAdmin();
+  const gate = await checkAndLog(admin, {
+    scope: "username_check",
+    ip,
+    email: null,
+    ipLimit: 30,
+    ipWindowSec: 3600,
+  });
+  if (!gate.ok) {
+    // Generic message: don't hint whether the cap was hit or abuse_log
+    // is misconfigured. Either way the user should slow down or contact
+    // support.
+    return { available: false, error: "Please slow down and try again in a few minutes." };
+  }
+
+  const sb = await supabaseServer();
   const { data, error } = await sb
     .from("profiles")
     .select("id")
