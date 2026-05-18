@@ -1,26 +1,65 @@
 import { createHash } from "node:crypto";
 import { createServer as createHttpServer } from "node:http";
+import { pathToFileURL } from "node:url";
 import { WebSocketServer, WebSocket } from "ws";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import "dotenv/config";
-import type { TradePayload } from "./types.js";
 import { parseTokenIds } from "./statusQuery.js";
 
-export type { TradePayload };
+// ── WebSocket trade-ingest decommissioned ────────────────────────────────────
+//
+// This server used to accept `{type:"trade"}` frames from authenticated
+// clients and upsert them directly into `trades`. That path was a parallel
+// trade-ingest transport with NONE of the v2 protections that
+// `/api/ea/ingest` has: signing-secret separation, HMAC, freshness window,
+// nonce replay protection, zod bounds, broker-account scoping, or score
+// recalculation.
+//
+// Decision: docs/claude-websocket-protocol-decision.md (Option A, codex-
+// approved in docs/codex-ws-decision-approval.md). Closes audit findings
+// C-2 + C-3 from docs/security-audit-2026-05-17.md. The official EA
+// already POSTs trades to `/api/ea/ingest` over HTTP (verified in
+// `mql5/BigMarkt_EA.mq5` — `ApiEndpoint` input + `WebRequest` call). No
+// production user of the WS ingest path exists.
+//
+// Removed: handleTrade(), deriveDirection(), deriveResult(), TradePayload
+// type. WS ingest now responds with a `trade_ingest_disabled` error that
+// points clients at the HTTP endpoint.
+//
+// What stayed: auth handshake, ping/pong presence, ea_connection_log,
+// /status (token_ids allow-list), /healthz. The WS server is now a
+// presence/status surface only.
+//
+// If a future copy-execution feature (Session 13+) requires WS-based
+// transport again, reintroduce it with the full v2 envelope from day 1
+// — do NOT restore the bearer-only path.
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // Railway injects PORT. WS_PORT is the local-dev fallback.
 const PORT = Number(process.env.PORT ?? process.env.WS_PORT ?? 8080);
+const isMainModule = process.argv[1]
+  ? pathToFileURL(process.argv[1]).href === import.meta.url
+  : false;
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+if (isMainModule && (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY)) {
   console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars");
   process.exit(1);
 }
 
-const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const supabase: SupabaseClient | null =
+  SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      })
+    : null;
+
+function requireSupabase(): SupabaseClient {
+  if (!supabase) {
+    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env vars");
+  }
+  return supabase;
+}
 
 interface AuthedSocket extends WebSocket {
   userId?: string;
@@ -36,27 +75,9 @@ function hashToken(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
 }
 
-function deriveDirection(type: string): string {
-  const t = type.toLowerCase();
-  if (t.includes("buy")) return "long";
-  if (t.includes("sell")) return "short";
-  return t;
-}
-
-function deriveResult(
-  pnl: number | null | undefined,
-  closePrice: number | null | undefined,
-  closeTime: string | null | undefined
-): "win" | "loss" | "breakeven" | "open" {
-  if (closePrice === null || closePrice === undefined) return "open";
-  if (closeTime === null || closeTime === undefined || closeTime === "") return "open";
-  if (pnl === undefined || pnl === null || pnl === 0) return "breakeven";
-  return pnl > 0 ? "win" : "loss";
-}
-
 async function authenticate(rawToken: string): Promise<{ userId: string; tokenId: string } | null> {
   const hash = hashToken(rawToken);
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from("ea_tokens")
     .select("id, user_id, revoked_at")
     .eq("token_hash", hash)
@@ -67,70 +88,49 @@ async function authenticate(rawToken: string): Promise<{ userId: string; tokenId
   return { userId: data.user_id as string, tokenId: data.id as string };
 }
 
-async function handleTrade(socket: AuthedSocket, payload: TradePayload): Promise<void> {
-  if (!socket.userId) return;
+// ── Message handler ─────────────────────────────────────────────────────────
+//
+// Exported as a pure function so the regression test can verify behaviour
+// without spinning up a real server or talking to Supabase. The handler
+// itself doesn't perform any DB writes — the only side-effect channel is
+// `socket.send`, which proves no trade row can be written through the WS
+// `trade` message path.
 
-  const pnl = payload.profit ?? null;
+export type SocketLike = {
+  send: (msg: string) => void;
+  lastPing?: number;
+};
 
-  let accountType: string | null = null;
-  if (socket.tokenId) {
-    const { data: tokenData } = await supabase
-      .from("ea_tokens")
-      .select("broker_account_id")
-      .eq("id", socket.tokenId)
-      .maybeSingle();
-    const brokerAccountId = (tokenData?.broker_account_id as string | null) ?? null;
-    if (brokerAccountId) {
-      const { data: account } = await supabase
-        .from("broker_accounts")
-        .select("account_type")
-        .eq("id", brokerAccountId)
-        .maybeSingle();
-      accountType = (account?.account_type as string | null) ?? null;
-    }
-  }
-  const trustBadge = accountType === "demo" ? "demo" : "auto_verified";
-
-  const tradeRow = {
-    user_id: socket.userId,
-    ticket: payload.ticket,
-    pair: payload.symbol,
-    direction: deriveDirection(payload.type),
-    lot_size: payload.lots,
-    entry_price: payload.open_price,
-    exit_price: payload.close_price ?? null,
-    open_time: payload.open_time,
-    close_time: payload.close_time ?? null,
-    pnl,
-    swap: payload.swap ?? null,
-    commission: payload.commission ?? null,
-    magic: payload.magic ?? null,
-    comment: payload.comment ?? null,
-    result: deriveResult(pnl, payload.close_price, payload.close_time),
-    capture_source: "ea",
-    trust_badge: trustBadge,
-    core_fields_locked: true,
-    auto_approved: true,
-  };
-
-  const { error } = await supabase
-    .from("trades")
-    .upsert(tradeRow, { onConflict: "user_id,ticket" });
-
-  if (error) {
-    console.error("WS trade upsert error:", error);
-    socket.send(
-      JSON.stringify({
-        type: "trade_ack",
-        ticket: payload.ticket,
-        status: "error",
-        message: error.message,
-      })
-    );
+export function handleClientMessage(socket: SocketLike, raw: string): void {
+  let msg: { type?: string; payload?: unknown };
+  try {
+    msg = JSON.parse(raw);
+  } catch {
+    socket.send(JSON.stringify({ type: "error", message: "invalid JSON" }));
     return;
   }
 
-  socket.send(JSON.stringify({ type: "trade_ack", ticket: payload.ticket, status: "ok" }));
+  switch (msg.type) {
+    case "ping":
+      socket.lastPing = Date.now();
+      socket.send(JSON.stringify({ type: "pong", ts: Date.now() }));
+      return;
+    case "trade":
+      // Audit C-2 + C-3. Trade ingest is HTTP-only — every accepted
+      // payload must go through the v2 envelope at /api/ea/ingest.
+      socket.send(
+        JSON.stringify({
+          type: "error",
+          code: "trade_ingest_disabled",
+          message:
+            "Trade ingest moved to HTTP. POST to /api/ea/ingest with the v2 envelope. " +
+            "See https://journal.bigmarkt.co/ea-setup for setup instructions.",
+        }),
+      );
+      return;
+    default:
+      socket.send(JSON.stringify({ type: "error", message: "unknown message type" }));
+  }
 }
 
 // ── Single HTTP server: handles /status + /healthz, and WS upgrades ─────────
@@ -239,14 +239,16 @@ wss.on("connection", async (socket: AuthedSocket, req) => {
   socket.lastPing = Date.now();
   authedSockets.add(socket);
 
-  await supabase
+  const db = requireSupabase();
+
+  await db
     .from("ea_tokens")
     .update({ last_used_at: new Date().toISOString() })
     .eq("id", auth.tokenId);
 
   try {
     const ip = req.socket.remoteAddress ?? null;
-    await supabase.from("ea_connection_log").insert({
+    await db.from("ea_connection_log").insert({
       user_id: auth.userId,
       token_id: auth.tokenId,
       event: "connected",
@@ -258,37 +260,15 @@ wss.on("connection", async (socket: AuthedSocket, req) => {
 
   console.log(`WS connected: user=${auth.userId} token=${auth.tokenId}`);
 
-  socket.on("message", async (raw) => {
-    let msg: { type?: string; payload?: TradePayload };
-    try {
-      msg = JSON.parse(raw.toString());
-    } catch {
-      socket.send(JSON.stringify({ type: "error", message: "invalid JSON" }));
-      return;
-    }
-
-    switch (msg.type) {
-      case "ping":
-        socket.lastPing = Date.now();
-        socket.send(JSON.stringify({ type: "pong", ts: Date.now() }));
-        return;
-      case "trade":
-        if (!msg.payload) {
-          socket.send(JSON.stringify({ type: "error", message: "missing payload" }));
-          return;
-        }
-        await handleTrade(socket, msg.payload);
-        return;
-      default:
-        socket.send(JSON.stringify({ type: "error", message: "unknown message type" }));
-    }
+  socket.on("message", (raw) => {
+    handleClientMessage(socket, raw.toString());
   });
 
   socket.on("close", () => {
     authedSockets.delete(socket);
     console.log(`WS disconnected: user=${socket.userId ?? "unknown"}`);
     if (socket.userId && socket.tokenId) {
-      void supabase
+      void db
         .from("ea_connection_log")
         .insert({
           user_id: socket.userId,
@@ -307,6 +287,8 @@ wss.on("connection", async (socket: AuthedSocket, req) => {
   });
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`BigMarkt WebSocket + status server listening on :${PORT}`);
-});
+if (isMainModule) {
+  httpServer.listen(PORT, () => {
+    console.log(`BigMarkt WebSocket + status server listening on :${PORT}`);
+  });
+}

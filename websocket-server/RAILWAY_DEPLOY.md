@@ -2,10 +2,17 @@
 
 ## What this service does
 
-Receives live trade data from the MT5 EA over WebSocket, authenticates via
-SHA256-hashed bearer token (looked up in Supabase), and upserts trades into
-the database. Also exposes an HTTP `/status` endpoint consumed by the web
-app's EA Setup page to show connection health.
+**Presence / status surface for the MT5 EA.** Authenticates connections via
+SHA256-hashed bearer token (looked up in Supabase), tracks live EA
+connections, and surfaces them through a server-to-server `/status`
+endpoint that the journal's EA Setup page polls.
+
+Trade ingest is **HTTP-only**. The MT5 EA POSTs every trade to
+`https://journal.bigmarkt.co/api/ea/ingest` using the v2 envelope
+(HMAC-signed, replay-protected). The WebSocket server does NOT accept
+trade events; it returns a `trade_ingest_disabled` error pointing clients
+at the HTTP endpoint. See `docs/claude-websocket-protocol-decision.md`
+(codex-approved Option A) for the rationale.
 
 Both WebSocket upgrades and HTTP requests share **one port** (Railway's
 `PORT` env var), so no special networking config is needed.
