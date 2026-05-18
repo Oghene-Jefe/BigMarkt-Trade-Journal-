@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
-import { isAdmin } from "@/lib/admin";
+import { isAdmin, requireAdminForAction } from "@/lib/admin";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
@@ -14,7 +14,9 @@ const idSchema = z.object({ id: z.string().uuid() });
 export async function adminPurgeUserDataAction(fd: FormData) {
   // Server-side admin check before doing any work. The RPC re-checks at
   // the database level, but failing fast here saves the storage round-trip.
-  if (!(await isAdmin())) return;
+  // Audit M-12: throw instead of silent void return so the form sees
+  // the failure instead of a successful-looking response.
+  await requireAdminForAction();
 
   const parsed = idSchema.safeParse({ id: fd.get("id") });
   if (!parsed.success) return;
@@ -50,7 +52,9 @@ export async function adminPurgeUserDataAction(fd: FormData) {
 const userIdSchema = z.object({ id: z.string().uuid() });
 
 export async function banUserAction(fd: FormData) {
-  if (!(await isAdmin())) return;
+  // Audit M-12: throw instead of silent void return so the form sees
+  // the failure instead of a successful-looking response.
+  await requireAdminForAction();
   const parsed = userIdSchema.safeParse({ id: fd.get("id") });
   if (!parsed.success) return;
   const reason = String(fd.get("reason") ?? "").slice(0, 500) || null;
@@ -67,7 +71,9 @@ export async function banUserAction(fd: FormData) {
 }
 
 export async function unbanUserAction(fd: FormData) {
-  if (!(await isAdmin())) return;
+  // Audit M-12: throw instead of silent void return so the form sees
+  // the failure instead of a successful-looking response.
+  await requireAdminForAction();
   const parsed = userIdSchema.safeParse({ id: fd.get("id") });
   if (!parsed.success) return;
   const sb = await supabaseServer();
@@ -82,7 +88,9 @@ export async function unbanUserAction(fd: FormData) {
 // Trade oversight
 // ---------------------------------------------------------------------------
 export async function adminDeleteTradeAction(fd: FormData) {
-  if (!(await isAdmin())) return;
+  // Audit M-12: throw instead of silent void return so the form sees
+  // the failure instead of a successful-looking response.
+  await requireAdminForAction();
   const parsed = userIdSchema.safeParse({ id: fd.get("id") });
   if (!parsed.success) return;
   const sb = await supabaseServer();
@@ -109,7 +117,9 @@ const overrideSchema = z.object({
 });
 
 export async function setLeaderboardOverrideAction(fd: FormData) {
-  if (!(await isAdmin())) return;
+  // Audit M-12: throw instead of silent void return so the form sees
+  // the failure instead of a successful-looking response.
+  await requireAdminForAction();
   const parsed = overrideSchema.safeParse({
     user_id: fd.get("user_id"),
     score_override: fd.get("score_override") || null,
@@ -134,7 +144,9 @@ export async function setLeaderboardOverrideAction(fd: FormData) {
 }
 
 export async function banFromLeaderboardAction(fd: FormData) {
-  if (!(await isAdmin())) return;
+  // Audit M-12: throw instead of silent void return so the form sees
+  // the failure instead of a successful-looking response.
+  await requireAdminForAction();
   const parsed = z
     .object({ user_id: z.string().uuid(), reason: z.string().max(500).optional() })
     .safeParse({ user_id: fd.get("user_id"), reason: fd.get("reason") || undefined });
@@ -157,7 +169,9 @@ export async function banFromLeaderboardAction(fd: FormData) {
 }
 
 export async function clearLeaderboardOverrideAction(fd: FormData) {
-  if (!(await isAdmin())) return;
+  // Audit M-12: throw instead of silent void return so the form sees
+  // the failure instead of a successful-looking response.
+  await requireAdminForAction();
   const parsed = z
     .object({ user_id: z.string().uuid() })
     .safeParse({ user_id: fd.get("user_id") });
@@ -191,7 +205,9 @@ function readBrokerForm(fd: FormData) {
 }
 
 export async function createBrokerAction(fd: FormData) {
-  if (!(await isAdmin())) return;
+  // Audit M-12: throw instead of silent void return so the form sees
+  // the failure instead of a successful-looking response.
+  await requireAdminForAction();
   const parsed = readBrokerForm(fd);
   if (!parsed.success) return;
   const sb = await supabaseServer();
@@ -207,7 +223,9 @@ export async function createBrokerAction(fd: FormData) {
 }
 
 export async function updateBrokerAction(fd: FormData) {
-  if (!(await isAdmin())) return;
+  // Audit M-12: throw instead of silent void return so the form sees
+  // the failure instead of a successful-looking response.
+  await requireAdminForAction();
   const idParsed = userIdSchema.safeParse({ id: fd.get("id") });
   if (!idParsed.success) return;
   const parsed = readBrokerForm(fd);
@@ -229,7 +247,9 @@ export async function updateBrokerAction(fd: FormData) {
 }
 
 export async function deleteBrokerAction(fd: FormData) {
-  if (!(await isAdmin())) return;
+  // Audit M-12: throw instead of silent void return so the form sees
+  // the failure instead of a successful-looking response.
+  await requireAdminForAction();
   const parsed = userIdSchema.safeParse({ id: fd.get("id") });
   if (!parsed.success) return;
   const sb = await supabaseServer();
@@ -238,7 +258,9 @@ export async function deleteBrokerAction(fd: FormData) {
 }
 
 export async function toggleBrokerActiveAction(fd: FormData) {
-  if (!(await isAdmin())) return;
+  // Audit M-12: throw instead of silent void return so the form sees
+  // the failure instead of a successful-looking response.
+  await requireAdminForAction();
   const parsed = userIdSchema.safeParse({ id: fd.get("id") });
   if (!parsed.success) return;
   const sb = await supabaseServer();
@@ -255,7 +277,9 @@ export async function toggleBrokerActiveAction(fd: FormData) {
 }
 
 export async function toggleBrokerRecommendedAction(fd: FormData) {
-  if (!(await isAdmin())) return;
+  // Audit M-12: throw instead of silent void return so the form sees
+  // the failure instead of a successful-looking response.
+  await requireAdminForAction();
   const parsed = userIdSchema.safeParse({ id: fd.get("id") });
   if (!parsed.success) return;
   const sb = await supabaseServer();
@@ -337,7 +361,9 @@ const resolveDisputeSchema = z.object({
 });
 
 export async function resolveDisputeAction(fd: FormData) {
-  if (!(await isAdmin())) return;
+  // Audit M-12: throw instead of silent void return so the form sees
+  // the failure instead of a successful-looking response.
+  await requireAdminForAction();
   const parsed = resolveDisputeSchema.safeParse({
     id: fd.get("id"),
     resolution: fd.get("resolution"),

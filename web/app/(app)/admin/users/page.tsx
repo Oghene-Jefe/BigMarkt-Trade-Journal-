@@ -61,10 +61,21 @@ export default async function AdminUsersPage({
   if (filter === "banned") q = q.eq("is_banned", true);
   if (filter === "verified") q = q.not("username", "is", null);
   if (search) {
-    const term = search.replace(/[%_]/g, "");
-    q = q.or(
-      `email.ilike.%${term}%,username.ilike.%${term}%,display_name.ilike.%${term}%`,
-    );
+    // Audit H-17: previously the `term` only stripped `%` and `_` (LIKE
+    // wildcards) but left commas, parens, and dots intact. Those are
+    // PostgREST filter syntax — a comma in the search box (e.g. via a
+    // crafted phishing link aimed at an admin: `?search=foo,is_banned.eq.false`)
+    // injects an extra filter clause into the .or() string.
+    //
+    // Strip every PostgREST syntax character. Also bail out if the
+    // remaining term is empty — an all-stripped input shouldn't run an
+    // unconditional wildcard search.
+    const term = search.replace(/[%_,().*"\\]/g, "").trim();
+    if (term) {
+      q = q.or(
+        `email.ilike.%${term}%,username.ilike.%${term}%,display_name.ilike.%${term}%`,
+      );
+    }
   }
 
   const from = (pageNum - 1) * PAGE_SIZE;

@@ -132,7 +132,19 @@ export async function setNewPasswordAction(_: ActionState, formData: FormData): 
 
   const sb = await supabaseServer();
   const { error } = await sb.auth.updateUser({ password: parsed.data.password });
-  if (error) return { error: error.message };
+  if (error) {
+    // Audit M-6: previously this returned `error.message` verbatim, which
+    // leaked Supabase auth-policy specifics ("New password should be
+    // different from the old password", "Password should contain at
+    // least one digit", etc.) and could confirm account existence by
+    // surfacing different error shapes for different account states.
+    // Log server-side; show a single generic message to the user.
+    console.error("setNewPasswordAction updateUser failed:", {
+      code: error.code,
+      message: error.message,
+    });
+    return { error: "Couldn't update password. Try the reset link again or contact support." };
+  }
   await sb.auth.signOut();
   redirect("/login?reset=1");
 }
