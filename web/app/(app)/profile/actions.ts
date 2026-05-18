@@ -6,6 +6,7 @@ import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { profileVisibility, journalMode, usernameSchema } from "@/lib/schemas";
 import { extForSniffedType, sniffImageType } from "@/lib/upload/imageSniff";
+import { safeDbError } from "@/lib/db-error";
 
 export type ProfileActionState = { error?: string; ok?: string };
 
@@ -49,7 +50,8 @@ export async function updateProfileAction(_: ProfileActionState, fd: FormData): 
     email: user.email,
     ...parsed.data,
   });
-  if (error) return { error: error.message };
+  // Audit M-5: generic message; full error logged server-side.
+  if (error) return { error: safeDbError(error, "Couldn't save your profile. Try again.", "profile_update") };
 
   // Handle optional avatar upload as part of the same form submit.
   const file = fd.get("avatar") as File | null;

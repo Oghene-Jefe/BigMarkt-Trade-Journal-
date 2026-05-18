@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { isAdmin, requireAdminForAction } from "@/lib/admin";
+import { safeDbError } from "@/lib/db-error";
 
 const idSchema = z.object({ id: z.string().uuid() });
 
@@ -24,7 +26,10 @@ export async function adminPurgeUserDataAction(fd: FormData) {
 
   const sb = await supabaseServer();
 
-  // Collect storage paths before the rows disappear.
+  // Collect storage paths before the rows disappear. Path lookups go
+  // through the admin's session client, which has cross-user SELECT
+  // on both `trades` (via trades_admin_select, migration 0044) and
+  // `profiles` (via profiles_admin_select, migration 0036).
   const [{ data: trades }, { data: profile }] = await Promise.all([
     sb.from("trades").select("chart_path").eq("user_id", id),
     sb.from("profiles").select("avatar_path").eq("id", id).maybeSingle(),
@@ -33,11 +38,29 @@ export async function adminPurgeUserDataAction(fd: FormData) {
   const chartPaths = (trades ?? [])
     .map((t: { chart_path: string | null }) => t.chart_path)
     .filter((p): p is string => !!p);
+
+  // Audit M-13: storage cleanup used to go through the admin's session
+  // client (`sb.storage...`). Storage RLS on the avatars + trade-charts
+  // buckets is scoped per-uid path prefix, so the admin's call to remove
+  // ANOTHER user's objects silently matched zero rows — orphaned chart
+  // screenshots and avatars accumulated indefinitely after every purge.
+  // This is a GDPR / CCPA "right to be forgotten" gap, plus a storage
+  // cost-creep gap.
+  //
+  // Fix: use the service-role client for THIS specific cross-user
+  // cleanup path. Storage RLS doesn't apply to service-role
+  // operations, so the remove() call actually removes the objects.
+  // Path inputs are bounded to whatever's stored in the user's own
+  // chart_path / avatar_path columns — no caller-supplied path
+  // injection risk.
+  const sbAdmin = supabaseAdmin();
   if (chartPaths.length > 0) {
-    await sb.storage.from("trade-charts").remove(chartPaths);
+    const { error } = await sbAdmin.storage.from("trade-charts").remove(chartPaths);
+    if (error) console.error("admin_purge_user_data: chart cleanup failed", error);
   }
   if (profile?.avatar_path) {
-    await sb.storage.from("avatars").remove([profile.avatar_path]);
+    const { error } = await sbAdmin.storage.from("avatars").remove([profile.avatar_path]);
+    if (error) console.error("admin_purge_user_data: avatar cleanup failed", error);
   }
 
   // Then purge the DB rows in one shot via the RPC.
@@ -298,10 +321,25 @@ export async function toggleBrokerRecommendedAction(fd: FormData) {
 // ---------------------------------------------------------------------------
 // Broadcast announcement
 // ---------------------------------------------------------------------------
+// Audit M-9: action_url is stored verbatim and renders into the
+// notification UI's <a href>. Previously the schema only bounded the
+// length — `javascript:fetch(...)` or `data:text/html,...` would have
+// parsed fine and turned admin broadcasts into a one-click XSS vector
+// against every user. Require https:// explicitly; empty string is
+// still allowed (no link → no <a> renders).
 const broadcastSchema = z.object({
   title: z.string().trim().min(1).max(100),
   body: z.string().trim().min(1).max(500),
-  action_url: z.string().trim().max(500).optional().or(z.literal("")),
+  action_url: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (v) => !v || /^https:\/\//i.test(v),
+      { message: "Link must start with https://" },
+    ),
   target_user_id: z.string().uuid().optional().or(z.literal("")),
 });
 
@@ -328,7 +366,7 @@ export async function broadcastNotificationAction(
       link: parsed.data.action_url || null,
       read: false,
     });
-    if (error) return { ok: false, message: error.message };
+    if (error) return { ok: false, message: safeDbError(error, "Couldn't send notification.", "admin_broadcast_target") };
     return { ok: true, message: "Sent to user." };
   }
 
@@ -347,7 +385,7 @@ export async function broadcastNotificationAction(
   }));
   if (rows.length === 0) return { ok: true, message: "No users to notify." };
   const { error } = await sb.from("notifications").insert(rows);
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: safeDbError(error, "Couldn't broadcast notification.", "admin_broadcast_fanout") };
   return { ok: true, message: `Broadcast sent to ${rows.length} users.` };
 }
 

@@ -427,11 +427,15 @@ export async function POST(req: NextRequest) {
     : await supabase.from("trades").insert(tradeRow);
 
   if (saveResult.error) {
+    // Audit M-7: previously logged details + hint, which on Postgres
+    // unique-constraint violations echoed the conflicting row values
+    // (ticket numbers, PnL). Those fields helped ops triage but become
+    // a log-exfil risk once Vercel logs are piped to an aggregator.
+    // Keep code + message — both stable and non-sensitive — and drop
+    // the rest.
     console.error("EA ingest save error:", {
-      message: saveResult.error.message,
       code: saveResult.error.code,
-      details: saveResult.error.details,
-      hint: saveResult.error.hint,
+      message: saveResult.error.message,
     });
     return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
   }

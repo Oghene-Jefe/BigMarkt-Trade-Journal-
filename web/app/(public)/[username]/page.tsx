@@ -97,17 +97,12 @@ export default async function UsernameProfilePage({
           />
         </div>
 
-        <div className="mt-6 grid grid-cols-3 gap-3">
+        <div className="mt-6 grid grid-cols-2 gap-3">
           <Stat label="Trades" value={String(profile.trade_count ?? 0)} />
           <Stat
             label="Win Rate"
             value={`${Math.round(profile.win_rate ?? 0)}%`}
             tone={(profile.win_rate ?? 0) >= 50 ? "win" : "loss"}
-          />
-          <Stat
-            label="Net P&L"
-            value={fmtMoney(profile.total_pnl)}
-            tone={(profile.total_pnl ?? 0) >= 0 ? "win" : "loss"}
           />
         </div>
       </section>

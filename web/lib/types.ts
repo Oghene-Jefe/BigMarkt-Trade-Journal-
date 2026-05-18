@@ -55,7 +55,6 @@ export type PublicProfile = {
   visibility: "community" | "public";
   trade_count: number;
   win_rate: number;
-  total_pnl: number;
   growth_pct: number | null;
 };
 
@@ -68,7 +67,6 @@ export type PublicProfileFull = {
   username: string | null;
   trade_count: number;
   win_rate: number;
-  total_pnl: number;
   growth_pct: number | null;
 };
 
@@ -80,8 +78,6 @@ export type PublicTrade = {
   pnl: number | null;
   rr_ratio: number | null;
   setup_grade: string | null;
-  tags: string | null;
-  notes: string | null;
   chart_path: string | null;
   trust_badge: TrustBadge;
   capture_source: CaptureSource;

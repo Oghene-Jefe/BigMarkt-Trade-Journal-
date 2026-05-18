@@ -95,14 +95,9 @@ export default async function PublicProfilePage({
           />
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Stat label="Trades" value={String(profile.trade_count ?? 0)} />
           <Stat label="Win Rate" value={`${Math.round(profile.win_rate ?? 0)}%`} />
-          <Stat
-            label="Net P&L"
-            value={fmtMoney(profile.total_pnl)}
-            tone={(profile.total_pnl ?? 0) >= 0 ? "win" : "loss"}
-          />
           <Stat
             label="Growth"
             value={fmtPct(profile.growth_pct)}

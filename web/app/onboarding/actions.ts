@@ -5,6 +5,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { requireUser } from "@/lib/auth/require-user";
 import { callerIp, checkAndLog } from "@/lib/abuse";
+import { safeDbError } from "@/lib/db-error";
 import {
   onboardingDisplayNameSchema,
   onboardingUsernameSchema,
@@ -95,7 +96,8 @@ export async function saveStep1Action(
     .from("profiles")
     .update({ display_name: dn.data, username: un.data })
     .eq("id", user.id);
-  if (error) return { error: error.message };
+  // Audit M-5: generic fallback instead of error.message echo.
+  if (error) return { error: safeDbError(error, "Couldn't save your identity. Try again.", "onboarding_step1") };
 
   return { ok: true };
 }
@@ -112,7 +114,7 @@ export async function saveStep2Action(
     .from("profiles")
     .update({ journal_mode: parsed.data })
     .eq("id", user.id);
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't save your journal mode.", "onboarding_step2") };
   return { ok: true };
 }
 
@@ -128,7 +130,7 @@ export async function saveStep3Action(
     .from("profiles")
     .update({ visibility: parsed.data })
     .eq("id", user.id);
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't save your visibility setting.", "onboarding_step3") };
   return { ok: true };
 }
 
