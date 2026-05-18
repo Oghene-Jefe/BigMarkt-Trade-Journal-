@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth/require-user";
 import { supabaseServer } from "@/lib/supabase/server";
 import { brokerAccountSchema } from "@/lib/schemas";
+import { safeDbError } from "@/lib/db-error";
 
 function formToObject(formData: FormData): Record<string, string> {
   const obj: Record<string, string> = {};
@@ -47,7 +48,7 @@ export async function createBrokerAccountAction(
     readonly_password: parsed.data.readonly_password || null,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't create broker account.", "broker_account_insert") };
   revalidatePath("/accounts");
 }
 
@@ -84,7 +85,7 @@ export async function updateBrokerAccountAction(
     .eq("id", parsed.data.id)
     .eq("user_id", user.id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't update broker account.", "broker_account_update") };
   revalidatePath("/accounts");
 }
 
@@ -106,7 +107,7 @@ export async function deleteBrokerAccountAction(
     .eq("id", parsed.data.id)
     .eq("user_id", user.id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't delete broker account.", "broker_account_delete") };
   revalidatePath("/accounts");
 }
 
@@ -131,6 +132,6 @@ export async function toggleAccountActiveAction(
     .eq("id", parsed.data.id)
     .eq("user_id", user.id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't toggle account status.", "broker_account_toggle") };
   revalidatePath("/accounts");
 }

@@ -2,6 +2,7 @@
 
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
+import { safeDbError } from "@/lib/db-error";
 import type { Notification } from "@/lib/types";
 
 export async function getMyNotificationsAction(): Promise<
@@ -17,7 +18,7 @@ export async function getMyNotificationsAction(): Promise<
     .order("created_at", { ascending: false })
     .limit(50);
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't load notifications.", "notifications_list") };
   return (data ?? []) as Notification[];
 }
 
@@ -31,7 +32,7 @@ export async function markNotificationReadAction(notificationId: string) {
     .eq("id", notificationId)
     .eq("user_id", user.id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't mark as read.", "notifications_mark_read") };
   return { success: true as const };
 }
 
@@ -45,7 +46,7 @@ export async function markAllNotificationsReadAction() {
     .eq("user_id", user.id)
     .eq("read", false);
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't mark all as read.", "notifications_mark_all_read") };
   return { success: true as const };
 }
 
@@ -59,6 +60,6 @@ export async function getUnreadNotificationCountAction() {
     .eq("user_id", user.id)
     .eq("read", false);
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't load unread count.", "notifications_unread_count") };
   return { count: count ?? 0 };
 }

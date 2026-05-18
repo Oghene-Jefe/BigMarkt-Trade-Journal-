@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { challengeSchema, challengeStatus } from "@/lib/schemas";
+import { safeDbError } from "@/lib/db-error";
 
 export type ChallengeActionState = { error?: string; ok?: string };
 
@@ -35,7 +36,7 @@ export async function createChallengeAction(_: ChallengeActionState, fd: FormDat
     end_date: parsed.data.end_date,
     status: "active",
   });
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't create challenge.", "challenge_insert") };
 
   revalidatePath("/challenges");
   return { ok: "Challenge created." };

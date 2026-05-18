@@ -7,6 +7,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { tradeSchema, tradeVisibility } from "@/lib/schemas";
 import { updateChallengeStreak } from "@/lib/challengeStreak";
 import { extForSniffedType, sniffImageType } from "@/lib/upload/imageSniff";
+import { safeDbError } from "@/lib/db-error";
 
 export type TradeActionState = { error?: string; ok?: string; fieldErrors?: Record<string, string> };
 
@@ -82,7 +83,7 @@ async function uploadChartIfPresent(
   const { error } = await sb.storage
     .from("trade-charts")
     .upload(path, file, { contentType: sniffed, upsert: false });
-  if (error) return { error: `Chart upload failed: ${error.message}` };
+  if (error) return { error: safeDbError(error, "Chart upload failed. Try again.", "chart_upload") };
   return { path };
 }
 
@@ -103,7 +104,7 @@ export async function createTradeAction(_: TradeActionState, fd: FormData): Prom
 
   const insertRow = { ...parsed.data, rr_ratio, user_id: user.id, trade_visibility: parsed.data.visibility };
   const { data: inserted, error } = await sb.from("trades").insert(insertRow).select("id").single();
-  if (error || !inserted) return { error: error?.message ?? "Failed to save trade." };
+  if (error || !inserted) return { error: safeDbError(error, "Failed to save trade.", "trade_insert") };
 
   const file = fd.get("chart") as File | null;
   const upload = await uploadChartIfPresent(sb, user.id, inserted.id, file);
@@ -137,7 +138,7 @@ export async function updateTradeAction(id: string, _: TradeActionState, fd: For
     .eq("id", id)
     .eq("user_id", user.id)
     .maybeSingle();
-  if (existingTradeError) return { error: existingTradeError.message };
+  if (existingTradeError) return { error: safeDbError(existingTradeError, "Couldn't load trade.", "trade_lookup") };
   if (!existingTrade) return { error: "Trade not found." };
 
   const { entry_price, exit_price, stop_loss, direction } = parsed.data;
@@ -190,7 +191,7 @@ export async function updateTradeAction(id: string, _: TradeActionState, fd: For
   }
 
   const { error } = await sb.from("trades").update(updateRow).eq("id", id).eq("user_id", user.id);
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't save trade changes.", "trade_update") };
 
   revalidatePath("/journal");
   revalidatePath("/dashboard");

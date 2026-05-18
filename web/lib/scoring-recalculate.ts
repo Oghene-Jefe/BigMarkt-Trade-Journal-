@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { calculateScore, type ScoringTrade, type ScoreTier } from "@/lib/scoring";
 import { createNotification } from "@/lib/actions/create-notification";
+import { safeDbError } from "@/lib/db-error";
 
 function tierChangeNotification(
   oldTier: ScoreTier,
@@ -82,7 +83,7 @@ export async function recalculateAccountScoreWithClient(
   });
 
   if (tradesErr) {
-    return { error: tradesErr.message };
+    return { error: safeDbError(tradesErr, "Couldn't load trades for scoring.", "score_recalc_trades") };
   }
 
   const trades: ScoringTrade[] = (tradeRows ?? []).map((t) => ({
@@ -121,7 +122,7 @@ export async function recalculateAccountScoreWithClient(
     );
 
   if (upsertErr) {
-    return { error: upsertErr.message };
+    return { error: safeDbError(upsertErr, "Couldn't save score.", "score_recalc_upsert") };
   }
 
   const change = tierChangeNotification(oldTier, result.score_tier);

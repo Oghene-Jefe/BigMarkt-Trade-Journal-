@@ -2,6 +2,7 @@
 
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
+import { safeDbError } from "@/lib/db-error";
 
 const PAGE_SIZE = 20;
 
@@ -61,7 +62,7 @@ export async function getTradesAction(
     .order("created_at", { ascending: false })
     .range(from, to);
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't load trades.", "trades_list") };
 
   let countQuery = sb
     .from("trades")
@@ -78,7 +79,7 @@ export async function getTradesAction(
 
   const { count, error: countError } = await countQuery;
 
-  if (countError) return { error: countError.message };
+  if (countError) return { error: safeDbError(countError, "Couldn't load trade count.", "trades_count") };
 
   return {
     trades: (data ?? []) as unknown as Trade[],

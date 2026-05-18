@@ -83,6 +83,13 @@ export default async function LeaderboardPage({
     p_tier: tab,
     p_limit: 50,
   });
+  // Audit N-H3: previously the page rendered `error.message` directly to
+  // the user, leaking the get_leaderboard_scores RPC's PostgREST error
+  // shape (table names, RLS-policy names). Log server-side; show a
+  // generic message in the UI.
+  if (error) {
+    console.error("[leaderboard_rpc]", { code: error.code, message: error.message });
+  }
   const rows = (data ?? []) as LeaderboardScoreEntry[];
   const paths = rows.map((r) => r.avatar_path).filter((p): p is string => !!p);
   const avatars = await signAvatars(paths);
@@ -113,7 +120,7 @@ export default async function LeaderboardPage({
       <p className="text-xs text-muted">{TAB_DESCRIPTIONS[tab]}</p>
 
       {error ? (
-        <p className="text-sm text-loss">Couldn't load leaderboard: {error.message}</p>
+        <p className="text-sm text-loss">Couldn't load leaderboard right now. Try again shortly.</p>
       ) : null}
 
       {rows.length === 0 ? (

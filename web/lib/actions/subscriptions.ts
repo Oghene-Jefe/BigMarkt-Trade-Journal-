@@ -3,6 +3,7 @@
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
 import { createNotification } from "@/lib/actions/create-notification";
+import { safeDbError } from "@/lib/db-error";
 import type { SubscriptionMode, MinSignalGrade, SubscriptionStatus } from "@/lib/types";
 
 async function followerDisplayName(
@@ -31,7 +32,7 @@ export async function followLeaderAction(
     .eq("id", brokerAccountId)
     .maybeSingle();
 
-  if (accountErr) return { error: accountErr.message };
+  if (accountErr) return { error: safeDbError(accountErr, "Couldn't load broker account.", "follow_account_lookup") };
   if (!account || account.user_id !== user.id) {
     return { error: "Broker account not found" };
   }
@@ -47,7 +48,7 @@ export async function followLeaderAction(
     .eq("status", "active")
     .limit(1);
 
-  if (leaderSubsErr) return { error: leaderSubsErr.message };
+  if (leaderSubsErr) return { error: safeDbError(leaderSubsErr, "Couldn't check leader subscriptions.", "follow_leader_subs") };
 
   const leaderAlsoFollows = (leaderSubs ?? []).length > 0;
 
@@ -61,7 +62,7 @@ export async function followLeaderAction(
     leader_also_follows: leaderAlsoFollows,
   });
 
-  if (insertErr) return { error: insertErr.message };
+  if (insertErr) return { error: safeDbError(insertErr, "Couldn't subscribe.", "follow_insert") };
 
   const name = await followerDisplayName(sb, user.id);
   await createNotification(
@@ -92,7 +93,7 @@ export async function unfollowLeaderAction(subscriptionId: string) {
     .eq("id", subscriptionId)
     .eq("follower_id", user.id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't unfollow.", "unfollow_update") };
 
   if (sub?.leader_id) {
     const name = await followerDisplayName(sb, user.id);
@@ -125,7 +126,7 @@ export async function updateSubscriptionAction(
     .eq("id", subscriptionId)
     .eq("follower_id", user.id);
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't update subscription.", "subscription_update") };
   return { success: true as const };
 }
 
@@ -162,7 +163,7 @@ export async function getMyBrokerAccountsAction(): Promise<
     .eq("is_active", true)
     .order("created_at", { ascending: false });
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't load broker accounts.", "broker_accounts_for_follow") };
 
   return ((data ?? []) as Array<{ id: string; label: string; broker_slug: string }>).map(
     (a) => ({
@@ -202,7 +203,7 @@ export async function getMySubscriptionsAction(): Promise<
     .neq("status", "cancelled")
     .order("created_at", { ascending: false });
 
-  if (error) return { error: error.message };
+  if (error) return { error: safeDbError(error, "Couldn't load subscriptions.", "subscriptions_list") };
 
   type SubRow = {
     id: string;
@@ -232,7 +233,7 @@ export async function getMySubscriptionsAction(): Promise<
       .select("id, display_name, username, avatar_path")
       .in("id", leaderIds);
 
-    if (profileErr) return { error: profileErr.message };
+    if (profileErr) return { error: safeDbError(profileErr, "Couldn't load leader profiles.", "subscriptions_profile_lookup") };
     profileMap = new Map(
       ((profileRows ?? []) as ProfileRow[]).map((p) => [p.id, p])
     );

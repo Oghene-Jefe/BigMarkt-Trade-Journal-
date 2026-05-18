@@ -19,7 +19,8 @@ function trustedAppOrigin(): string {
   return raw.replace(/\/$/, "");
 }
 import { loginSchema, signupSchema, resetRequestSchema, newPasswordSchema } from "@/lib/schemas";
-import { callerIp, verifyTurnstile } from "@/lib/abuse";
+import { callerIp, checkAndLog, verifyTurnstile } from "@/lib/abuse";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export type ActionState = { error?: string; ok?: string };
 
@@ -83,8 +84,17 @@ export async function signupAction(_: ActionState, formData: FormData): Promise<
     options: { data: meta },
   });
   if (error) {
-    if (error.message.toLowerCase().includes("registered"))
-      return { error: "This email already has an account — log in instead." };
+    // Audit N-H6: previous code disambiguated "already registered" from
+    // "everything else", giving any caller a yes/no oracle for whether an
+    // email is in the system. H-10 closed the same oracle on the login
+    // form; this is the symmetric closure on signup. Both branches now
+    // return a single generic message.
+    //
+    // If the email IS already registered, Supabase still side-effects a
+    // "you already have an account" email out-of-band (handled in the
+    // auth.signUp internals) — that's the right channel to surface
+    // duplicate-signup intent, not the form response.
+    console.error("signupAction signUp failed:", { code: error.code, message: error.message });
     return { error: "Signup failed. Try again." };
   }
 
@@ -102,8 +112,46 @@ export async function logoutAction() {
 }
 
 export async function requestResetAction(_: ActionState, formData: FormData): Promise<ActionState> {
-  const parsed = resetRequestSchema.safeParse({ email: formData.get("email") });
+  const parsed = resetRequestSchema.safeParse({
+    email: formData.get("email"),
+    turnstile_token: formData.get("turnstile_token"),
+  });
   if (!parsed.success) return { error: "Enter a valid email." };
+
+  // Audit N-H7: previously this endpoint had no Turnstile and no
+  // rate-limit, making it a free email-bombing vector. Combined with the
+  // signup enumeration oracle (N-H6) an attacker could harvest emails
+  // and flood inboxes with apparently-legitimate "BigMarkt" reset
+  // emails. Two layers now:
+  //   1. Turnstile bot check (fails CLOSED in prod via verifyTurnstile)
+  //   2. abuse_log gate: scope='password_reset', 3 reqs / IP / hour,
+  //      dedupe identical-email submissions within 10 minutes.
+  // We keep returning the same generic "if that email has an account…"
+  // message regardless of outcome so the email-existence oracle stays
+  // closed.
+  const ip = await callerIp();
+  const human = await verifyTurnstile(parsed.data.turnstile_token, ip);
+  if (!human) return { error: "Couldn't verify you're human. Please try again." };
+
+  const admin = supabaseAdmin();
+  const gate = await checkAndLog(admin, {
+    scope: "password_reset",
+    ip,
+    email: parsed.data.email,
+    ipLimit: 3,
+    ipWindowSec: 3600,
+    dedupeWindowSec: 600,
+  });
+  // Whether the gate blocks for rate-limit, duplicate, or abuse_log
+  // unavailability, we still respond with the generic success message —
+  // an attacker shouldn't be able to distinguish "rate-limited" from
+  // "ok we sent it" from "email doesn't exist". The server-side log
+  // captures the gate reason for ops.
+  if (!gate.ok) {
+    console.error("[password_reset_gate]", { reason: gate.reason });
+    return { ok: "If that email has an account, a reset link is on its way." };
+  }
+
   const sb = await supabaseServer();
   let origin: string;
   try {

@@ -23,14 +23,37 @@ export function capStr(raw: FormDataEntryValue | null | undefined, max: number):
 
 // ── ip extraction ────────────────────────────────────────────────────────────
 
-/** Best-effort IP from request headers. May be null behind opaque proxies. */
+/**
+ * Best-effort IP from request headers. May be null behind opaque proxies.
+ *
+ * Audit N-H4: the previous implementation read the LEFT-most entry of
+ * `x-forwarded-for`. On Vercel the platform APPENDS the verified client
+ * IP onto whatever XFF the client supplied — so left-most was always
+ * attacker-controlled. Every IP-keyed rate limit in the codebase was
+ * bypassable by sending `X-Forwarded-For: <random-ip>` per request,
+ * which re-opens H-11 (username enumeration cap) and weakens every
+ * Turnstile-paired form's secondary rate limit.
+ *
+ * Fix order of preference (Vercel-aware):
+ *   1. `x-real-ip` — Vercel sets this to the single verified client IP.
+ *      Cannot be spoofed end-to-end (Vercel's edge overwrites whatever
+ *      the client supplied).
+ *   2. Right-most `x-forwarded-for` entry — the platform-appended IP,
+ *      only relevant on non-Vercel deploys. Still safer than left-most.
+ *   3. null — falls through to whatever the caller does with no IP
+ *      (`checkAndLog` skips the IP cap when ip is null; for unauthenticated
+ *      routes that must rate-limit, the caller should fail-closed).
+ */
 export async function callerIp(): Promise<string | null> {
   const h = await headers();
+  const realIp = h.get("x-real-ip");
+  if (realIp) return realIp.trim();
   const xff = h.get("x-forwarded-for") ?? "";
-  // x-forwarded-for is comma-separated; the left-most is the original client.
-  const first = xff.split(",")[0]?.trim();
-  if (first) return first;
-  return h.get("x-real-ip") ?? null;
+  const parts = xff
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : null;
 }
 
 // ── turnstile ────────────────────────────────────────────────────────────────

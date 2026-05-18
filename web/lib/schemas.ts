@@ -47,7 +47,13 @@ export const signupSchema = z.object({
 });
 export type SignupInput = z.infer<typeof signupSchema>;
 
-export const resetRequestSchema = z.object({ email: emailSchema });
+// Audit N-H7: reset request now carries a Turnstile token so the action
+// can apply server-side bot check + abuse_log rate limit before queueing
+// a Supabase reset email. Closes the password-reset bombing vector.
+export const resetRequestSchema = z.object({
+  email: emailSchema,
+  turnstile_token: z.string().max(4096).optional(),
+});
 
 export const newPasswordSchema = z
   .object({
