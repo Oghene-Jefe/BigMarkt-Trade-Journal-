@@ -12,8 +12,8 @@ that subdirectory rather than treating the repo root as a static site.
 
    | Name | Value |
    |---|---|
-   | `NEXT_PUBLIC_SUPABASE_URL` | `https://awvrylniqppybwaiwzse.supabase.co` |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the anon JWT (Supabase dashboard → Settings → API) |
+   | `NEXT_PUBLIC_SUPABASE_URL` | `https://<your-project-ref>.supabase.co` (from Supabase dashboard → Settings → API → Project URL) |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the anon JWT (Supabase dashboard → Settings → API → anon public key) |
 
    **Do not** add `SUPABASE_SERVICE_ROLE_KEY` to Vercel. It's never imported
    from `app/` or `components/`; only the test suite needs it.
@@ -37,8 +37,10 @@ In the browser:
 - `/login` → email/password form
 - Log in with an existing user → `/dashboard`
 - Click through Journal / Leaderboard / Profile
-- For `sylvesterejemah@gmail.com` (the one promoted admin): the Admin nav
-  link appears and `/admin` renders the management panel.
+- For any user whose row exists in `public.admin_users`: the Admin nav
+  link appears and `/admin` renders the management panel. (Promote a
+  user via the admin RPC; do not hard-code email addresses in docs —
+  this file is in a public repo.)
 
 ## What changes for users
 
