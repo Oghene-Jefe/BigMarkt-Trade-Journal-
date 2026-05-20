@@ -1,0 +1,54 @@
+name: Supabase Policy Guard
+
+# Guards against regression of dropped RLS policies on the live database.
+# Currently checks: support_messages.users_update_own_messages
+#   - Created in migration 0033, dropped in 0035 because it allowed UPDATE on
+#     any column. Reintroduced as a regression in 0046, re-dropped in 0048.
+#   - Legitimate "mark admin message as read" goes through the SECURITY
+#     DEFINER RPC public.mark_support_messages_read.
+#
+# Self-skips when SUPABASE_DB_URL is not configured, so safe to merge
+# before the secret is set in repo settings.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip if SUPABASE_DB_URL secret is not configured
+        id: precheck
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "::warning::SUPABASE_DB_URL secret not set - skipping policy guard."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install psql
+        if: steps.precheck.outputs.skip == 'false'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Assert users_update_own_messages is absent on support_messages
+        if: steps.precheck.outputs.skip == 'false'
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          hit=$(psql "$DATABASE_URL" -tAc \
+            "SELECT 1 FROM pg_policies
+             WHERE schemaname='public'
+               AND tablename='support_messages'
+               AND policyname='users_update_own_messages'")
+          if [ "$hit" = "1" ]; then
+            echo "::error::REGRESSION: users_update_own_messages is back on public.support_messages. See migration 0048 and SECURITY_AUDIT_2026-05-20.md (S-09)."
+            exit 1
+          fi
+          echo "OK: users_update_own_messages absent from public.support_messages"
