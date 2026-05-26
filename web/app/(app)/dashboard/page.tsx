@@ -1,25 +1,35 @@
 import Link from "next/link";
 import { Bot, PenLine, CircleDashed, ArrowRight } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
-import type { TradeRow } from "@/lib/types";
+import type { TradeRow, BrokerAccount } from "@/lib/types";
 import { fmtMoney, fmtDate, fmtPct } from "@/lib/format";
 import { getMonthPulse } from "@/lib/heatmap";
 import { PageHeader, MetricCard, Section, StatusPill } from "@/components/ui";
 import { buildActivationSummary } from "@/lib/activation";
+import { BROKERS } from "@/lib/brokers";
 import Banners from "./Banners";
 import ActivationPanel from "./ActivationPanel";
+import AccountSwitcherNav from "@/components/dashboard/AccountSwitcherNav";
+import type { SwitcherAccount } from "@/components/dashboard/AccountSwitcher";
+import OpenPositionsPanel from "@/components/dashboard/OpenPositionsPanel";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ account?: string }>;
+}) {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
+  const params = await searchParams;
 
   const [
     { data: tradesData },
     { data: profileData },
     { count: brokerAccountCountRaw },
     { count: eaTokenCountRaw },
+    { data: accountsData },
   ] = await Promise.all([
     sb.from("trades").select("*").order("created_at", { ascending: false }),
     sb.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
@@ -27,17 +37,56 @@ export default async function DashboardPage() {
       .from("broker_accounts")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user!.id),
-    // Active (non-revoked) EA tokens only — codex tweak 1 in
-    // docs/claude-activation-build-proposal.md Section 11.
     sb
       .from("ea_tokens")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user!.id)
       .is("revoked_at", null),
+    sb
+      .from("broker_accounts")
+      .select("*")
+      .eq("user_id", user!.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: true }),
   ]);
+
   const brokerAccountCount = brokerAccountCountRaw ?? 0;
   const eaTokenCount = eaTokenCountRaw ?? 0;
-  const trades = (tradesData ?? []) as TradeRow[];
+  const allTrades = (tradesData ?? []) as TradeRow[];
+  const accounts = (accountsData ?? []) as BrokerAccount[];
+
+  // Build switcher accounts
+  const switcherAccounts: SwitcherAccount[] = accounts.map((acc) => {
+    const broker = BROKERS.find((b) => b.id === acc.broker_slug);
+    return {
+      id: acc.id,
+      account_name: acc.label,
+      broker_name: broker?.name ?? acc.broker_slug,
+      account_type: acc.account_type,
+    };
+  });
+
+  // Determine selected account — prefer URL param, then first live, then first
+  const firstLive = accounts.find((a) => a.account_type === "live");
+  const defaultId = firstLive?.id ?? accounts[0]?.id ?? null;
+  const selectedAccountId =
+    params.account && accounts.some((a) => a.id === params.account)
+      ? params.account
+      : defaultId;
+
+  // Filter trades by selected account when one is chosen
+  const trades = selectedAccountId
+    ? allTrades.filter((t) => {
+        const row = t as TradeRow & { broker_account_id?: string | null };
+        return row.broker_account_id === selectedAccountId;
+      })
+    : allTrades;
+
+  const closedTrades = trades.filter(
+    (t) => (t as TradeRow & { status?: string | null }).status === "closed" ||
+            (t as TradeRow & { status?: string | null }).status == null
+  );
+
   const startBal = profileData?.starting_balance ?? null;
   const journalMode = (profileData?.journal_mode ?? null) as
     | "automated"
@@ -49,22 +98,22 @@ export default async function DashboardPage() {
     username: profileData?.username ?? null,
     journalMode,
     visibility: profileData?.visibility ?? null,
-    tradeCount: trades.length,
+    tradeCount: allTrades.length,
     brokerAccountCount,
     eaTokenCount,
   });
 
-  const wins = trades.filter((t) => t.result === "WIN").length;
-  const losses = trades.filter((t) => t.result === "LOSS").length;
+  const wins = closedTrades.filter((t) => t.result === "WIN").length;
+  const losses = closedTrades.filter((t) => t.result === "LOSS").length;
   const closed = wins + losses;
   const winRate = closed > 0 ? (wins / closed) * 100 : null;
-  const totalPnl = trades.reduce((s, t) => s + (t.pnl ?? 0), 0);
+  const totalPnl = closedTrades.reduce((s, t) => s + (t.pnl ?? 0), 0);
   const growth = startBal && startBal > 0 ? (totalPnl / startBal) * 100 : null;
-  const recent = trades.slice(0, 5);
+  const recent = closedTrades.slice(0, 5);
 
   const nowForPulse = new Date();
   const pulse = getMonthPulse(
-    trades,
+    closedTrades,
     nowForPulse.getFullYear(),
     nowForPulse.getMonth(),
   );
@@ -78,19 +127,21 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <PageHeader title="Dashboard" />
 
+      {/* Account Switcher — shown when user has broker accounts */}
+      {switcherAccounts.length > 0 && (
+        <AccountSwitcherNav
+          accounts={switcherAccounts}
+          selectedId={selectedAccountId}
+        />
+      )}
+
       <ActivationPanel summary={activationSummary} />
 
-      {/*
-        Banners only render once activation is complete. While the
-        activation panel is showing it owns the first-action CTA, so
-        Banners would be a duplicate surface. Codex tweak 2 in
-        docs/claude-activation-build-proposal.md Section 11.
-      */}
       {activationSummary.nextStep === null ? (
         <Banners
           journalMode={journalMode}
           brokerAccountCount={brokerAccountCount}
-          tradeCount={trades.length}
+          tradeCount={allTrades.length}
         />
       ) : null}
 
@@ -103,7 +154,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <MetricCard label="Total trades" value={String(trades.length)} />
+        <MetricCard label="Total trades" value={String(closedTrades.length)} />
         <MetricCard label="Win rate" value={winRate == null ? "—" : `${winRate.toFixed(0)}%`} />
         <MetricCard
           label="Net P&L"
@@ -124,6 +175,9 @@ export default async function DashboardPage() {
           <span className="text-red-400">-${Math.abs(pulse.worstDay).toFixed(0)}</span>
         </div>
       ) : null}
+
+      {/* Open Positions Panel */}
+      <OpenPositionsPanel userId={user!.id} accountId={selectedAccountId} />
 
       <Section
         title="Recent trades"
