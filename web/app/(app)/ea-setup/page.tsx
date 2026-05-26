@@ -166,13 +166,16 @@ export default async function EaSetupPage() {
           One file. Recommended for MT5; also works on MT4 builds 1300+.
         </p>
         <a
-          href="/downloads/BigMarkt_EA.mq5"
+          href="/downloads/BigMarkt_EA_v2.1.0.ex5"
           download
           className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-sm font-medium text-black hover:bg-gold/90"
         >
           <Download size={14} aria-hidden />
-          <span>Download BigMarkt_EA.mq5</span>
+          <span>Download BigMarkt EA v2.1.0</span>
         </a>
+        <p className="mt-2 text-xs text-muted">
+          Compiled .ex5 — no MetaEditor required. Drop into MT5 Experts folder and attach to any chart.
+        </p>
         <p className="mt-3 text-xs text-muted">
           Read-only by design — the EA never calls{" "}
           <Mono>OrderSend</Mono>, <Mono>OrderModify</Mono>, or <Mono>OrderClose</Mono>.
@@ -184,7 +187,7 @@ export default async function EaSetupPage() {
           <li>
             In MT5, go to <em>File → Open Data Folder</em>. Open the{" "}
             <Mono>MQL5 → Experts</Mono> folder and copy{" "}
-            <Mono>BigMarkt_EA.mq5</Mono> into it.
+            <Mono>BigMarkt_EA_v2.1.0.ex5</Mono> into it.
           </li>
           <li>
             Back in MT5, open the <em>Navigator</em> panel, right-click{" "}
@@ -375,8 +378,8 @@ function AdvancedSetup() {
       <div>
         <p className="font-medium text-white">MT4 differences</p>
         <p className="mt-1 text-white/70">
-          On MT4, files live in <Mono>MQL4/Experts</Mono>. The same .mq5 file
-          compiles on both MT4 and MT5 builds 1300+.
+          On MT4, files live in <Mono>MQL4/Experts</Mono>. Drop the same .ex5 file
+          into that folder — no compilation needed on MT4 or MT5.
         </p>
       </div>
       <div>
