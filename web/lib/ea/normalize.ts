@@ -46,14 +46,19 @@ export const eaTradeSchema = z.object({
     .refine((s) => /buy|sell/i.test(s), "type must contain buy or sell"),
   lots: finiteBounded(10_000).refine((n) => n > 0, "lots must be > 0"),
   open_price: finiteBounded(1_000_000_000).refine((n) => n > 0, "open_price must be > 0"),
-  close_price: finiteBounded(1_000_000_000).optional(),
+  close_price: finiteBounded(1_000_000_000).default(0),
   open_time: isoString,
-  close_time: isoString.optional(),
+  close_time: z.string().default(""),
   profit: finiteBounded(1_000_000_000).optional(),
   swap: finiteBounded(1_000_000_000).optional(),
   commission: finiteBounded(1_000_000_000).optional(),
   magic: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(),
   comment: z.string().max(500).optional(),
+  position_id:  z.string().optional(),
+  deal_entry:   z.enum(["in", "out"]).optional(),
+  sl:           z.number().default(0),
+  tp:           z.number().default(0),
+  r_multiple:   z.number().default(0),
 });
 
 export type EaTradePayload = z.infer<typeof eaTradeSchema>;

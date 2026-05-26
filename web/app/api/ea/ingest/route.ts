@@ -408,31 +408,102 @@ export async function POST(req: NextRequest) {
     if (!nonceRes.ok) return nonceRes.res;
   }
 
-  // 12. Save the trade — explicit lookup + insert/update (existing logic;
-  //     trades has a partial unique index on (user_id, ticket)).
-  const { data: existingTrade, error: lookupError } = await supabase
-    .from("trades")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("ticket", parsed.data.ticket)
-    .maybeSingle();
+  // 12. Save the trade — deal_entry-aware upsert logic.
+  //
+  //   deal_entry === 'in'   → new position opening: upsert by (user_id, position_id)
+  //   deal_entry === 'out'  → close an existing position: lookup by position_id and UPDATE
+  //   deal_entry absent     → legacy / manual: keep the old ticket-based upsert
+  const dealEntry = parsed.data.deal_entry;
+  const positionId = parsed.data.position_id ?? null;
 
-  if (lookupError) {
-    console.error("EA ingest lookup error:", lookupError);
-    return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
+  let saveResult: { error: { code: string; message: string } | null };
+  let ingestAction: "inserted" | "updated" = "inserted";
+  let resultStatus: "open" | "closed" = "closed";
+
+  if (dealEntry === "in" && positionId) {
+    // Opening leg — upsert by (user_id, position_id); set status = 'open'.
+    const openRow = {
+      ...tradeRow,
+      position_id: positionId,
+      deal_entry: "in",
+      sl: parsed.data.sl || null,
+      tp: parsed.data.tp || null,
+      status: "open",
+    };
+    saveResult = await supabase
+      .from("trades")
+      .upsert(openRow, { onConflict: "user_id,position_id" });
+    ingestAction = "inserted";
+    resultStatus = "open";
+  } else if (dealEntry === "out" && positionId) {
+    // Closing leg — find the open row and UPDATE it with close fields.
+    const { data: openTrade, error: findErr } = await supabase
+      .from("trades")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("position_id", positionId)
+      .maybeSingle();
+
+    if (findErr) {
+      console.error("EA ingest position lookup error:", findErr);
+      return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
+    }
+
+    if (openTrade?.id) {
+      // Happy path: close the existing open row.
+      const closeFields = {
+        close_price: parsed.data.close_price || null,
+        close_time: parsed.data.close_time || null,
+        pnl: parsed.data.profit ?? null,
+        swap: parsed.data.swap ?? null,
+        commission: parsed.data.commission ?? null,
+        r_multiple: parsed.data.r_multiple || null,
+        deal_entry: "out",
+        status: "closed",
+      };
+      saveResult = await supabase
+        .from("trades")
+        .update(closeFields)
+        .eq("id", openTrade.id)
+        .eq("user_id", userId);
+      ingestAction = "updated";
+    } else {
+      // EA was installed mid-trade — no open row exists; insert a complete closed row.
+      const closedRow = {
+        ...tradeRow,
+        position_id: positionId,
+        deal_entry: "out",
+        sl: parsed.data.sl || null,
+        tp: parsed.data.tp || null,
+        r_multiple: parsed.data.r_multiple || null,
+        status: "closed",
+      };
+      saveResult = await supabase.from("trades").insert(closedRow);
+      ingestAction = "inserted";
+    }
+    resultStatus = "closed";
+  } else {
+    // Legacy / manual path: preserve existing ticket-based upsert behaviour.
+    const { data: existingTrade, error: lookupError } = await supabase
+      .from("trades")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("ticket", parsed.data.ticket)
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error("EA ingest lookup error:", lookupError);
+      return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
+    }
+
+    saveResult = existingTrade?.id
+      ? await supabase.from("trades").update(tradeRow).eq("id", existingTrade.id).eq("user_id", userId)
+      : await supabase.from("trades").insert(tradeRow);
+    ingestAction = existingTrade?.id ? "updated" : "inserted";
   }
 
-  const saveResult = existingTrade?.id
-    ? await supabase.from("trades").update(tradeRow).eq("id", existingTrade.id).eq("user_id", userId)
-    : await supabase.from("trades").insert(tradeRow);
-
   if (saveResult.error) {
-    // Audit M-7: previously logged details + hint, which on Postgres
-    // unique-constraint violations echoed the conflicting row values
-    // (ticket numbers, PnL). Those fields helped ops triage but become
-    // a log-exfil risk once Vercel logs are piped to an aggregator.
-    // Keep code + message — both stable and non-sensitive — and drop
-    // the rest.
+    // Audit M-7: keep code + message only — avoid echoing row values to logs.
     console.error("EA ingest save error:", {
       code: saveResult.error.code,
       message: saveResult.error.message,
@@ -454,5 +525,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true }, { status: 200 });
+  return NextResponse.json(
+    {
+      success: true,
+      action: ingestAction,
+      position_id: positionId,
+      status: resultStatus,
+    },
+    { status: 200 },
+  );
 }
