@@ -7,6 +7,7 @@ import DrawerNav from "./DrawerNav";
 import Logo from "@/components/ui/Logo";
 import { EcosystemFooter } from "@/components/ui/EcosystemFooter";
 import ChatWidgetMount from "@/components/support/ChatWidgetMount";
+import MobileNav from "@/components/layout/MobileNav";
 
 // Auth + onboarding gate for the app shell. Every page under (app)
 // requires a session AND a completed profile (display_name set).
@@ -65,9 +66,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <DrawerNav admin={admin} unreadCount={unreadCount} userEmail={user.email ?? ""} />
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 pb-16 md:pb-6">{children}</main>
       <EcosystemFooter />
       <ChatWidgetMount userId={user.id} username={username} />
+      <MobileNav />
     </div>
   );
 }
