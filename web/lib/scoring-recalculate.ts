@@ -74,7 +74,10 @@ export async function recalculateAccountScoreWithClient(
       "pnl, rr_ratio, result, trust_badge, created_at, entry_price, exit_price, stop_loss",
     )
     .eq("broker_account_id", accountId)
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    // Only count completed trades; open positions are excluded from scoring.
+    // Rows without a status column (legacy / manual) are included via the IS NULL arm.
+    .or("status.eq.closed,status.is.null");
   if (resetBoundary) {
     tradesQuery = tradesQuery.gt("created_at", resetBoundary);
   }
