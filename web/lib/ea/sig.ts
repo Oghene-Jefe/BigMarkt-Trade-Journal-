@@ -36,6 +36,9 @@ const TRADE_FIELD_ORDER = [
   "commission",
   "magic",
   "comment",
+  "sl",
+  "tp",
+  "r_multiple",
 ] as const;
 
 function fieldToString(v: unknown): string {
