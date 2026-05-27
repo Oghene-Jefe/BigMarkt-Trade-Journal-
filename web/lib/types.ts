@@ -33,6 +33,8 @@ export type TradeRow = {
   capture_source: CaptureSource;
   core_fields_locked: boolean;
   auto_approved: boolean;
+  source: string | null;
+  verified: boolean | null;
   created_at: string;
 };
 
