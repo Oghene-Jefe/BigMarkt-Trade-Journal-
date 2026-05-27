@@ -91,11 +91,21 @@ async function TradesView({
     query = query.eq("capture_source", "signal");
   }
 
-  const { data, error } = await query.order("created_at", { ascending: false });
+  const [{ data, error }, { data: accountData }] = await Promise.all([
+    query.order("created_at", { ascending: false }),
+    sb
+      .from("broker_accounts")
+      .select("id")
+      .eq("is_active", true)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   const trades = (data ?? []) as TradeRow[];
   const paths = trades.map((t) => t.chart_path).filter((p): p is string => !!p);
   const chartUrls = await signCharts(paths);
+  const defaultAccountId = (accountData as { id: string } | null)?.id ?? null;
 
   if (error) {
     return (
@@ -114,7 +124,7 @@ async function TradesView({
           from your performance score.
         </p>
       ) : null}
-      <JournalClient trades={trades} chartUrls={chartUrls} />
+      <JournalClient trades={trades} chartUrls={chartUrls} defaultAccountId={defaultAccountId} />
     </div>
   );
 }
