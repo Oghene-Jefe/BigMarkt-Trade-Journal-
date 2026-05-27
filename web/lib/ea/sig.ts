@@ -44,7 +44,11 @@ const TRADE_FIELD_ORDER = [
 // emits "" for those slots in ComputeTradeFieldsHash. Zod fills them in as
 // 0 / "" after parsing, so we must reverse that default back to "" here to
 // keep server and EA canonical strings byte-identical.
-const ABSENT_AS_EMPTY = new Set<string>(["close_price", "close_time"]);
+// close_time → "" when absent (EA always emits "" for open trades)
+// close_price is NOT in this set: EA's DoubleToCanonical(0) returns "0" (integer
+// path), so when close_price is absent Zod defaults it to 0 and the server must
+// hash it as "0" — not "" — to match the EA's canonical string.
+const ABSENT_AS_EMPTY = new Set<string>(["close_time"]);
 
 
 // Timestamp fields that MUST be passed through verbatim — no new Date(),
