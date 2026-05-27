@@ -429,6 +429,8 @@ export async function POST(req: NextRequest) {
       sl: parsed.data.sl || null,
       tp: parsed.data.tp || null,
       status: "open",
+      source: 'ea',
+      verified: true,
     };
     saveResult = await supabase
       .from("trades")
@@ -460,6 +462,8 @@ export async function POST(req: NextRequest) {
         r_multiple: parsed.data.r_multiple || null,
         deal_entry: "out",
         status: "closed",
+        source: 'ea',
+        verified: true,
       };
       saveResult = await supabase
         .from("trades")
@@ -477,6 +481,8 @@ export async function POST(req: NextRequest) {
         tp: parsed.data.tp || null,
         r_multiple: parsed.data.r_multiple || null,
         status: "closed",
+        source: 'ea',
+        verified: true,
       };
       saveResult = await supabase.from("trades").insert(closedRow);
       ingestAction = "inserted";
@@ -496,9 +502,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
     }
 
+    const legacyRow = { ...tradeRow, source: 'ea', verified: true };
     saveResult = existingTrade?.id
-      ? await supabase.from("trades").update(tradeRow).eq("id", existingTrade.id).eq("user_id", userId)
-      : await supabase.from("trades").insert(tradeRow);
+      ? await supabase.from("trades").update(legacyRow).eq("id", existingTrade.id).eq("user_id", userId)
+      : await supabase.from("trades").insert(legacyRow);
     ingestAction = existingTrade?.id ? "updated" : "inserted";
   }
 

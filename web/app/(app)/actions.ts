@@ -102,7 +102,7 @@ export async function createTradeAction(_: TradeActionState, fd: FormData): Prom
     rr_ratio = parseFloat((reward / risk).toFixed(2));
   }
 
-  const insertRow = { ...parsed.data, rr_ratio, user_id: user.id, trade_visibility: parsed.data.visibility };
+  const insertRow = { ...parsed.data, rr_ratio, user_id: user.id, trade_visibility: parsed.data.visibility, source: 'manual', verified: false };
   const { data: inserted, error } = await sb.from("trades").insert(insertRow).select("id").single();
   if (error || !inserted) return { error: safeDbError(error, "Failed to save trade.", "trade_insert") };
 
