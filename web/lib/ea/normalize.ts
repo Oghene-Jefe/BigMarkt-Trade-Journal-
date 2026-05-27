@@ -116,11 +116,14 @@ export function buildEaTradeRow(args: {
   // Closes audit finding H-6a in docs/security-audit-2026-05-17.md.
   // H-6b (updating get_public_trades to label or filter prop_firm rows)
   // ships in a separate batch — needs a migration.
+  // trust_badge CHECK constraint: ('manual','auto_verified','draft','edited','prop_firm')
+  // 'demo' is NOT in the constraint — demo accounts use 'manual' trust_badge so the
+  // leaderboard scoring gate (trust_badge = 'auto_verified') naturally excludes them.
   const trustBadge =
-    args.accountType === "demo"
-      ? "demo"
-      : args.accountType === "prop_firm"
-        ? "prop_firm"
+    args.accountType === "prop_firm"
+      ? "prop_firm"
+      : args.accountType === "demo"
+        ? "manual"
         : "auto_verified";
 
   const row: Record<string, unknown> = {
