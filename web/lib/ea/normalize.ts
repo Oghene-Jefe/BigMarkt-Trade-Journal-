@@ -44,8 +44,8 @@ export const eaTradeSchema = z.object({
     .min(1)
     .max(32)
     .refine((s) => /buy|sell/i.test(s), "type must contain buy or sell"),
-  lots: finiteBounded(10_000).refine((n) => n > 0, "lots must be > 0"),
-  open_price: finiteBounded(1_000_000_000).refine((n) => n > 0, "open_price must be > 0"),
+  lots: finiteBounded(10_000),
+  open_price: finiteBounded(1_000_000_000),
   close_price: finiteBounded(1_000_000_000).default(0),
   open_time: isoString,
   close_time: z.string().default(""),
@@ -59,6 +59,23 @@ export const eaTradeSchema = z.object({
   sl:           z.number().default(0),
   tp:           z.number().default(0),
   r_multiple:   z.number().default(0),
+}).superRefine((data, ctx) => {
+  // open_price=0 is valid for ENTRY_OUT (closing) deals sent by MT5.
+  if (data.deal_entry !== "out" && data.open_price <= 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["open_price"],
+      message: "open_price must be > 0 for opening deals",
+    });
+  }
+  // lots=0 is valid for ENTRY_OUT closing deals.
+  if (data.deal_entry !== "out" && data.lots <= 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["lots"],
+      message: "lots must be > 0 for opening deals",
+    });
+  }
 });
 
 export type EaTradePayload = z.infer<typeof eaTradeSchema>;
