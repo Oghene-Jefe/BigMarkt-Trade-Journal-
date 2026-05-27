@@ -356,6 +356,7 @@ export async function POST(req: NextRequest) {
   //    the canonical-message computation has a stable, validated payload.
   const parsed = eaTradeSchema.safeParse(parsedJson);
   if (!parsed.success) {
+    console.error('Zod validation error:', JSON.stringify(parsed.error.issues));
     return NextResponse.json({ error: "Invalid trade payload" }, { status: 400 });
   }
 
