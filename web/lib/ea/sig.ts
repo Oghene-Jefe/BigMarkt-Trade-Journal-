@@ -122,5 +122,5 @@ export function isTimestampFresh(sentAt: string, nowMs: number = Date.now()): bo
   return Math.abs(nowMs - t) <= TIMESTAMP_WINDOW_MS;
 }
 
-export const NONCE_RE = /^[0-9a-f]{32}$/i;
+export const NONCE_RE = /^[0-9a-f]{32,64}$/i;
 export const SIG_RE = /^[0-9a-f]{64}$/i;
