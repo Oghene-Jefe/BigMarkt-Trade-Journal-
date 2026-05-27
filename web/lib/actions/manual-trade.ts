@@ -1,7 +1,15 @@
 "use server";
 
-import { requireUser } from "@/lib/auth/require-user";
+import { redirect } from "next/navigation";
+import { supabaseServer } from "@/lib/supabase/server";
 import { safeDbError } from "@/lib/db-error";
+
+async function requireUser() {
+  const sb = await supabaseServer();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) redirect("/login");
+  return { sb, user };
+}
 
 export type ManualTradeInput = {
   brokerAccountId: string;
