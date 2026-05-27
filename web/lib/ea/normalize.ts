@@ -54,7 +54,7 @@ export const eaTradeSchema = z.object({
   commission: finiteBounded(1_000_000_000).default(0),
   magic: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
   comment: z.string().max(500).default(''),
-  position_id:  z.string().optional(),
+  position_id:  z.coerce.string().optional(),
   deal_entry:   z.enum(["in", "out"]).optional(),
   sl:           z.number().default(0),
   tp:           z.number().default(0),
