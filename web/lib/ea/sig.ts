@@ -58,6 +58,48 @@ const ABSENT_AS_EMPTY = new Set<string>(["close_time"]);
 // the server's local UTC offset and break the canonical match.
 const RAW_STRING_FIELDS = new Set<string>(["open_time", "close_time"]);
 
+// ── EA canonical simulation ──────────────────────────────────────────────────
+// Mirrors DoubleToCanonical in BigMarkt_EA.mq5 exactly:
+//   • integer values  → String(Math.trunc(v))   (no decimal point)
+//   • everything else → parseFloat(v.toFixed(10)).toString()
+//     (DoubleToString(v,10) then strip trailing zeros)
+function eaDoubleToCanonical(v: number): string {
+  if (Number.isFinite(v) && v % 1 === 0 && Math.abs(v) < 9007199254740992) {
+    return String(Math.trunc(v));
+  }
+  return parseFloat(v.toFixed(10)).toString();
+}
+
+/** Build the canonical string exactly as the MQL5 EA does, using the raw
+ *  (pre-Zod) JSON fields where possible.  Used only for diagnostic logging. */
+export function simulateEaCanonical(raw: Record<string, unknown>): string {
+  const num = (k: string, def = 0): number => {
+    const v = raw[k];
+    return typeof v === "number" ? v : def;
+  };
+  const str = (k: string, def = ""): string => {
+    const v = raw[k];
+    return typeof v === "string" ? v : def;
+  };
+  const symbolUp = str("symbol").toUpperCase();
+  const fields: [string, string][] = [
+    ["ticket",      String(num("ticket"))],
+    ["symbol",      symbolUp],
+    ["type",        str("type")],
+    ["lots",        eaDoubleToCanonical(num("lots"))],
+    ["open_price",  eaDoubleToCanonical(num("open_price"))],
+    ["close_price", eaDoubleToCanonical(num("close_price", 0))],
+    ["open_time",   str("open_time")],
+    ["close_time",  str("close_time")],
+    ["profit",      eaDoubleToCanonical(num("profit", 0))],
+    ["swap",        eaDoubleToCanonical(num("swap", 0))],
+    ["commission",  eaDoubleToCanonical(num("commission", 0))],
+    ["magic",       String(Math.trunc(num("magic", 0)))],
+    ["comment",     str("comment")],
+  ];
+  return fields.map(([k, v]) => `${k}=${v}`).join("\n");
+}
+
 function fieldToString(key: string, v: unknown): string {
   // close_price=0 (Zod default for absent) and close_time="" must both
   // canonicalize as "" to match ComputeTradeFieldsHash in the MQL5 EA,
@@ -84,8 +126,14 @@ function fieldToString(key: string, v: unknown): string {
   return String(v);
 }
 
-/** SHA-256 hex of the canonical trade-field bundle. */
-export function tradeFieldsHash(payload: EaTradePayload): string {
+/** SHA-256 hex of the canonical trade-field bundle.
+ *  @param rawJson  The raw parsed-JSON object (pre-Zod).  When supplied,
+ *                  the EA-simulated canonical is logged alongside the server
+ *                  canonical so a byte-level diff is visible in Vercel logs. */
+export function tradeFieldsHash(
+  payload: EaTradePayload,
+  rawJson?: Record<string, unknown>,
+): string {
   const p = payload as Record<string, unknown>;
   const lines = TRADE_FIELD_ORDER.map(
     (k) => `${k}=${fieldToString(k, p[k])}`,
@@ -93,8 +141,7 @@ export function tradeFieldsHash(payload: EaTradePayload): string {
   const canonical = lines.join("\n");
   const hash = createHash("sha256").update(canonical, "utf8").digest("hex");
   console.log('TRADE_HASH_CANONICAL_FIELDS:', JSON.stringify(canonical));
-  // Field-by-field breakdown — shows exact raw value and formatted string for
-  // each field so we can spot the precise canonical mismatch vs the EA.
+  // Field-by-field breakdown
   console.log('FIELD_BY_FIELD:', JSON.stringify(
     TRADE_FIELD_ORDER.map((k) => ({
       key: k,
@@ -103,6 +150,26 @@ export function tradeFieldsHash(payload: EaTradePayload): string {
       formatted: fieldToString(k, p[k]),
     }))
   ));
+  // Side-by-side comparison with what the EA would have hashed
+  if (rawJson) {
+    const eaCanonical = simulateEaCanonical(rawJson);
+    console.log('EA_SIMULATED_CANONICAL:', JSON.stringify(eaCanonical));
+    console.log('SERVER_CANONICAL:',       JSON.stringify(canonical));
+    if (eaCanonical === canonical) {
+      console.log('CANONICAL_MATCH: true — hashes should agree');
+    } else {
+      // Log the first differing line for quick diagnosis
+      const eaLines  = eaCanonical.split("\n");
+      const srvLines = canonical.split("\n");
+      for (let i = 0; i < Math.max(eaLines.length, srvLines.length); i++) {
+        if (eaLines[i] !== srvLines[i]) {
+          console.log('CANONICAL_DIFF_LINE:', i,
+            'EA=' + JSON.stringify(eaLines[i]),
+            'SRV=' + JSON.stringify(srvLines[i]));
+        }
+      }
+    }
+  }
   return hash;
 }
 

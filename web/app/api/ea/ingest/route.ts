@@ -211,7 +211,7 @@ async function validateV2Envelope(args: {
     close_time: rawCloseTime || null,
   };
 
-  const tradeHash = tradeFieldsHash(payloadForHash);
+  const tradeHash = tradeFieldsHash(payloadForHash, rawJson);
   const message = canonicalMessage({
     tokenId: args.tokenId,
     sentAt: envelope.sent_at,
@@ -416,6 +416,8 @@ export async function POST(req: NextRequest) {
   if (bodyText === null) {
     return NextResponse.json({ error: "Payload too large" }, { status: 413 });
   }
+  // Task 2 diagnostic: log raw body so we can see exact bytes the EA sent.
+  console.log('RAW_BODY:', bodyText.substring(0, 500));
 
   // 6. Parse JSON
   let parsedJson: unknown;
