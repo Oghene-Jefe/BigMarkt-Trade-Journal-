@@ -17,6 +17,13 @@ import {
 } from "@/lib/ea/sig";
 
 // â”€â”€ debug bypass â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// TODO: Set SKIP_SIG_VERIFY=false in Vercel env after canonical hash fix.
+// The open_time timezone mismatch (EA sends broker local time, server
+// expects UTC) causes HMAC mismatch when sig verify is enabled.
+// Tracked issue: ENTRY_IN open_time → EA uses DEAL_TIME_MSC (fixed in
+// mql5/BigMarkt_EA.mq5 v2.1.1) but compiled .ex5 must be recompiled and
+// redeployed before sig verify can be re-enabled.
+// Do NOT set to false until the new EA is compiled and live.
 const SKIP_SIG_VERIFY = process.env.SKIP_SIG_VERIFY === "true";
 
 // ── migration guard ─────────────────────────────────────────────────────────────────────────────
