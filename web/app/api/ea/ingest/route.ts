@@ -175,6 +175,12 @@ async function validateV2Envelope(args: {
     nonce: envelope.nonce,
     tradeHash,
   });
+  console.log('INGEST_VERIFY_INPUT:', JSON.stringify({
+    tokenId: args.tokenId,
+    sentAt: envelope.sent_at,
+    nonce: envelope.nonce,
+    tradeHashPreview: tradeHash?.substring(0, 16)
+  }));
   if (!verifySig(message, signingSecret, envelope.sig)) {
     console.error('ENVELOPE_FAIL:', 'signature mismatch', { tokenId: args.tokenId, sentAt: envelope.sent_at, nonce: envelope.nonce, now: Date.now() });
     console.error('INGEST_SIG_FAIL: signature mismatch for token', args.tokenId)

@@ -38,7 +38,21 @@ const TRADE_FIELD_ORDER = [
   "comment",
 ] as const;
 
-function fieldToString(v: unknown): string {
+// Fields whose Zod schema default is a numeric zero OR empty string but whose
+// canonical hash representation is "" (empty) when absent from the EA payload.
+// The EA never sends close_price / close_time for opening deals and always
+// emits "" for those slots in ComputeTradeFieldsHash. Zod fills them in as
+// 0 / "" after parsing, so we must reverse that default back to "" here to
+// keep server and EA canonical strings byte-identical.
+const ABSENT_AS_EMPTY = new Set<string>(["close_price", "close_time"]);
+
+function fieldToString(key: string, v: unknown): string {
+  // close_price=0 (Zod default for absent) and close_time="" must both
+  // canonicalize as "" to match ComputeTradeFieldsHash in the MQL5 EA,
+  // which always writes these fields as empty when the trade is an open.
+  if (ABSENT_AS_EMPTY.has(key)) {
+    if (v === undefined || v === null || v === 0 || v === "") return "";
+  }
   if (v === undefined || v === null) return "";
   if (typeof v === "number") {
     // Number → String uses the shortest round-trip representation in
@@ -53,9 +67,12 @@ function fieldToString(v: unknown): string {
 /** SHA-256 hex of the canonical trade-field bundle. */
 export function tradeFieldsHash(payload: EaTradePayload): string {
   const lines = TRADE_FIELD_ORDER.map(
-    (k) => `${k}=${fieldToString((payload as Record<string, unknown>)[k])}`,
+    (k) => `${k}=${fieldToString(k, (payload as Record<string, unknown>)[k])}`,
   );
-  return createHash("sha256").update(lines.join("\n"), "utf8").digest("hex");
+  const canonical = lines.join("\n");
+  const hash = createHash("sha256").update(canonical, "utf8").digest("hex");
+  console.log('TRADE_HASH_CANONICAL_FIELDS:', JSON.stringify(canonical));
+  return hash;
 }
 
 // ── canonical signing message ────────────────────────────────────────────────
@@ -98,6 +115,12 @@ export function verifySig(
   if (typeof providedSigHex !== "string" || !/^[0-9a-f]{64}$/i.test(providedSigHex)) {
     return false;
   }
+
+  const tradeHash = message.split("\n")[4] ?? "";
+  console.log('CANONICAL_MSG:', JSON.stringify(message));
+  console.log('TRADE_HASH:', tradeHash);
+  console.log('RECEIVED_SIG:', providedSigHex.substring(0, 16) + '...');
+
   let expected: Buffer;
   try {
     expected = Buffer.from(
