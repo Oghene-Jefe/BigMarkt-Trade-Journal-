@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
+import { ShieldCheck, Info } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signAvatars } from "@/lib/storage";
 import { PageHeader, EmptyState } from "@/components/ui";
@@ -119,6 +120,14 @@ export default async function LeaderboardPage({
 
       <p className="text-xs text-muted">{TAB_DESCRIPTIONS[tab]}</p>
 
+      {/* Verified-trades-only notice */}
+      <div className="flex items-start gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-300">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+        <span>
+          Rankings are based on verified automated trades only. Manual journal entries do not affect your ranking.
+        </span>
+      </div>
+
       {error ? (
         <p className="text-sm text-loss">Couldn't load leaderboard right now. Try again shortly.</p>
       ) : null}
@@ -217,7 +226,11 @@ export default async function LeaderboardPage({
                 </div>
 
                 {/* Footer */}
-                <div className="mt-auto flex justify-end">
+                <div className="mt-auto flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1 rounded-md border border-indigo-500/20 bg-indigo-500/10 px-1.5 py-0.5 text-[10px] text-indigo-400">
+                    <ShieldCheck className="h-3 w-3" aria-hidden />
+                    Verified trades only
+                  </span>
                   <span className="text-[10px] text-muted">
                     {fmtRelative(r.last_scored_at)}
                   </span>

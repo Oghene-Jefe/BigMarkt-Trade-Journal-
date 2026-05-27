@@ -75,6 +75,9 @@ export async function recalculateAccountScoreWithClient(
     )
     .eq("broker_account_id", accountId)
     .eq("user_id", userId)
+    // Only verified EA trades count toward leaderboard scores.
+    .eq("source", "ea")
+    .eq("verified", true)
     // Only count completed trades; open positions are excluded from scoring.
     // Rows without a status column (legacy / manual) are included via the IS NULL arm.
     .or("status.eq.closed,status.is.null");
