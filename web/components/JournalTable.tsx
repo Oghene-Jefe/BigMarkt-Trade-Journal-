@@ -158,7 +158,7 @@ export default function JournalTable({
                     </span>
                   </td>
                   <td className="px-3 py-2">
-                    <SourceBadge source={t.source} verified={t.verified} />
+                    <SourceBadge source={t.source} verified={t.verified} trustBadge={t.trust_badge} />
                   </td>
                   <td className={`px-3 py-2 text-right tabular-nums ${(t.pnl ?? 0) >= 0 ? "text-win" : "text-loss"}`}>
                     {fmtMoney(t.pnl)}
@@ -208,9 +208,25 @@ export default function JournalTable({
   );
 }
 
-function SourceBadge({ source, verified }: { source: string | null; verified: boolean | null }) {
+function SourceBadge({
+  source,
+  verified,
+  trustBadge,
+}: {
+  source: string | null;
+  verified: boolean | null;
+  trustBadge?: string | null;
+}) {
   const isEa = source === "ea";
   if (isEa) {
+    if (trustBadge === "demo") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium bg-yellow-500/15 text-yellow-400 border border-yellow-500/20">
+          <Zap className="h-3 w-3" aria-hidden />
+          Demo EA
+        </span>
+      );
+    }
     return (
       <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium bg-green-500/15 text-green-400 border border-green-500/20">
         <Zap className="h-3 w-3" aria-hidden />
