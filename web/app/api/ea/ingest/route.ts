@@ -189,7 +189,29 @@ async function validateV2Envelope(args: {
     };
   }
 
-  const tradeHash = tradeFieldsHash(args.tradePayload);
+  // ── Defensive raw-string extraction for timestamp fields ─────────────────
+  // Pull open_time/close_time from the raw JSON body before any Zod transform
+  // so the hash uses the EXACT bytes the EA sent. This fixes the confirmed 2h
+  // shift: whatever was converting T20:17:20Z→T18:17:20Z in the Zod/transform
+  // chain is bypassed entirely.
+  const rawJson = args.parsedJson as Record<string, unknown>;
+  const rawOpenTime: string =
+    typeof rawJson.open_time === "string" ? rawJson.open_time
+    : typeof args.tradePayload.open_time === "string" ? args.tradePayload.open_time
+    : "";
+  const rawCloseTime: string =
+    typeof rawJson.close_time === "string" ? rawJson.close_time
+    : typeof args.tradePayload.close_time === "string" ? args.tradePayload.close_time
+    : "";
+
+  // Build a hash-only payload with verbatim timestamp strings.
+  const payloadForHash: typeof args.tradePayload = {
+    ...args.tradePayload,
+    open_time: rawOpenTime || null,
+    close_time: rawCloseTime || null,
+  };
+
+  const tradeHash = tradeFieldsHash(payloadForHash);
   const message = canonicalMessage({
     tokenId: args.tokenId,
     sentAt: envelope.sent_at,
@@ -198,9 +220,11 @@ async function validateV2Envelope(args: {
   });
   const computedSig = signMessage(message, signingSecret);
 
-  // â”€â”€ debug logging (fires regardless of SKIP_SIG_VERIFY) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  //â”€â”€ debug logging (fires regardless of SKIP_SIG_VERIFY) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   console.log("EA_SENT_OPEN_TIME:", args.tradePayload.open_time);
   console.log("EA_SENT_CLOSE_TIME:", args.tradePayload.close_time);
+  console.log("RAW_JSON_OPEN_TIME:", (args.parsedJson as Record<string,unknown>).open_time);
+  console.log("HASH_USED_OPEN_TIME:", rawOpenTime);
   console.log("EA_SENT_SIG:", envelope.sig);
   console.log("SERVER_CANONICAL_MSG:", message);
   console.log("SERVER_TRADE_HASH:", tradeHash);
@@ -404,6 +428,16 @@ export async function POST(req: NextRequest) {
   // 7. zod-validate the trade fields. We do this BEFORE v2 sig verify so
   //    the canonical-message computation has a stable, validated payload.
   const parsed = eaTradeSchema.safeParse(parsedJson);
+  // Task 3 diagnostic logs — show open_time immediately after Zod parse and
+  // directly from the raw JSON so we can see if Zod is mutating the value.
+  if (parsed.success) {
+    const rawForLog = parsedJson as Record<string, unknown>;
+    console.log('RAW_OPEN_TIME_FROM_EA:', rawForLog.open_time);
+    console.log('ZOD_OPEN_TIME_AFTER_PARSE:', parsed.data.open_time);
+    const openTimeForHash =
+      typeof rawForLog.open_time === "string" ? rawForLog.open_time : parsed.data.open_time;
+    console.log('RAW_OPEN_TIME_BEFORE_HASH:', openTimeForHash);
+  }
   if (!parsed.success) {
     console.error('INGEST_ZOD_FAIL:', JSON.stringify(parsed.error.issues, null, 2))
     return NextResponse.json(
