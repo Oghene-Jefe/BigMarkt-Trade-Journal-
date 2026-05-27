@@ -99,6 +99,10 @@ export function buildEaTradeRow(args: {
   userId: string;
   brokerAccountId?: string | null;
   accountType?: string | null;
+  /** 'in' = opening deal (result is null — trade not yet closed)
+   *  'out' = closing deal (result derived from profit)
+   *  undefined = legacy / manual (result derived from profit) */
+  dealEntry?: 'in' | 'out';
 }) {
   const direction = deriveEaDirection(args.payload.type);
   if (!direction) return { error: "Trade type must include buy or sell" } as const;
@@ -141,7 +145,9 @@ export function buildEaTradeRow(args: {
     commission: args.payload.commission ?? null,
     magic: args.payload.magic ?? null,
     comment: args.payload.comment ?? null,
-    result: deriveEaResult(args.payload.profit),
+    // Open trades have no result yet — only set on close (ENTRY_OUT) or legacy inserts.
+    // Migration 0050 makes this column nullable so null is valid here.
+    result: args.dealEntry === 'in' ? null : deriveEaResult(args.payload.profit),
     capture_source: "ea",
     trust_badge: trustBadge,
     core_fields_locked: true,

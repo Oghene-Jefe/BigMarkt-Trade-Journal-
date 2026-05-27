@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { recalculateAccountScoreWithClient } from "@/lib/scoring-recalculate";
-import { buildEaTradeRow, eaTradeSchema, type EaTradePayload } from "@/lib/ea/normalize";
+import { buildEaTradeRow, deriveEaResult, eaTradeSchema, type EaTradePayload } from "@/lib/ea/normalize";
 import { decryptSigningSecret } from "@/lib/ea/secrets";
 import {
   canonicalMessage,
@@ -440,7 +440,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 10. Build the canonical DB row
-  const built = buildEaTradeRow({ payload: parsed.data, userId, brokerAccountId, accountType });
+  const built = buildEaTradeRow({ payload: parsed.data, userId, brokerAccountId, accountType, dealEntry: parsed.data.deal_entry });
   if ("error" in built) {
     return NextResponse.json({ error: "Invalid trade payload" }, { status: 400 });
   }
@@ -528,6 +528,7 @@ export async function POST(req: NextRequest) {
         swap: parsed.data.swap ?? null,
         commission: parsed.data.commission ?? null,
         r_multiple: parsed.data.r_multiple || null,
+        result: deriveEaResult(parsed.data.profit),   // set result on close
         deal_entry: "out",
         status: "closed",
         source: 'ea',
