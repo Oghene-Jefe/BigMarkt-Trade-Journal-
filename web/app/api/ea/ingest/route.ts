@@ -136,15 +136,18 @@ async function validateV2Envelope(args: {
 }): Promise<{ ok: true; envelope: V2Envelope } | { ok: false; res: NextResponse }> {
   const envelope = readV2Envelope(args.parsedJson);
   if (!envelope) {
+    console.error('ENVELOPE_FAIL:', 'missing or malformed envelope fields (sent_at/nonce/sig)', { tokenId: args.tokenId, sentAt: undefined, nonce: undefined, now: Date.now() });
     return { ok: false, res: NextResponse.json({ error: "Invalid envelope" }, { status: 400 }) };
   }
 
   if (!isTimestampFresh(envelope.sent_at)) {
+    console.error('ENVELOPE_FAIL:', 'timestamp too old or too far in future', { tokenId: args.tokenId, sentAt: envelope.sent_at, nonce: envelope.nonce, now: Date.now() });
     return { ok: false, res: NextResponse.json({ error: "Stale request" }, { status: 409 }) };
   }
 
   // Legacy token (pre-0041) → cannot v2-verify.
   if (!args.encryptedSecret) {
+    console.error('ENVELOPE_FAIL:', 'token has no signing secret (legacy token, cannot v2-verify)', { tokenId: args.tokenId, sentAt: envelope.sent_at, nonce: envelope.nonce, now: Date.now() });
     return {
       ok: false,
       res: NextResponse.json({ error: "Invalid signature" }, { status: 401 }),
@@ -157,6 +160,7 @@ async function validateV2Envelope(args: {
   } catch (err) {
     // Tampered ciphertext, wrong master key, wrong row binding. Don't leak
     // which; just refuse.
+    console.error('ENVELOPE_FAIL:', 'signing-secret decrypt failed', { tokenId: args.tokenId, sentAt: envelope.sent_at, nonce: envelope.nonce, now: Date.now() });
     console.error("EA ingest signing-secret decrypt failed:", { tokenId: args.tokenId, err });
     return {
       ok: false,
@@ -172,6 +176,7 @@ async function validateV2Envelope(args: {
     tradeHash,
   });
   if (!verifySig(message, signingSecret, envelope.sig)) {
+    console.error('ENVELOPE_FAIL:', 'signature mismatch', { tokenId: args.tokenId, sentAt: envelope.sent_at, nonce: envelope.nonce, now: Date.now() });
     console.error('INGEST_SIG_FAIL: signature mismatch for token', args.tokenId)
     return {
       ok: false,
