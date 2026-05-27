@@ -48,7 +48,7 @@ export const eaTradeSchema = z.object({
   open_price: finiteBounded(1_000_000_000),
   close_price: finiteBounded(1_000_000_000).default(0),
   open_time: isoString,
-  close_time: z.string().default(""),
+  close_time: z.string().default("").transform(v => v || null),
   profit: finiteBounded(1_000_000_000).default(0),
   swap: finiteBounded(1_000_000_000).default(0),
   commission: finiteBounded(1_000_000_000).default(0),
