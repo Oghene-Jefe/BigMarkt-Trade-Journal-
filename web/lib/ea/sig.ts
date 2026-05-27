@@ -46,6 +46,14 @@ const TRADE_FIELD_ORDER = [
 // keep server and EA canonical strings byte-identical.
 const ABSENT_AS_EMPTY = new Set<string>(["close_price", "close_time"]);
 
+
+// Timestamp fields that MUST be passed through verbatim — no new Date(),
+// no .toISOString(), no timezone conversion of any kind. The EA hashes the
+// raw string it sends; the server must hash that exact same string.
+// Any re-serialisation via the JS Date object would shift the value by
+// the server's local UTC offset and break the canonical match.
+const RAW_STRING_FIELDS = new Set<string>(["open_time", "close_time"]);
+
 function fieldToString(key: string, v: unknown): string {
   // close_price=0 (Zod default for absent) and close_time="" must both
   // canonicalize as "" to match ComputeTradeFieldsHash in the MQL5 EA,
@@ -54,6 +62,14 @@ function fieldToString(key: string, v: unknown): string {
     if (v === undefined || v === null || v === 0 || v === "") return "";
   }
   if (v === undefined || v === null) return "";
+  // Timestamp fields: return the raw string exactly as received from the EA.
+  // Never parse through new Date() or call .toISOString() — doing so applies
+  // the server's local timezone offset and shifts the value (e.g. +2 h on a
+  // GMT+2 broker server), which produces a canonical string that no longer
+  // matches the EA's own hash.
+  if (RAW_STRING_FIELDS.has(key)) {
+    return String(v);
+  }
   if (typeof v === "number") {
     // Number → String uses the shortest round-trip representation in
     // JavaScript (e.g. 1.0876, 0.1). MQL5 must emit the same canonical
