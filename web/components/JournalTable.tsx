@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Share2, Zap, ShieldCheck, Pencil } from "lucide-react";
+import { Share2, Zap, ShieldCheck, Pencil, Lock } from "lucide-react";
 import type { TradeRow } from "@/lib/types";
 import { fmtDate, fmtMoney } from "@/lib/format";
 import { deleteTradeAction } from "@/app/(app)/actions";
@@ -13,11 +13,11 @@ import { Plus } from "lucide-react";
 
 type SourceFilter = "all" | "ea" | "manual";
 
-// All trade fields render as React text — never as raw HTML — which
+// All trade fields render as React text â€” never as raw HTML â€” which
 // structurally prevents the stored-XSS class of bug the old static app was
 // vulnerable to.
 //
-// chartUrls is a path → signed URL lookup minted by the parent page so we
+// chartUrls is a path â†’ signed URL lookup minted by the parent page so we
 // only round-trip Storage once for the whole list. URLs expire on the next
 // request, so a cached page can't be replayed forever.
 export default function JournalTable({
@@ -143,18 +143,18 @@ export default function JournalTable({
                         />
                       </a>
                     ) : (
-                      <span className="text-xs text-muted">—</span>
+                      <span className="text-xs text-muted">â€”</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 font-medium">{t.pair ?? "—"}</td>
+                  <td className="px-3 py-2 font-medium">{t.pair ?? "â€”"}</td>
                   <td className="px-3 py-2">
                     <span className={`rounded px-2 py-0.5 text-xs ${t.direction === "BUY" ? "bg-win/20 text-win" : "bg-loss/20 text-loss"}`}>
-                      {t.direction ?? "—"}
+                      {t.direction ?? "â€”"}
                     </span>
                   </td>
                   <td className="px-3 py-2">
                     <span className={`text-xs uppercase ${t.result === "WIN" ? "text-win" : t.result === "LOSS" ? "text-loss" : "text-muted"}`}>
-                      {t.result ?? "—"}
+                      {t.result ?? "â€”"}
                     </span>
                   </td>
                   <td className="px-3 py-2">
@@ -164,9 +164,9 @@ export default function JournalTable({
                     {fmtMoney(t.pnl)}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums text-muted">
-                    {t.rr_ratio != null ? t.rr_ratio.toFixed(2) : "—"}
+                    {t.rr_ratio != null ? t.rr_ratio.toFixed(2) : "â€”"}
                   </td>
-                  <td className="px-3 py-2 text-xs text-muted">{t.tags ?? "—"}</td>
+                  <td className="px-3 py-2 text-xs text-muted">{t.tags ?? "â€”"}</td>
                   <td className="px-3 py-2 text-xs">
                     <VisibilityPill v={t.visibility} />
                   </td>
@@ -180,10 +180,22 @@ export default function JournalTable({
                       >
                         <Share2 className="h-4 w-4" />
                       </Link>
-                      <Link href={`/journal/${t.id}/edit`} className="rounded border border-white/20 px-2 py-1 text-xs hover:bg-white/5">
-                        Edit
-                      </Link>
-                      <DeleteForm id={t.id} />
+                      {t.source === "ea" ? (
+                        <span
+                          title="Auto-verified trade — cannot be edited manually"
+                          className="inline-flex items-center justify-center rounded border border-white/10 p-1.5 text-muted cursor-default"
+                          aria-label="Auto-verified trade — cannot be edited manually"
+                        >
+                          <Lock className="h-4 w-4" />
+                        </span>
+                      ) : (
+                        <>
+                          <Link href={`/journal/${t.id}/edit`} className="rounded border border-white/20 px-2 py-1 text-xs hover:bg-white/5">
+                            Edit
+                          </Link>
+                          <DeleteForm id={t.id} />
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
