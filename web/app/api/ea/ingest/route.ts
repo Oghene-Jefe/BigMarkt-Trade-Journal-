@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+﻿import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -16,7 +16,7 @@ import {
   verifySig,
 } from "@/lib/ea/sig";
 
-// ── debug bypass ─────────────────────────────────────────────────────────────
+// â”€â”€ debug bypass â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SKIP_SIG_VERIFY = process.env.SKIP_SIG_VERIFY === "true";
 
 // ── migration guard ─────────────────────────────────────────────────────────────────────────────
@@ -41,13 +41,13 @@ const TOKEN_RATE_WINDOW_SEC = 60;
 /**
  * Per-process in-memory throttle for the v1-deprecation warning log line.
  * Each token id gets one log every DEPRECATION_LOG_INTERVAL_MS; without
- * this a busy EA would spam Vercel logs with the same warning 60×/min.
+ * this a busy EA would spam Vercel logs with the same warning 60Ã—/min.
  * Map entries naturally TTL out by process restart.
  */
 const lastDeprecationLogByTokenId = new Map<string, number>();
 const DEPRECATION_LOG_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function hashToken(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
@@ -78,16 +78,16 @@ async function readCappedBody(req: NextRequest): Promise<string | null> {
 /**
  * Is v1 (no X-Ingest-Protocol header) still accepted right now?
  *
- * EA_INGEST_V1_CUTOFF_AT (ISO-8601). If unset → allow v1 with a server
+ * EA_INGEST_V1_CUTOFF_AT (ISO-8601). If unset â†’ allow v1 with a server
  * warning (per Codex: "do not accidentally brick current users because
- * an env var is missing"). If set and NOW ≥ cutoff → reject v1.
+ * an env var is missing"). If set and NOW â‰¥ cutoff â†’ reject v1.
  */
 function v1Allowed(): { allowed: true; cutoffMissing: boolean } | { allowed: false } {
   const raw = process.env.EA_INGEST_V1_CUTOFF_AT;
   if (!raw) return { allowed: true, cutoffMissing: true };
   const cutoff = Date.parse(raw);
   if (!Number.isFinite(cutoff)) {
-    console.warn("EA_INGEST_V1_CUTOFF_AT is set but unparseable — treating as not set:", raw);
+    console.warn("EA_INGEST_V1_CUTOFF_AT is set but unparseable â€” treating as not set:", raw);
     return { allowed: true, cutoffMissing: true };
   }
   return Date.now() < cutoff
@@ -101,12 +101,12 @@ function logV1Deprecation(tokenId: string): void {
   if (now - last < DEPRECATION_LOG_INTERVAL_MS) return;
   lastDeprecationLogByTokenId.set(tokenId, now);
   console.warn(
-    `EA ingest v1 (legacy) request from token_id=${tokenId} — ` +
+    `EA ingest v1 (legacy) request from token_id=${tokenId} â€” ` +
       `update the MT5 EA to send X-Ingest-Protocol: v2 before EA_INGEST_V1_CUTOFF_AT.`,
   );
 }
 
-// ── v2 envelope handling ─────────────────────────────────────────────────────
+// â”€â”€ v2 envelope handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type V2Envelope = {
   sent_at: string;
@@ -130,7 +130,7 @@ function readV2Envelope(parsed: unknown): V2Envelope | null {
 }
 
 /**
- * Verify the v2 envelope: shape → timestamp window → signature.
+ * Verify the v2 envelope: shape â†’ timestamp window â†’ signature.
  *
  * Returns NextResponse on failure (the route returns it as-is), or
  * `{ ok: true }` to continue. Nonce-insert happens later in the route,
@@ -159,7 +159,7 @@ async function validateV2Envelope(args: {
     return { ok: false, res: NextResponse.json({ error: "Stale request" }, { status: 409 }) };
   }
 
-  // Legacy token (pre-0041) → cannot v2-verify.
+  // Legacy token (pre-0041) â†’ cannot v2-verify.
   if (!args.encryptedSecret) {
     console.error('ENVELOPE_FAIL:', 'token has no signing secret (legacy token, cannot v2-verify)', { tokenId: args.tokenId, sentAt: envelope.sent_at, nonce: envelope.nonce, now: Date.now() });
     return {
@@ -191,7 +191,7 @@ async function validateV2Envelope(args: {
   });
   const computedSig = signMessage(message, signingSecret);
 
-  // ── debug logging (fires regardless of SKIP_SIG_VERIFY) ──────────────────
+  // â”€â”€ debug logging (fires regardless of SKIP_SIG_VERIFY) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   console.log("EA_SENT_OPEN_TIME:", args.tradePayload.open_time);
   console.log("EA_SENT_CLOSE_TIME:", args.tradePayload.close_time);
   console.log("EA_SENT_SIG:", envelope.sig);
@@ -216,7 +216,7 @@ async function validateV2Envelope(args: {
       };
     }
   } else {
-    console.warn("SKIP_SIG_VERIFY enabled — signature check bypassed for debug");
+    console.warn("SKIP_SIG_VERIFY enabled â€” signature check bypassed for debug");
   }
 
   return { ok: true, envelope };
@@ -224,7 +224,7 @@ async function validateV2Envelope(args: {
 
 /**
  * Atomic replay check: INSERT into ea_request_nonces. Duplicate
- * (unique_violation, Postgres code 23505) → replay → 409.
+ * (unique_violation, Postgres code 23505) â†’ replay â†’ 409.
  */
 async function recordNonce(
   supabase: SupabaseClient,
@@ -253,7 +253,7 @@ async function recordNonce(
   return { ok: true };
 }
 
-// ── handler ──────────────────────────────────────────────────────────────────
+// â”€â”€ handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function POST(req: NextRequest) {
   // 1. Bearer token
@@ -321,7 +321,7 @@ export async function POST(req: NextRequest) {
   // is for retiring LEGACY v1-only tokens; it's not a per-token policy.
   // Without this check, an attacker with only the raw bearer (no signing
   // secret) can downgrade the protocol by omitting the v2 header and
-  // bypass the entire HMAC + nonce + freshness stack — defeating the
+  // bypass the entire HMAC + nonce + freshness stack â€” defeating the
   // whole reason v2 exists.
   if (!isV2 && encryptedSecret) {
     return NextResponse.json(
@@ -338,12 +338,12 @@ export async function POST(req: NextRequest) {
     const allow = v1Allowed();
     if (!allow.allowed) {
       return NextResponse.json(
-        { error: "EA out of date — regenerate your token and update the EA in MT5" },
+        { error: "EA out of date â€” regenerate your token and update the EA in MT5" },
         { status: 410 },
       );
     }
     if (allow.cutoffMissing) {
-      // Don't flood logs from this branch — keep the noisy log to
+      // Don't flood logs from this branch â€” keep the noisy log to
       // logV1Deprecation() below, gated by token id.
     }
     logV1Deprecation(tokenId);
@@ -354,7 +354,7 @@ export async function POST(req: NextRequest) {
   // Audit H-7: the previous implementation did a SELECT count(*) and a
   // separate INSERT in two round-trips, leaving a TOCTOU race window.
   // Two concurrent requests with the same Bearer could both observe
-  // count < limit, both insert, both proceed — the cap was effectively
+  // count < limit, both insert, both proceed â€” the cap was effectively
   // multiplied by the parallelism factor under bursty load.
   //
   // The RPC below (migration 0045) collapses the INSERT + count into a
@@ -362,7 +362,7 @@ export async function POST(req: NextRequest) {
   // the count read afterward includes the just-written row, so
   // concurrent callers see each other's INSERT before deciding. Cap
   // holds under any parallelism. Rejected requests still consume a
-  // slot from the attacker's bucket — sustained burst is correctly
+  // slot from the attacker's bucket â€” sustained burst is correctly
   // rate-limited rather than spiking through.
   const rateRes = await supabase.rpc("ea_ingest_rate_check_and_log", {
     p_token_hash: hash,
@@ -425,7 +425,7 @@ export async function POST(req: NextRequest) {
   //    (linkEaTokenToAccountAction enforces ownership), but adding
   //    .eq("user_id", userId) here means even a row that somehow slipped
   //    through can't be read across users. If the account is missing or
-  //    isn't owned, default to non-demo (auto_verified) and continue —
+  //    isn't owned, default to non-demo (auto_verified) and continue â€”
   //    we don't 401 here because that would leak existence of a specific
   //    broker_account_id.
   let accountType: string | null = null;
@@ -446,7 +446,7 @@ export async function POST(req: NextRequest) {
   }
   const tradeRow = built.row;
 
-  // 11. v2 only: insert the nonce LAST — after envelope + payload validation
+  // 11. v2 only: insert the nonce LAST â€” after envelope + payload validation
   //     pass, immediately before the trade write. Atomic; a duplicate is the
   //     replay check.
   if (isV2 && envelopeForReplay) {
@@ -454,11 +454,11 @@ export async function POST(req: NextRequest) {
     if (!nonceRes.ok) return nonceRes.res;
   }
 
-  // 12. Save the trade — deal_entry-aware upsert logic.
+  // 12. Save the trade â€” deal_entry-aware upsert logic.
   //
-  //   deal_entry === 'in'   → new position opening: upsert by (user_id, position_id)
-  //   deal_entry === 'out'  → close an existing position: lookup by position_id and UPDATE
-  //   deal_entry absent     → legacy / manual: keep the old ticket-based upsert
+  //   deal_entry === 'in'   â†’ new position opening: upsert by (user_id, position_id)
+  //   deal_entry === 'out'  â†’ close an existing position: lookup by position_id and UPDATE
+  //   deal_entry absent     â†’ legacy / manual: keep the old ticket-based upsert
   const dealEntry = parsed.data.deal_entry;
   const positionId = parsed.data.position_id ?? null;
 
@@ -478,6 +478,7 @@ export async function POST(req: NextRequest) {
       status: "open",
       source: 'ea',
       verified: true,
+      visibility: 'private',
     };
     // Check if a row already exists for this position
     const { data: existing } = await supabase
@@ -541,7 +542,7 @@ export async function POST(req: NextRequest) {
         .eq("user_id", userId);
       ingestAction = "updated";
     } else {
-      // EA was installed mid-trade — no open row exists; insert a complete closed row.
+      // EA was installed mid-trade â€” no open row exists; insert a complete closed row.
       const closedRow = {
         ...tradeRow,
         position_id: positionId,
@@ -552,6 +553,7 @@ export async function POST(req: NextRequest) {
         status: "closed",
         source: 'ea',
         verified: true,
+      visibility: 'private',
       };
       saveResult = await supabase.from("trades").insert(closedRow);
       ingestAction = "inserted";
@@ -590,8 +592,8 @@ export async function POST(req: NextRequest) {
 
     // Include source+verified only when the columns exist (migration 0022 applied).
     const legacyRow = MIGRATIONS_APPLIED
-      ? { ...tradeRow, source: 'ea' as const, verified: true }
-      : { ...tradeRow };
+      ? { ...tradeRow, source: 'ea' as const, verified: true, visibility: 'private' }
+      : { ...tradeRow, visibility: 'private' };
 
     saveResult = existingTrade?.id
       ? await supabase.from("trades").update(legacyRow).eq("id", existingTrade.id).eq("user_id", userId)
