@@ -172,6 +172,7 @@ async function validateV2Envelope(args: {
     tradeHash,
   });
   if (!verifySig(message, signingSecret, envelope.sig)) {
+    console.error('INGEST_SIG_FAIL: signature mismatch for token', args.tokenId)
     return {
       ok: false,
       res: NextResponse.json({ error: "Invalid signature" }, { status: 401 }),
@@ -335,6 +336,7 @@ export async function POST(req: NextRequest) {
   }
   const newCount = typeof rateRes.data === "number" ? rateRes.data : 0;
   if (newCount > TOKEN_RATE_LIMIT) {
+    console.error('INGEST_RATE_LIMIT: token', tokenId, 'exceeded rate limit')
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
@@ -356,8 +358,11 @@ export async function POST(req: NextRequest) {
   //    the canonical-message computation has a stable, validated payload.
   const parsed = eaTradeSchema.safeParse(parsedJson);
   if (!parsed.success) {
-    console.error('Zod validation error:', JSON.stringify(parsed.error.issues));
-    return NextResponse.json({ error: "Invalid trade payload" }, { status: 400 });
+    console.error('INGEST_ZOD_FAIL:', JSON.stringify(parsed.error.issues, null, 2))
+    return NextResponse.json(
+      { error: 'Invalid trade payload', issues: parsed.error.issues },
+      { status: 400 }
+    )
   }
 
   // 8. v2 envelope: shape + timestamp + HMAC verify
