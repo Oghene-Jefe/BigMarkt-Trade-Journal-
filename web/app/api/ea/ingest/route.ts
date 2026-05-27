@@ -600,10 +600,7 @@ export async function POST(req: NextRequest) {
 
   if (saveResult.error) {
     // Audit M-7: keep code + message only — avoid echoing row values to logs.
-    console.error("EA ingest save error:", {
-      code: saveResult.error.code,
-      message: saveResult.error.message,
-    });
+    console.error('EA_INGEST_SAVE_ERROR:', JSON.stringify(saveResult.error, null, 2))
     return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
   }
 
