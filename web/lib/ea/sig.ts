@@ -82,12 +82,23 @@ function fieldToString(key: string, v: unknown): string {
 
 /** SHA-256 hex of the canonical trade-field bundle. */
 export function tradeFieldsHash(payload: EaTradePayload): string {
+  const p = payload as Record<string, unknown>;
   const lines = TRADE_FIELD_ORDER.map(
-    (k) => `${k}=${fieldToString(k, (payload as Record<string, unknown>)[k])}`,
+    (k) => `${k}=${fieldToString(k, p[k])}`,
   );
   const canonical = lines.join("\n");
   const hash = createHash("sha256").update(canonical, "utf8").digest("hex");
   console.log('TRADE_HASH_CANONICAL_FIELDS:', JSON.stringify(canonical));
+  // Field-by-field breakdown — shows exact raw value and formatted string for
+  // each field so we can spot the precise canonical mismatch vs the EA.
+  console.log('FIELD_BY_FIELD:', JSON.stringify(
+    TRADE_FIELD_ORDER.map((k) => ({
+      key: k,
+      raw: p[k],
+      rawType: typeof p[k],
+      formatted: fieldToString(k, p[k]),
+    }))
+  ));
   return hash;
 }
 
