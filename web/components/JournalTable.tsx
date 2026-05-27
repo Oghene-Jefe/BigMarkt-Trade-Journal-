@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Share2, Zap, ShieldCheck, Pencil, Lock } from "lucide-react";
 import type { TradeRow } from "@/lib/types";
-import { fmtDate, fmtMoney } from "@/lib/format";
+import { fmtDate, fmtDateTime, fmtMoney } from "@/lib/format";
 import { deleteTradeAction } from "@/app/(app)/actions";
 import ConfirmButton from "./ConfirmButton";
 import TrustBadge from "./TrustBadge";
@@ -130,7 +130,7 @@ export default function JournalTable({
             <tbody>
               {visibleTrades.map((t) => (
                 <tr key={t.id} className="border-t border-white/5">
-                  <td className="px-3 py-2 text-muted">{fmtDate(t.created_at)}</td>
+                  <td className="px-3 py-2 text-muted">{fmtDateTime((t as any).open_time ?? t.created_at)}</td>
                   <td className="px-3 py-2">
                     {t.chart_path && chartUrls[t.chart_path] ? (
                       <a href={chartUrls[t.chart_path]} target="_blank" rel="noreferrer">
