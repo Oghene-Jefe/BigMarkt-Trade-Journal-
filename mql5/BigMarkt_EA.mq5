@@ -6,7 +6,7 @@
 //+------------------------------------------------------------------+
 #property copyright "BigMarkt Protocol"
 #property link      "https://journal.bigmarkt.co"
-#property version   "2.00"
+#property version   "2.11"  // v2.1.1 — DEAL_TIME_MSC fix: broker timezone independent
 #property strict
 
 #include <Trade\Trade.mqh>
@@ -20,7 +20,7 @@ input bool   DebugMode    = false; // Print debug logs
 input int    FilterMagic  = -1;    // Magic filter: -1=all, 0=manual, N=that magic only
 
 //--- constants
-#define BIGMARKT_VERSION "2.0.0"
+#define BIGMARKT_VERSION "2.1.1"
 
 //--- nonce counter — incremented each call to guarantee uniqueness per session
 static uint g_nonceCounter = 0;
@@ -292,7 +292,7 @@ void SendDeal(ulong dealTicket)
    double   commission = HistoryDealGetDouble(dealTicket, DEAL_COMMISSION);
    long     magic      = HistoryDealGetInteger(dealTicket, DEAL_MAGIC);
    string   comment    = HistoryDealGetString(dealTicket, DEAL_COMMENT);
-   datetime openTime   = (datetime)HistoryDealGetInteger(dealTicket, DEAL_TIME);
+   datetime openTime   = (datetime)(HistoryDealGetInteger(dealTicket, DEAL_TIME_MSC) / 1000);
 
    string typeStr    = OrderTypeToString(dealType);
    string openTimeStr = ToISO8601(openTime);
