@@ -11,9 +11,13 @@ import {
   NONCE_RE,
   PROTOCOL_VERSION,
   SIG_RE,
+  signMessage,
   tradeFieldsHash,
   verifySig,
 } from "@/lib/ea/sig";
+
+// ── debug bypass ─────────────────────────────────────────────────────────────
+const SKIP_SIG_VERIFY = process.env.SKIP_SIG_VERIFY === "true";
 
 // ── constants ────────────────────────────────────────────────────────────────
 
@@ -175,19 +179,34 @@ async function validateV2Envelope(args: {
     nonce: envelope.nonce,
     tradeHash,
   });
+  const computedSig = signMessage(message, signingSecret);
+
+  // ── debug logging (fires regardless of SKIP_SIG_VERIFY) ──────────────────
+  console.log("EA_SENT_OPEN_TIME:", args.tradePayload.open_time);
+  console.log("EA_SENT_CLOSE_TIME:", args.tradePayload.close_time);
+  console.log("EA_SENT_SIG:", envelope.sig);
+  console.log("SERVER_CANONICAL_MSG:", message);
+  console.log("SERVER_TRADE_HASH:", tradeHash);
+  console.log("SERVER_COMPUTED_SIG:", computedSig.substring(0, 32) + "...");
+
   console.log('INGEST_VERIFY_INPUT:', JSON.stringify({
     tokenId: args.tokenId,
     sentAt: envelope.sent_at,
     nonce: envelope.nonce,
     tradeHashPreview: tradeHash?.substring(0, 16)
   }));
-  if (!verifySig(message, signingSecret, envelope.sig)) {
-    console.error('ENVELOPE_FAIL:', 'signature mismatch', { tokenId: args.tokenId, sentAt: envelope.sent_at, nonce: envelope.nonce, now: Date.now() });
-    console.error('INGEST_SIG_FAIL: signature mismatch for token', args.tokenId)
-    return {
-      ok: false,
-      res: NextResponse.json({ error: "Invalid signature" }, { status: 401 }),
-    };
+
+  if (!SKIP_SIG_VERIFY) {
+    if (!verifySig(message, signingSecret, envelope.sig)) {
+      console.error('ENVELOPE_FAIL:', 'signature mismatch', { tokenId: args.tokenId, sentAt: envelope.sent_at, nonce: envelope.nonce, now: Date.now() });
+      console.error('INGEST_SIG_FAIL: signature mismatch for token', args.tokenId);
+      return {
+        ok: false,
+        res: NextResponse.json({ error: "Invalid signature" }, { status: 401 }),
+      };
+    }
+  } else {
+    console.warn("SKIP_SIG_VERIFY enabled — signature check bypassed for debug");
   }
 
   return { ok: true, envelope };
