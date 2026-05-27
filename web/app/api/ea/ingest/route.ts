@@ -479,10 +479,30 @@ export async function POST(req: NextRequest) {
       source: 'ea',
       verified: true,
     };
-    saveResult = await supabase
-      .from("trades")
-      .upsert(openRow, { onConflict: "user_id,position_id" });
-    ingestAction = "inserted";
+    // Check if a row already exists for this position
+    const { data: existing } = await supabase
+      .from('trades')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('position_id', positionId)
+      .maybeSingle()
+
+    if (existing) {
+      // Row exists — update it
+      const { error: updateErr } = await supabase
+        .from('trades')
+        .update(openRow)
+        .eq('id', existing.id)
+      saveResult = { error: updateErr ?? null }
+      ingestAction = 'updated'
+    } else {
+      // No row — insert fresh
+      const { error: insertErr } = await supabase
+        .from('trades')
+        .insert(openRow)
+      saveResult = { error: insertErr ?? null }
+      ingestAction = 'inserted'
+    }
     resultStatus = "open";
   } else if (MIGRATIONS_APPLIED && dealEntry === "out" && positionId) {
     // Closing leg — find the open row and UPDATE it with close fields.
