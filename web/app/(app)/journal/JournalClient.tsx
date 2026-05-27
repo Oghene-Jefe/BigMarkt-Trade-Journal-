@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { Plus, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { TradeRow } from "@/lib/types";
 import JournalTable from "@/components/JournalTable";
 import MonthlyHeatmap from "@/components/heatmap/MonthlyHeatmap";
@@ -39,6 +40,27 @@ export default function JournalClient({
   const [showManualForm, setShowManualForm] = useState(false);
   // A counter we increment on success to force a page refresh hint
   const [, setRefreshKey] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [secondsAgo, setSecondsAgo] = useState(0);
+  const router = useRouter();
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const refresh = setInterval(() => {
+      router.refresh();
+      setLastUpdated(new Date());
+      setSecondsAgo(0);
+    }, 30_000);
+    return () => clearInterval(refresh);
+  }, [router]);
+
+  // Tick the "last updated X seconds ago" counter every second
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setSecondsAgo(Math.round((Date.now() - lastUpdated.getTime()) / 1000));
+    }, 1_000);
+    return () => clearInterval(tick);
+  }, [lastUpdated]);
 
   const filteredTrades = useMemo(() => {
     if (!selectedDate) return trades;
@@ -74,7 +96,7 @@ export default function JournalClient({
             onClick={() => setSelectedDate(null)}
             className="font-medium hover:text-white"
           >
-            Clear ×
+            Clear Ã—
           </button>
         </div>
       ) : null}
@@ -125,6 +147,12 @@ export default function JournalClient({
           </div>
         </div>
       ) : null}
+
+      <div className="flex justify-end">
+        <span className="text-xs text-muted">
+          Last updated {secondsAgo === 0 ? "just now" : `${secondsAgo}s ago`}
+        </span>
+      </div>
 
       <JournalTable trades={filteredTrades} chartUrls={chartUrls} />
     </div>
