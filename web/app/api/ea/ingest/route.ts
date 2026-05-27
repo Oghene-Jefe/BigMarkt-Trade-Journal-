@@ -19,6 +19,16 @@ import {
 // ── debug bypass ─────────────────────────────────────────────────────────────
 const SKIP_SIG_VERIFY = process.env.SKIP_SIG_VERIFY === "true";
 
+// ── migration guard ─────────────────────────────────────────────────────────────────────────────
+// Migrations 0021 + 0022 add nine columns to the  table:
+//   position_id, deal_entry, close_price, sl, tp, r_multiple, status  (0021)
+//   source, verified                                                    (0022)
+// Until those migrations are applied to the live DB and MIGRATIONS_APPLIED=true
+// is set in Vercel env vars, the position-aware upsert paths are bypassed and
+// all inserts fall back to the safe ticket-based path (columns from baseline +
+// migration 0018 only). Set MIGRATIONS_APPLIED=true after running the SQL.
+const MIGRATIONS_APPLIED = process.env.MIGRATIONS_APPLIED === "true";
+
 // ── constants ────────────────────────────────────────────────────────────────
 
 /** Hard cap on request body size. MT5 trades are ~500 bytes; 32 KB is generous. */
@@ -456,8 +466,9 @@ export async function POST(req: NextRequest) {
   let ingestAction: "inserted" | "updated" = "inserted";
   let resultStatus: "open" | "closed" = "closed";
 
-  if (dealEntry === "in" && positionId) {
+  if (MIGRATIONS_APPLIED && dealEntry === "in" && positionId) {
     // Opening leg — upsert by (user_id, position_id); set status = 'open'.
+    // Requires: migration 0021 (position_id column + unique index on user_id,position_id).
     const openRow = {
       ...tradeRow,
       position_id: positionId,
@@ -473,8 +484,9 @@ export async function POST(req: NextRequest) {
       .upsert(openRow, { onConflict: "user_id,position_id" });
     ingestAction = "inserted";
     resultStatus = "open";
-  } else if (dealEntry === "out" && positionId) {
+  } else if (MIGRATIONS_APPLIED && dealEntry === "out" && positionId) {
     // Closing leg — find the open row and UPDATE it with close fields.
+    // Requires: migration 0021 (position_id column).
     const { data: openTrade, error: findErr } = await supabase
       .from("trades")
       .select("id")
@@ -525,7 +537,24 @@ export async function POST(req: NextRequest) {
     }
     resultStatus = "closed";
   } else {
-    // Legacy / manual path: preserve existing ticket-based upsert behaviour.
+    // Ticket-based upsert — the safe baseline path used in two cases:
+    //   1. MIGRATIONS_APPLIED is not "true": columns from 0021+0022 don't exist
+    //      yet; any insert containing them causes Postgres 42703 and a 500.
+    //   2. EA payload has no deal_entry / position_id: legacy format.
+    //
+    // Stopgap note: when migrations are not applied, 'source' and 'verified'
+    // are also excluded from the insert since they too require migration 0022.
+    // Once migrations are applied + MIGRATIONS_APPLIED=true is set in Vercel,
+    // all paths automatically use the full column set.
+    if (!MIGRATIONS_APPLIED && (dealEntry || positionId)) {
+      console.warn(
+        "EA ingest: position-aware path skipped — MIGRATIONS_APPLIED is not set. " +
+        "Apply migrations 0021+0022 to your Supabase project and set " +
+        "MIGRATIONS_APPLIED=true in Vercel env vars to enable position tracking.",
+        { dealEntry, positionId, tokenId },
+      );
+    }
+
     const { data: existingTrade, error: lookupError } = await supabase
       .from("trades")
       .select("id")
@@ -538,7 +567,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
     }
 
-    const legacyRow = { ...tradeRow, source: 'ea', verified: true };
+    // Include source+verified only when the columns exist (migration 0022 applied).
+    const legacyRow = MIGRATIONS_APPLIED
+      ? { ...tradeRow, source: 'ea' as const, verified: true }
+      : { ...tradeRow };
+
     saveResult = existingTrade?.id
       ? await supabase.from("trades").update(legacyRow).eq("id", existingTrade.id).eq("user_id", userId)
       : await supabase.from("trades").insert(legacyRow);
