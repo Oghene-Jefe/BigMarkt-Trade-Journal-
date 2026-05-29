@@ -33,6 +33,13 @@ const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('bm_theme'
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      {/* Explicit UTF-8 declaration prevents mojibake (â€" instead of —)
+          when em dashes or other multi-byte chars appear in server components.
+          Next.js App Router adds this automatically, but being explicit
+          guarantees it is first in <head> before any browser sniffing occurs. */}
+      <head>
+        <meta charSet="utf-8" />
+      </head>
       <body className="min-h-screen bg-bg text-white antialiased">
         {/* Inline pre-paint theme bootstrap via next/script with the
             beforeInteractive strategy — Next emits this as a synchronous
