@@ -71,6 +71,15 @@ function fieldToString(key: string, v: unknown): string {
   return String(v);
 }
 
+// ── EA double canonical (mirrors DoubleToCanonical in BigMarkt_EA.mq5) ──────
+// Used by orderFieldsHash to produce the same canonical strings as the EA.
+function eaDoubleToCanonical(v: number): string {
+  if (Number.isFinite(v) && v % 1 === 0 && Math.abs(v) < 9007199254740992) {
+    return String(Math.trunc(v));
+  }
+  return parseFloat(v.toFixed(10)).toString();
+}
+
 /** SHA-256 hex of the canonical trade-field bundle. */
 export function tradeFieldsHash(payload: EaTradePayload): string {
   const p = payload as Record<string, unknown>;
@@ -79,6 +88,35 @@ export function tradeFieldsHash(payload: EaTradePayload): string {
   );
   const canonical = lines.join("\n");
   return createHash("sha256").update(canonical, "utf8").digest("hex");
+}
+
+/** SHA-256 hex of the canonical order-event field bundle.
+ *  Field order MUST match ComputeOrderFieldsHash in BigMarkt_EA.mq5 v2.2.0. */
+export function orderFieldsHash(fields: {
+  order_ticket: string | number;
+  event_type: string;
+  symbol: string;      // already uppercased
+  type: string;
+  lots: number;
+  open_price: number;
+  sl: number;
+  tp: number;
+  magic: number;
+  comment: string;
+}): string {
+  const lines = [
+    `order_ticket=${String(fields.order_ticket)}`,
+    `event_type=${fields.event_type}`,
+    `symbol=${fields.symbol}`,
+    `type=${fields.type}`,
+    `lots=${eaDoubleToCanonical(fields.lots)}`,
+    `open_price=${eaDoubleToCanonical(fields.open_price)}`,
+    `sl=${eaDoubleToCanonical(fields.sl)}`,
+    `tp=${eaDoubleToCanonical(fields.tp)}`,
+    `magic=${Math.trunc(fields.magic)}`,
+    `comment=${fields.comment}`,
+  ].join("\n");
+  return createHash("sha256").update(lines, "utf8").digest("hex");
 }
 
 // ── canonical signing message ────────────────────────────────────────────────

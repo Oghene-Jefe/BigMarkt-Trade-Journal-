@@ -9,6 +9,7 @@ import {
   canonicalMessage,
   isTimestampFresh,
   NONCE_RE,
+  orderFieldsHash,
   PROTOCOL_VERSION,
   SIG_RE,
   signMessage,
@@ -420,6 +421,134 @@ export async function POST(req: NextRequest) {
     });
     if (!env.ok) return env.res;
     envelopeForReplay = env.envelope;
+  }
+
+  // 8b. Pending order event — early-return path.
+  //
+  //   When event_type is present (order_add | order_update | order_delete)
+  //   the payload is a pending order lifecycle event, not a market fill.
+  //   Handle it here and return so the deal-specific code below is untouched.
+  //   Requires migration 0052 (order_ticket, event_type, order_status columns).
+  if (MIGRATIONS_APPLIED && parsed.data.event_type) {
+    const eventType    = parsed.data.event_type;
+    const orderTicket  = parsed.data.order_ticket ?? null;
+    const symbolUp     = parsed.data.symbol; // already uppercased by Zod
+    const typeStr      = parsed.data.type;
+
+    // Consume the nonce before writing so replayed order events are rejected.
+    if (isV2 && envelopeForReplay) {
+      const nonceRes = await recordNonce(supabase, hash, envelopeForReplay);
+      if (!nonceRes.ok) return nonceRes.res;
+    }
+
+    if (eventType === "order_add") {
+      // New pending order — insert a fresh row with order_status='pending'.
+      const orderRow = {
+        user_id:      userId,
+        pair:         symbolUp,
+        direction:    parsed.data.type.toLowerCase().includes("buy") ? "BUY" : "SELL",
+        lot_size:     parsed.data.lots || null,
+        entry_price:  parsed.data.open_price || null,
+        open_time:    parsed.data.order_time ?? parsed.data.open_time ?? null,
+        sl:           parsed.data.sl || null,
+        tp:           parsed.data.tp || null,
+        magic:        parsed.data.magic ?? null,
+        comment:      parsed.data.comment ?? null,
+        order_ticket: orderTicket,
+        event_type:   eventType,
+        order_status: "pending",
+        status:       "open",
+        source:       "ea",
+        verified:     true,
+        visibility:   "private",
+        capture_source: "ea",
+        trust_badge:  "auto_verified",
+        result:       null,
+      };
+      if (brokerAccountId) (orderRow as Record<string, unknown>).broker_account_id = brokerAccountId;
+
+      const { error: insertErr } = await supabase.from("trades").insert(orderRow);
+      if (insertErr) {
+        console.error("EA ingest: order_add insert failed", { tokenId, code: insertErr.code });
+        return NextResponse.json({ error: "Failed to save order" }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, action: "inserted", event_type: eventType }, { status: 200 });
+    }
+
+    if (eventType === "order_update" && orderTicket) {
+      // Pending order modified — update open_price, sl, tp.
+      const { data: existing } = await supabase
+        .from("trades")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("order_ticket", orderTicket)
+        .maybeSingle();
+
+      if (existing?.id) {
+        const { error: updateErr } = await supabase
+          .from("trades")
+          .update({
+            entry_price:  parsed.data.open_price || null,
+            sl:           parsed.data.sl || null,
+            tp:           parsed.data.tp || null,
+            order_status: "modified",
+            event_type:   eventType,
+          })
+          .eq("id", existing.id)
+          .eq("user_id", userId);
+        if (updateErr) {
+          console.error("EA ingest: order_update failed", { tokenId, code: updateErr.code });
+          return NextResponse.json({ error: "Failed to update order" }, { status: 500 });
+        }
+      }
+      return NextResponse.json({ success: true, action: "updated", event_type: eventType }, { status: 200 });
+    }
+
+    if (eventType === "order_delete" && orderTicket) {
+      // Pending order cancelled (not filled) — mark as cancelled.
+      const { data: existing } = await supabase
+        .from("trades")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("order_ticket", orderTicket)
+        .maybeSingle();
+
+      if (existing?.id) {
+        const { error: updateErr } = await supabase
+          .from("trades")
+          .update({
+            order_status: "cancelled",
+            status:       "closed",
+            event_type:   eventType,
+          })
+          .eq("id", existing.id)
+          .eq("user_id", userId);
+        if (updateErr) {
+          console.error("EA ingest: order_delete failed", { tokenId, code: updateErr.code });
+          return NextResponse.json({ error: "Failed to cancel order" }, { status: 500 });
+        }
+      }
+      return NextResponse.json({ success: true, action: "updated", event_type: eventType }, { status: 200 });
+    }
+
+    // Unknown event_type or missing order_ticket — fall through to 200 silently.
+    return NextResponse.json({ success: true, action: "ignored", event_type: eventType }, { status: 200 });
+  }
+
+  // When a DEAL_ENTRY_IN arrives with a position_id that matches an existing
+  // pending order row, mark that row as filled. This links the pending order
+  // record to the actual market fill.
+  if (MIGRATIONS_APPLIED && parsed.data.deal_entry === "in" && parsed.data.position_id) {
+    const pendingOrderTicket = parsed.data.order_ticket ?? null;
+    if (pendingOrderTicket) {
+      // Best-effort — don't fail the ingest if this update errors.
+      await supabase
+        .from("trades")
+        .update({ order_status: "filled", event_type: "market_open" })
+        .eq("user_id", userId)
+        .eq("order_ticket", pendingOrderTicket)
+        .eq("order_status", "pending");
+    }
   }
 
   // 9. Fetch account type to tag demo trades with trust_badge = 'demo'.

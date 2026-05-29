@@ -59,17 +59,32 @@ export const eaTradeSchema = z.object({
   sl:           z.number().default(0),
   tp:           z.number().default(0),
   r_multiple:   z.number().default(0),
+  // ── Pending order fields (EA v2.2.0) ────────────────────────────────────
+  // event_type is set by the EA for TRADE_TRANSACTION_ORDER_* events.
+  // When present, deal_entry is absent and the route uses a separate code path.
+  event_type:   z.enum(["order_add", "order_update", "order_delete"]).optional(),
+  // order_ticket: the MT5 order ticket (not the deal ticket in `ticket`).
+  // Coerced to string since JSON may send it as a number.
+  order_ticket: z.coerce.string().optional(),
+  order_status: z.string().max(32).optional(),
+  // order_time: ISO timestamp of when the pending order was placed/modified.
+  order_time:   z.string().max(40).optional(),
 }).superRefine((data, ctx) => {
+  // Pending order events (event_type present) bypass the open_price/lots
+  // positivity checks — they always have prices but lots may be 0 in some
+  // order_delete cases (filled quantity already gone from the order).
+  const isOrderEvent = !!data.event_type;
+
   // open_price=0 is valid for ENTRY_OUT (closing) deals sent by MT5.
-  if (data.deal_entry !== "out" && data.open_price <= 0) {
+  if (!isOrderEvent && data.deal_entry !== "out" && data.open_price <= 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["open_price"],
       message: "open_price must be > 0 for opening deals",
     });
   }
-  // lots=0 is valid for ENTRY_OUT closing deals.
-  if (data.deal_entry !== "out" && data.lots <= 0) {
+  // lots=0 is valid for ENTRY_OUT closing deals and order_delete events.
+  if (!isOrderEvent && data.deal_entry !== "out" && data.lots <= 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["lots"],
