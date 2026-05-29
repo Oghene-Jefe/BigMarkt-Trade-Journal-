@@ -37,6 +37,15 @@ function formatDate(value: string | null): string {
   });
 }
 
+/** "29 May 2026 03:08" — date + time, no seconds. Returns "—" for null. */
+function formatDateTime(value: string | null): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  const date = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return `${date} ${time}`;
+}
+
 function formatPnl(pnl: number | null): { text: string; className: string } {
   if (pnl === null || pnl === undefined)
     return { text: "—", className: "text-gray-500" };
@@ -109,13 +118,14 @@ export default async function TradesPage({
               <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Result</th>
               <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Trust</th>
               <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Opened</th>
+              <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Closed</th>
               <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-gray-900 divide-y divide-gray-700">
             {trades.length === 0 ? (
               <tr>
-                <td colSpan={10} className="text-gray-500 px-4 py-6 text-center text-sm">
+                <td colSpan={11} className="text-gray-500 px-4 py-6 text-center text-sm">
                   No trades found
                 </td>
               </tr>
@@ -143,7 +153,8 @@ export default async function TradesPage({
                         "—"
                       )}
                     </td>
-                    <td className="text-gray-100 px-4 py-3 text-sm">{formatDate(t.open_time)}</td>
+                    <td className="text-gray-100 px-4 py-3 text-sm">{formatDateTime(t.open_time)}</td>
+                    <td className="text-gray-100 px-4 py-3 text-sm">{formatDateTime(t.close_time)}</td>
                     <td className="text-gray-100 px-4 py-3 text-sm">
                       <Link
                         href={{ pathname: `/trades/${t.id}` }}

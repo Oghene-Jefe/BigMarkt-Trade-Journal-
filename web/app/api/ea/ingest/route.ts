@@ -525,8 +525,11 @@ export async function POST(req: NextRequest) {
 
     if (openTrade?.id) {
       // Happy path: close the existing open row.
+      // NOTE: the DB column is exit_price (trades schema), not close_price
+      // (which is the EA payload field name). Using close_price here would
+      // silently write to a nonexistent column and the UI would show 0.
       const closeFields = {
-        close_price: parsed.data.close_price || null,
+        exit_price: parsed.data.close_price || null,
         close_time: parsed.data.close_time || null,
         pnl: parsed.data.profit ?? null,
         swap: parsed.data.swap ?? null,
