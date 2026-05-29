@@ -188,6 +188,16 @@ async function validateV2Envelope(args: {
       res: NextResponse.json({ error: "Invalid signature" }, { status: 401 }),
     };
   }
+  // ── Signing-secret diagnostics ────────────────────────────────────────────
+  // decryptSigningSecret returns the UTF-8 plaintext — which should be a 64-char
+  // hex string (generateSigningSecret() → randomBytes(32).toString('hex')).
+  // signMessage() does Buffer.from(secret, 'hex') → 32-byte HMAC key.
+  // EA does HexDecode(signingSecretHex) → same 32-byte key.
+  // If these logs show length≠64 or isHex=false the secret is corrupt/mismatched.
+  const isHex = /^[0-9a-f]+$/i.test(signingSecret);
+  console.log('SECRET_AFTER_DECRYPT_FIRST8:', signingSecret.substring(0, 8));
+  console.log('SECRET_IS_HEX:', isHex);
+  console.log('SECRET_LENGTH:', signingSecret.length);
 
   // ── Defensive raw-string extraction for timestamp fields ─────────────────
   // Pull open_time/close_time from the raw JSON body before any Zod transform
@@ -228,7 +238,10 @@ async function validateV2Envelope(args: {
   console.log("EA_SENT_SIG:", envelope.sig);
   console.log("SERVER_CANONICAL_MSG:", message);
   console.log("SERVER_TRADE_HASH:", tradeHash);
-  console.log("SERVER_COMPUTED_SIG:", computedSig.substring(0, 32) + "...");
+  // Show full EA sig and full server sig for direct comparison
+  console.log("EA_SENT_SIG_FULL:", envelope.sig);
+  console.log("SERVER_COMPUTED_SIG_FULL:", computedSig);
+  console.log("SIG_MATCH:", envelope.sig === computedSig);
 
   console.log('INGEST_VERIFY_INPUT:', JSON.stringify({
     tokenId: args.tokenId,
