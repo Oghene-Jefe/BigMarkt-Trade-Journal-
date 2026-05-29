@@ -6,7 +6,7 @@
 //+------------------------------------------------------------------+
 #property copyright "BigMarkt Protocol"
 #property link      "https://journal.bigmarkt.co"
-#property version   "2.11"  // v2.1.1 — DEAL_TIME_MSC fix: broker timezone independent
+#property version   "2.20"  // v2.2.0 — pending order capture
 #property strict
 
 #include <Trade\Trade.mqh>
@@ -20,7 +20,7 @@ input bool   DebugMode    = false; // Print debug logs
 input int    FilterMagic  = -1;    // Magic filter: -1=all, 0=manual, N=that magic only
 
 //--- constants
-#define BIGMARKT_VERSION "2.1.1"
+#define BIGMARKT_VERSION "2.2.0"
 
 //--- nonce counter — incremented each call to guarantee uniqueness per session
 static uint g_nonceCounter = 0;
@@ -28,13 +28,30 @@ static uint g_nonceCounter = 0;
 //+------------------------------------------------------------------+
 //| Utility: convert deal type to string                              |
 //+------------------------------------------------------------------+
-string OrderTypeToString(ENUM_DEAL_TYPE dealType)
+string DealTypeToString(ENUM_DEAL_TYPE dealType)
 {
    switch(dealType)
    {
       case DEAL_TYPE_BUY:  return "buy";
       case DEAL_TYPE_SELL: return "sell";
       default:             return "unknown";
+   }
+}
+
+//+------------------------------------------------------------------+
+//| Utility: convert pending order type to string                     |
+//+------------------------------------------------------------------+
+string OrderTypeToString(ENUM_ORDER_TYPE orderType)
+{
+   switch(orderType)
+   {
+      case ORDER_TYPE_BUY:        return "buy";
+      case ORDER_TYPE_SELL:       return "sell";
+      case ORDER_TYPE_BUY_LIMIT:  return "buy_limit";
+      case ORDER_TYPE_SELL_LIMIT: return "sell_limit";
+      case ORDER_TYPE_BUY_STOP:   return "buy_stop";
+      case ORDER_TYPE_SELL_STOP:  return "sell_stop";
+      default:                    return "unknown";
    }
 }
 
@@ -247,6 +264,44 @@ string ComputeTradeFieldsHash(
 }
 
 //+------------------------------------------------------------------+
+//| Compute SHA-256 of canonical order-event fields bundle            |
+//| Field order MUST match orderFieldsHash() in web/lib/ea/sig.ts    |
+//|                                                                   |
+//| Fields (fixed order):                                             |
+//|   order_ticket, event_type, symbol, type,                        |
+//|   lots, open_price, sl, tp, magic, comment                       |
+//+------------------------------------------------------------------+
+string ComputeOrderFieldsHash(
+   ulong   orderTicket,
+   string  eventType,
+   string  symbolUp,
+   string  orderTypeStr,
+   double  lots,
+   double  openPrice,
+   double  sl,
+   double  tp,
+   long    magic,
+   string  comment)
+{
+   string lines =
+      "order_ticket=" + IntegerToString(orderTicket)   + "\n" +
+      "event_type="   + eventType                      + "\n" +
+      "symbol="       + symbolUp                       + "\n" +
+      "type="         + orderTypeStr                   + "\n" +
+      "lots="         + DoubleToCanonical(lots)         + "\n" +
+      "open_price="   + DoubleToCanonical(openPrice)   + "\n" +
+      "sl="           + DoubleToCanonical(sl)           + "\n" +
+      "tp="           + DoubleToCanonical(tp)           + "\n" +
+      "magic="        + IntegerToString(magic)          + "\n" +
+      "comment="      + comment;
+
+   uchar msgBytes[], hashBytes[];
+   StringToUTF8(lines, msgBytes);
+   if(!Sha256(msgBytes, hashBytes)) return "";
+   return HexEncode(hashBytes);
+}
+
+//+------------------------------------------------------------------+
 //| Compute v2 HMAC-SHA256 envelope signature                        |
 //| Canonical message format (sig.ts canonicalMessage):              |
 //|   "v2\n<tokenId>\n<sentAt>\n<nonce>\n<tradeHash>"               |
@@ -265,6 +320,62 @@ string ComputeSignature(
    StringToUTF8(message, msgBytes);
    if(!HmacSha256(keyBytes, msgBytes, mac)) return "";
    return HexEncode(mac);
+}
+
+//+------------------------------------------------------------------+
+//| Append v2 envelope fields to JSON and headers                     |
+//| Returns false if signing fails (caller should abort send).        |
+//+------------------------------------------------------------------+
+bool AppendV2Envelope(
+   string       &json,
+   string       &headers,
+   const string fieldHash)
+{
+   string sentAt = ToISO8601(TimeGMT());
+   string nonce  = GenerateNonce();
+   string sig    = ComputeSignature(TokenId, sentAt, nonce, fieldHash, SigningSecret);
+   if(StringLen(sig) == 0)
+      return false;
+
+   json += ",\"sent_at\":\"" + sentAt + "\"";
+   json += ",\"nonce\":\""   + nonce  + "\"";
+   json += ",\"sig\":\""     + sig    + "\"";
+
+   headers += "X-Ingest-Protocol: v2\r\n";
+   headers += "X-BigMarkt-Token-Id: "  + TokenId                           + "\r\n";
+   headers += "X-BigMarkt-Signature: " + sig                               + "\r\n";
+   headers += "X-BigMarkt-Timestamp: " + IntegerToString((long)TimeGMT())  + "\r\n";
+   headers += "X-BigMarkt-Nonce: "     + nonce                             + "\r\n";
+   return true;
+}
+
+//+------------------------------------------------------------------+
+//| HTTP POST helper — shared by SendDeal and SendOrderEvent          |
+//+------------------------------------------------------------------+
+void HttpPost(const string json, const string headers, const string label)
+{
+   char   post[];
+   char   result[];
+   string resultHeaders;
+   StringToCharArray(json, post, 0, StringLen(json));
+
+   int res = WebRequest(
+      "POST",
+      ApiEndpoint,
+      headers,
+      10000,   // 10 seconds
+      post,
+      result,
+      resultHeaders
+   );
+
+   if(DebugMode)
+   {
+      if(res == 200 || res == 201)
+         Print("BigMarkt: sent OK — ", label);
+      else
+         Print("BigMarkt: HTTP ", res, " — ", label, " — ", CharArrayToString(result));
+   }
 }
 
 //+------------------------------------------------------------------+
@@ -292,9 +403,11 @@ void SendDeal(ulong dealTicket)
    double   commission = HistoryDealGetDouble(dealTicket, DEAL_COMMISSION);
    long     magic      = HistoryDealGetInteger(dealTicket, DEAL_MAGIC);
    string   comment    = HistoryDealGetString(dealTicket, DEAL_COMMENT);
+   ulong    posId      = HistoryDealGetInteger(dealTicket, DEAL_POSITION_ID);
    datetime openTime   = (datetime)(HistoryDealGetInteger(dealTicket, DEAL_TIME_MSC) / 1000);
 
-   string typeStr    = OrderTypeToString(dealType);
+   string typeStr     = DealTypeToString(dealType);
+   string entryStr    = (dealEntry == DEAL_ENTRY_IN) ? "in" : "out";
    string openTimeStr = ToISO8601(openTime);
 
    // Symbol uppercased — must match Zod transform on the server before hashing
@@ -303,17 +416,19 @@ void SendDeal(ulong dealTicket)
 
    // Build JSON trade fields
    string json = "{";
-   json += "\"ticket\":"      + IntegerToString(dealTicket)   + ",";
-   json += "\"symbol\":\""    + JsonEscape(symbol)            + "\",";
-   json += "\"type\":\""      + typeStr                       + "\",";
-   json += "\"lots\":"        + DoubleToString(lots, 2)       + ",";
-   json += "\"open_price\":"  + DoubleToString(price, 5)      + ",";
-   json += "\"open_time\":\"" + openTimeStr                   + "\",";
-   json += "\"profit\":"      + DoubleToString(profit, 2)     + ",";
-   json += "\"swap\":"        + DoubleToString(swap, 2)       + ",";
-   json += "\"commission\":"  + DoubleToString(commission, 2) + ",";
-   json += "\"magic\":"       + IntegerToString(magic)        + ",";
-   json += "\"comment\":\""   + JsonEscape(comment)           + "\"";
+   json += "\"ticket\":"       + IntegerToString(dealTicket)   + ",";
+   json += "\"position_id\":\"" + IntegerToString(posId)       + "\",";
+   json += "\"deal_entry\":\""  + entryStr                     + "\",";
+   json += "\"symbol\":\""      + JsonEscape(symbol)           + "\",";
+   json += "\"type\":\""        + typeStr                      + "\",";
+   json += "\"lots\":"          + DoubleToString(lots, 2)      + ",";
+   json += "\"open_price\":"    + DoubleToString(price, 5)     + ",";
+   json += "\"open_time\":\""   + openTimeStr                  + "\",";
+   json += "\"profit\":"        + DoubleToString(profit, 2)    + ",";
+   json += "\"swap\":"          + DoubleToString(swap, 2)      + ",";
+   json += "\"commission\":"    + DoubleToString(commission, 2)+ ",";
+   json += "\"magic\":"         + IntegerToString(magic)       + ",";
+   json += "\"comment\":\""     + JsonEscape(comment)          + "\"";
 
    // Build request headers
    string headers = "Content-Type: application/json\r\n";
@@ -323,10 +438,6 @@ void SendDeal(ulong dealTicket)
 
    if(useV2)
    {
-      // sent_at is validated by the server as UTC within a tight replay
-      // window. TimeCurrent() is broker-server time, so use GMT here.
-      string sentAt    = ToISO8601(TimeGMT());
-      string nonce     = GenerateNonce();
       string tradeHash = ComputeTradeFieldsHash(
          dealTicket, symbolUp, typeStr,
          lots, price, openTimeStr,
@@ -335,64 +446,150 @@ void SendDeal(ulong dealTicket)
 
       if(StringLen(tradeHash) == 0)
       {
-         if(DebugMode) Print("BigMarkt: v2 hash failed for ticket ", dealTicket, " — aborting");
+         if(DebugMode) Print("BigMarkt: v2 hash failed for deal ", dealTicket, " — aborting");
          return;
       }
 
-      string sig = ComputeSignature(TokenId, sentAt, nonce, tradeHash, SigningSecret);
-      if(StringLen(sig) == 0)
+      if(!AppendV2Envelope(json, headers, tradeHash))
       {
-         if(DebugMode) Print("BigMarkt: v2 signature failed for ticket ", dealTicket, " — aborting");
+         if(DebugMode) Print("BigMarkt: v2 signature failed for deal ", dealTicket, " — aborting");
          return;
       }
-
-      // Append v2 envelope fields to JSON body
-      json += ",\"sent_at\":\"" + sentAt + "\"";
-      json += ",\"nonce\":\""   + nonce  + "\"";
-      json += ",\"sig\":\""     + sig    + "\"";
-
-      // v2 protocol headers
-      headers += "X-Ingest-Protocol: v2\r\n";
-      headers += "X-BigMarkt-Token-Id: "    + TokenId                              + "\r\n";
-      headers += "X-BigMarkt-Signature: "   + sig                                  + "\r\n";
-      headers += "X-BigMarkt-Timestamp: "   + IntegerToString((long)TimeGMT())    + "\r\n";
-      headers += "X-BigMarkt-Nonce: "       + nonce                                + "\r\n";
    }
    else
    {
       // v1 fallback — warn once per trade so logs are visible
-      if(DebugMode || true)
-         Print("BigMarkt: [DEPRECATED] Sending v1 request for ticket ", dealTicket,
-               " — set TokenId and SigningSecret to use v2 protocol.");
+      Print("BigMarkt: [DEPRECATED] Sending v1 request for deal ", dealTicket,
+            " — set TokenId and SigningSecret to use v2 protocol.");
    }
 
    json += "}";
 
-   // Send HTTP POST
-   char   post[];
-   char   result[];
-   string resultHeaders;
+   HttpPost(json, headers, "deal " + IntegerToString(dealTicket) + " " + typeStr);
+}
 
-   StringToCharArray(json, post, 0, StringLen(json));
+//+------------------------------------------------------------------+
+//| Send a pending order event to the BigMarkt ingest endpoint       |
+//|                                                                   |
+//| eventType: "order_add" | "order_update" | "order_delete"         |
+//|                                                                   |
+//| For ORDER_ADD and ORDER_UPDATE: reads live order data via         |
+//|   OrderSelect() + OrderGet* functions.                            |
+//| For ORDER_DELETE: order may already be gone; reads from the       |
+//|   trans struct fields passed in via parameters.                   |
+//+------------------------------------------------------------------+
+void SendOrderEvent(
+   ulong          orderTicket,
+   string         eventType,
+   string         symbolFallback,     // from trans.symbol (for DELETE)
+   ENUM_ORDER_TYPE typeFallback,      // from trans.order_type (for DELETE)
+   double         priceFallback,      // from trans.price (for DELETE)
+   double         lotsFallback,       // from trans.volume (for DELETE)
+   long           magicFallback)      // from trans (for DELETE)
+{
+   if(!StringLen(ApiToken))
+      return;
 
-   int timeout = 10000; // 10 seconds
-   int res = WebRequest(
-      "POST",
-      ApiEndpoint,
-      headers,
-      timeout,
-      post,
-      result,
-      resultHeaders
-   );
+   // Attempt to select the live order (works for ADD/UPDATE; may fail for DELETE)
+   bool   haveOrder = OrderSelect(orderTicket);
 
-   if(DebugMode)
+   string symbol;
+   ENUM_ORDER_TYPE orderType;
+   double price, lots, sl, tp;
+   long   magic;
+   string comment;
+   string orderTime;
+   ulong  positionId;
+
+   if(haveOrder)
    {
-      if(res == 200)
-         Print("BigMarkt: sent OK (", (useV2 ? "v2" : "v1"), ") — ticket ", dealTicket, " symbol ", symbol);
-      else
-         Print("BigMarkt: HTTP ", res, " for ticket ", dealTicket, " — ", CharArrayToString(result));
+      symbol      = OrderGetString(ORDER_SYMBOL);
+      orderType   = (ENUM_ORDER_TYPE)OrderGetInteger(ORDER_TYPE);
+      price       = OrderGetDouble(ORDER_PRICE_OPEN);
+      lots        = OrderGetDouble(ORDER_VOLUME_CURRENT);
+      sl          = OrderGetDouble(ORDER_SL);
+      tp          = OrderGetDouble(ORDER_TP);
+      magic       = OrderGetInteger(ORDER_MAGIC);
+      comment     = OrderGetString(ORDER_COMMENT);
+      positionId  = OrderGetInteger(ORDER_POSITION_ID);
+      datetime ot = (datetime)OrderGetInteger(ORDER_TIME_SETUP);
+      orderTime   = ToISO8601(ot);
    }
+   else
+   {
+      // ORDER_DELETE after fill or cancel — order no longer in Order Manager.
+      // Fall back to the values from the MqlTradeTransaction struct.
+      symbol      = symbolFallback;
+      orderType   = typeFallback;
+      price       = priceFallback;
+      lots        = lotsFallback;
+      sl          = 0;
+      tp          = 0;
+      magic       = magicFallback;
+      comment     = "";
+      positionId  = 0;
+      orderTime   = ToISO8601(TimeGMT());
+   }
+
+   // Magic filter
+   if(FilterMagic >= 0 && magic != (long)FilterMagic)
+   {
+      if(DebugMode) Print("BigMarkt: skipping order ", orderTicket,
+                          " — magic ", magic, " != FilterMagic ", FilterMagic);
+      return;
+   }
+
+   string symbolUp = symbol;
+   StringToUpper(symbolUp);
+   string typeStr = OrderTypeToString(orderType);
+
+   // Build JSON body
+   string json = "{";
+   json += "\"event_type\":\""  + eventType                     + "\",";
+   json += "\"order_ticket\":"  + IntegerToString(orderTicket)  + ",";
+   if(positionId > 0)
+      json += "\"position_id\":\"" + IntegerToString(positionId) + "\",";
+   json += "\"symbol\":\""      + JsonEscape(symbol)            + "\",";
+   json += "\"type\":\""        + typeStr                       + "\",";
+   json += "\"lots\":"          + DoubleToString(lots, 2)       + ",";
+   json += "\"open_price\":"    + DoubleToString(price, 5)      + ",";
+   json += "\"sl\":"            + DoubleToString(sl, 5)         + ",";
+   json += "\"tp\":"            + DoubleToString(tp, 5)         + ",";
+   json += "\"order_time\":\""  + orderTime                     + "\",";
+   json += "\"magic\":"         + IntegerToString(magic)        + ",";
+   json += "\"comment\":\""     + JsonEscape(comment)           + "\"";
+
+   // Also include trade-compatible fields so Zod can parse the payload
+   // without relaxing the existing schema (ticket = orderTicket, open_time = orderTime)
+   json += ",\"ticket\":"       + IntegerToString(orderTicket);
+   json += ",\"open_time\":\""  + orderTime + "\"";
+
+   string headers = "Content-Type: application/json\r\n";
+   headers += "Authorization: Bearer " + ApiToken + "\r\n";
+
+   bool useV2 = StringLen(SigningSecret) > 0 && StringLen(TokenId) > 0;
+   if(useV2)
+   {
+      string orderHash = ComputeOrderFieldsHash(
+         orderTicket, eventType, symbolUp, typeStr,
+         lots, price, sl, tp, magic, comment);
+
+      if(StringLen(orderHash) == 0)
+      {
+         if(DebugMode) Print("BigMarkt: order hash failed for ", eventType, " ticket ", orderTicket);
+         return;
+      }
+
+      if(!AppendV2Envelope(json, headers, orderHash))
+      {
+         if(DebugMode) Print("BigMarkt: order sig failed for ", eventType, " ticket ", orderTicket);
+         return;
+      }
+   }
+
+   json += "}";
+
+   HttpPost(json, headers, eventType + " order " + IntegerToString(orderTicket));
 }
 
 //+------------------------------------------------------------------+
@@ -444,32 +641,65 @@ void OnTradeTransaction(
    const MqlTradeRequest&     request,
    const MqlTradeResult&      result)
 {
-   if(trans.type != TRADE_TRANSACTION_DEAL_ADD)
-      return;
-
-   ulong dealTicket = trans.deal;
-   if(dealTicket == 0)
-      return;
-
-   datetime from = (datetime)(TimeCurrent() - 86400); // last 24h window
-   datetime to   = TimeCurrent() + 60;
-   HistorySelect(from, to);
-
-   if(!HistoryDealSelect(dealTicket))
+   // ── Deal events (market fills / closes) ──────────────────────────────────
+   if(trans.type == TRADE_TRANSACTION_DEAL_ADD)
    {
-      if(DebugMode) Print("BigMarkt: HistoryDealSelect failed in filter for ticket ", dealTicket);
+      ulong dealTicket = trans.deal;
+      if(dealTicket == 0)
+         return;
+
+      datetime from = (datetime)(TimeCurrent() - 86400); // last 24h window
+      datetime to   = TimeCurrent() + 60;
+      HistorySelect(from, to);
+
+      if(!HistoryDealSelect(dealTicket))
+      {
+         if(DebugMode) Print("BigMarkt: HistoryDealSelect failed in filter for ticket ", dealTicket);
+         return;
+      }
+
+      long dealMagic = HistoryDealGetInteger(dealTicket, DEAL_MAGIC);
+      if(FilterMagic >= 0 && dealMagic != (long)FilterMagic)
+      {
+         if(DebugMode) Print("BigMarkt: skipping deal ", dealTicket,
+                             " — magic ", dealMagic, " != FilterMagic ", FilterMagic);
+         return;
+      }
+
+      SendDeal(dealTicket);
       return;
    }
 
-   long dealMagic = HistoryDealGetInteger(dealTicket, DEAL_MAGIC);
-   if(FilterMagic >= 0 && dealMagic != (long)FilterMagic)
+   // ── Pending order events ─────────────────────────────────────────────────
+   if(trans.type == TRADE_TRANSACTION_ORDER_ADD    ||
+      trans.type == TRADE_TRANSACTION_ORDER_UPDATE ||
+      trans.type == TRADE_TRANSACTION_ORDER_DELETE)
    {
-      if(DebugMode) Print("BigMarkt: skipping ticket ", dealTicket,
-                          " — magic ", dealMagic, " != FilterMagic ", FilterMagic);
+      ulong orderTicket = trans.order;
+      if(orderTicket == 0)
+         return;
+
+      string eventType;
+      if(trans.type == TRADE_TRANSACTION_ORDER_ADD)
+         eventType = "order_add";
+      else if(trans.type == TRADE_TRANSACTION_ORDER_UPDATE)
+         eventType = "order_update";
+      else
+         eventType = "order_delete";
+
+      // Pass trans-level fallback values for ORDER_DELETE where the order
+      // may already be removed from the Order Manager by the time we run.
+      SendOrderEvent(
+         orderTicket,
+         eventType,
+         trans.symbol,
+         trans.order_type,
+         trans.price,
+         trans.volume,
+         0   // magic not available on trans struct; OrderSelect fills it if order still exists
+      );
       return;
    }
-
-   SendDeal(dealTicket);
 }
 
 //+------------------------------------------------------------------+
