@@ -3,11 +3,19 @@ import type { Route } from "next";
 import { getTradesAction, type TradeFilter } from "@/lib/actions/trades";
 
 const FILTERS: { value: TradeFilter; label: string }[] = [
-  { value: "all", label: "All" },
+  { value: "all",           label: "All" },
   { value: "auto_verified", label: "Auto-Verified" },
-  { value: "manual", label: "Manual" },
-  { value: "draft", label: "Draft" },
+  { value: "manual",        label: "Manual" },
+  { value: "draft",         label: "Draft" },
+  { value: "pending",       label: "Pending" },
 ];
+
+const ORDER_STATUS_BADGES: Record<string, { label: string; className: string }> = {
+  pending:   { label: "Pending",   className: "bg-yellow-900 text-yellow-200" },
+  modified:  { label: "Modified",  className: "bg-yellow-800 text-yellow-100" },
+  cancelled: { label: "Cancelled", className: "bg-gray-700 text-gray-400" },
+  // 'filled' is intentionally absent — filled orders display as normal trades
+};
 
 const TRUST_BADGES: Record<
   string,
@@ -22,7 +30,7 @@ const TRUST_BADGES: Record<
 };
 
 function parseFilter(value: string | undefined): TradeFilter {
-  if (value === "auto_verified" || value === "manual" || value === "draft") {
+  if (value === "auto_verified" || value === "manual" || value === "draft" || value === "pending") {
     return value;
   }
   return "all";
@@ -116,6 +124,7 @@ export default async function TradesPage({
               <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Exit</th>
               <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">P&amp;L</th>
               <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Result</th>
+              <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Status</th>
               <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Trust</th>
               <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Opened</th>
               <th className="text-gray-400 text-xs uppercase tracking-wider px-4 py-3 text-left">Closed</th>
@@ -125,7 +134,7 @@ export default async function TradesPage({
           <tbody className="bg-gray-900 divide-y divide-gray-700">
             {trades.length === 0 ? (
               <tr>
-                <td colSpan={11} className="text-gray-500 px-4 py-6 text-center text-sm">
+                <td colSpan={12} className="text-gray-500 px-4 py-6 text-center text-sm">
                   No trades found
                 </td>
               </tr>
@@ -133,15 +142,29 @@ export default async function TradesPage({
               trades.map((t) => {
                 const pnl = formatPnl(t.pnl);
                 const badge = t.trust_badge ? TRUST_BADGES[t.trust_badge] : null;
+                const orderBadge = t.order_status ? ORDER_STATUS_BADGES[t.order_status] : null;
+                // Pending/cancelled orders have no exit price yet
+                const isPendingOrder = t.order_status === "pending" || t.order_status === "cancelled";
                 return (
                   <tr key={t.id}>
                     <td className="text-gray-100 px-4 py-3 text-sm font-medium">{t.pair}</td>
                     <td className="text-gray-100 px-4 py-3 text-sm">{t.direction}</td>
                     <td className="text-gray-100 px-4 py-3 text-sm">{t.lot_size ?? "—"}</td>
                     <td className="text-gray-100 px-4 py-3 text-sm">{t.entry_price ?? "—"}</td>
-                    <td className="text-gray-100 px-4 py-3 text-sm">{t.exit_price ?? "—"}</td>
+                    <td className="text-gray-100 px-4 py-3 text-sm">
+                      {isPendingOrder ? "—" : (t.exit_price ?? "—")}
+                    </td>
                     <td className={`px-4 py-3 text-sm ${pnl.className}`}>{pnl.text}</td>
                     <td className="text-gray-100 px-4 py-3 text-sm capitalize">{t.result ?? "—"}</td>
+                    <td className="text-gray-100 px-4 py-3 text-sm">
+                      {orderBadge ? (
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium whitespace-nowrap ${orderBadge.className}`}
+                        >
+                          {orderBadge.label}
+                        </span>
+                      ) : "—"}
+                    </td>
                     <td className="text-gray-100 px-4 py-3 text-sm">
                       {badge ? (
                         <span

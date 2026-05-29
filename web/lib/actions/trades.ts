@@ -7,7 +7,7 @@ import { safeDbError } from "@/lib/db-error";
 const PAGE_SIZE = 20;
 
 const TRADE_FIELDS =
-  "id, pair, direction, lot_size, entry_price, exit_price, pnl, result, open_time, close_time, trust_badge, capture_source, notes, created_at";
+  "id, pair, direction, lot_size, entry_price, exit_price, pnl, result, open_time, close_time, trust_badge, capture_source, notes, created_at, order_status, event_type";
 
 export type Trade = {
   id: string;
@@ -24,9 +24,11 @@ export type Trade = {
   capture_source: string | null;
   notes: string | null;
   created_at: string;
+  order_status: string | null;
+  event_type: string | null;
 };
 
-export type TradeFilter = "all" | "auto_verified" | "manual" | "draft";
+export type TradeFilter = "all" | "auto_verified" | "manual" | "draft" | "pending";
 
 export type GetTradesResult =
   | { trades: Trade[]; total: number; page: number; pageSize: number }
@@ -50,7 +52,9 @@ export async function getTradesAction(
     .select(TRADE_FIELDS)
     .eq("user_id", user.id);
 
-  if (filter !== "all") {
+  if (filter === "pending") {
+    query = query.eq("order_status", "pending");
+  } else if (filter !== "all") {
     query = query.eq("trust_badge", filter);
   }
 
@@ -69,7 +73,9 @@ export async function getTradesAction(
     .select("*", { count: "exact", head: true })
     .eq("user_id", user.id);
 
-  if (filter !== "all") {
+  if (filter === "pending") {
+    countQuery = countQuery.eq("order_status", "pending");
+  } else if (filter !== "all") {
     countQuery = countQuery.eq("trust_badge", filter);
   }
 
