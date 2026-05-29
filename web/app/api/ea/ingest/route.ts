@@ -230,6 +230,21 @@ async function validateV2Envelope(args: {
   });
   const computedSig = signMessage(message, signingSecret);
 
+  // ── canonical-message byte dump ───────────────────────────────────────────
+  // Log every component of the canonical envelope message AND a hex dump so
+  // we can detect invisible characters, wrong encoding, or field ordering.
+  console.log('ENVELOPE_TOKEN_ID:', args.tokenId);
+  console.log('ENVELOPE_SENT_AT:', envelope.sent_at);
+  console.log('ENVELOPE_NONCE:', envelope.nonce);
+  console.log('ENVELOPE_TRADE_HASH:', tradeHash);
+  console.log('MESSAGE_TO_SIGN:', JSON.stringify(message));
+  console.log('CANONICAL_HEX:', Buffer.from(message, 'utf8').toString('hex'));
+  // Reconstruct what the EA would have signed to check for byte-level differences.
+  const eaMessage = `v2\n${args.tokenId}\n${envelope.sent_at}\n${envelope.nonce}\n${tradeHash}`;
+  console.log('EA_CANONICAL_RECONSTRUCTED:', JSON.stringify(eaMessage));
+  console.log('SERVER_CANONICAL:', JSON.stringify(message));
+  console.log('CANONICAL_STRINGS_MATCH:', eaMessage === message);
+
   //â”€â”€ debug logging (fires regardless of SKIP_SIG_VERIFY) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   console.log("EA_SENT_OPEN_TIME:", args.tradePayload.open_time);
   console.log("EA_SENT_CLOSE_TIME:", args.tradePayload.close_time);
