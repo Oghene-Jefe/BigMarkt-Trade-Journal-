@@ -1,4 +1,4 @@
-﻿import { createHash } from "crypto";
+import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -16,7 +16,7 @@ import {
   verifySig,
 } from "@/lib/ea/sig";
 
-// â”€â”€ debug bypass â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── debug bypass ────────────────────────────────────────────────────────────
 // TODO: Set SKIP_SIG_VERIFY=false in Vercel env after canonical hash fix.
 // The open_time timezone mismatch (EA sends broker local time, server
 // expects UTC) causes HMAC mismatch when sig verify is enabled.
@@ -26,7 +26,7 @@ import {
 // Do NOT set to false until the new EA is compiled and live.
 const SKIP_SIG_VERIFY = process.env.SKIP_SIG_VERIFY === "true";
 
-// ── migration guard ─────────────────────────────────────────────────────────────────────────────
+// ── migration guard ─────────────────────────────────────────────────────────
 // Migrations 0021 + 0022 add nine columns to the  table:
 //   position_id, deal_entry, close_price, sl, tp, r_multiple, status  (0021)
 //   source, verified                                                    (0022)
@@ -48,13 +48,13 @@ const TOKEN_RATE_WINDOW_SEC = 60;
 /**
  * Per-process in-memory throttle for the v1-deprecation warning log line.
  * Each token id gets one log every DEPRECATION_LOG_INTERVAL_MS; without
- * this a busy EA would spam Vercel logs with the same warning 60Ã—/min.
+ * this a busy EA would spam Vercel logs with the same warning 60×/min.
  * Map entries naturally TTL out by process restart.
  */
 const lastDeprecationLogByTokenId = new Map<string, number>();
 const DEPRECATION_LOG_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
-// â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── helpers ──────────────────────────────────────────────────────────────────
 
 function hashToken(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
@@ -85,16 +85,16 @@ async function readCappedBody(req: NextRequest): Promise<string | null> {
 /**
  * Is v1 (no X-Ingest-Protocol header) still accepted right now?
  *
- * EA_INGEST_V1_CUTOFF_AT (ISO-8601). If unset â†’ allow v1 with a server
+ * EA_INGEST_V1_CUTOFF_AT (ISO-8601). If unset → allow v1 with a server
  * warning (per Codex: "do not accidentally brick current users because
- * an env var is missing"). If set and NOW â‰¥ cutoff â†’ reject v1.
+ * an env var is missing"). If set and NOW ≥ cutoff → reject v1.
  */
 function v1Allowed(): { allowed: true; cutoffMissing: boolean } | { allowed: false } {
   const raw = process.env.EA_INGEST_V1_CUTOFF_AT;
   if (!raw) return { allowed: true, cutoffMissing: true };
   const cutoff = Date.parse(raw);
   if (!Number.isFinite(cutoff)) {
-    console.warn("EA_INGEST_V1_CUTOFF_AT is set but unparseable â€” treating as not set:", raw);
+    console.warn("EA_INGEST_V1_CUTOFF_AT is set but unparseable — treating as not set:", raw);
     return { allowed: true, cutoffMissing: true };
   }
   return Date.now() < cutoff
@@ -108,12 +108,12 @@ function logV1Deprecation(tokenId: string): void {
   if (now - last < DEPRECATION_LOG_INTERVAL_MS) return;
   lastDeprecationLogByTokenId.set(tokenId, now);
   console.warn(
-    `EA ingest v1 (legacy) request from token_id=${tokenId} â€” ` +
+    `EA ingest v1 (legacy) request from token_id=${tokenId} — ` +
       `update the MT5 EA to send X-Ingest-Protocol: v2 before EA_INGEST_V1_CUTOFF_AT.`,
   );
 }
 
-// â”€â”€ v2 envelope handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── v2 envelope handling ─────────────────────────────────────────────────────
 
 type V2Envelope = {
   sent_at: string;
@@ -137,7 +137,7 @@ function readV2Envelope(parsed: unknown): V2Envelope | null {
 }
 
 /**
- * Verify the v2 envelope: shape â†’ timestamp window â†’ signature.
+ * Verify the v2 envelope: shape → timestamp window → signature.
  *
  * Returns NextResponse on failure (the route returns it as-is), or
  * `{ ok: true }` to continue. Nonce-insert happens later in the route,
@@ -157,18 +157,15 @@ async function validateV2Envelope(args: {
 }): Promise<{ ok: true; envelope: V2Envelope } | { ok: false; res: NextResponse }> {
   const envelope = readV2Envelope(args.parsedJson);
   if (!envelope) {
-    console.error('ENVELOPE_FAIL:', 'missing or malformed envelope fields (sent_at/nonce/sig)', { tokenId: args.tokenId, sentAt: undefined, nonce: undefined, now: Date.now() });
     return { ok: false, res: NextResponse.json({ error: "Invalid envelope" }, { status: 400 }) };
   }
 
   if (!isTimestampFresh(envelope.sent_at)) {
-    console.error('ENVELOPE_FAIL:', 'timestamp too old or too far in future', { tokenId: args.tokenId, sentAt: envelope.sent_at, nonce: envelope.nonce, now: Date.now() });
     return { ok: false, res: NextResponse.json({ error: "Stale request" }, { status: 409 }) };
   }
 
-  // Legacy token (pre-0041) â†’ cannot v2-verify.
+  // Legacy token (pre-0041) → cannot v2-verify.
   if (!args.encryptedSecret) {
-    console.error('ENVELOPE_FAIL:', 'token has no signing secret (legacy token, cannot v2-verify)', { tokenId: args.tokenId, sentAt: envelope.sent_at, nonce: envelope.nonce, now: Date.now() });
     return {
       ok: false,
       res: NextResponse.json({ error: "Invalid signature" }, { status: 401 }),
@@ -181,25 +178,14 @@ async function validateV2Envelope(args: {
   } catch (err) {
     // Tampered ciphertext, wrong master key, wrong row binding. Don't leak
     // which; just refuse.
-    console.error('ENVELOPE_FAIL:', 'signing-secret decrypt failed', { tokenId: args.tokenId, sentAt: envelope.sent_at, nonce: envelope.nonce, now: Date.now() });
     console.error("EA ingest signing-secret decrypt failed:", { tokenId: args.tokenId, err });
     return {
       ok: false,
       res: NextResponse.json({ error: "Invalid signature" }, { status: 401 }),
     };
   }
-  // ── Signing-secret diagnostics ────────────────────────────────────────────
-  // decryptSigningSecret returns the UTF-8 plaintext — which should be a 64-char
-  // hex string (generateSigningSecret() → randomBytes(32).toString('hex')).
-  // signMessage() does Buffer.from(secret, 'hex') → 32-byte HMAC key.
-  // EA does HexDecode(signingSecretHex) → same 32-byte key.
-  // If these logs show length≠64 or isHex=false the secret is corrupt/mismatched.
-  const isHex = /^[0-9a-f]+$/i.test(signingSecret);
-  console.log('SECRET_AFTER_DECRYPT_FIRST8:', signingSecret.substring(0, 8));
-  console.log('SECRET_IS_HEX:', isHex);
-  console.log('SECRET_LENGTH:', signingSecret.length);
 
-  // ── Defensive raw-string extraction for timestamp fields ─────────────────
+  // ── Defensive raw-string extraction for timestamp fields ──────────────────
   // Pull open_time/close_time from the raw JSON body before any Zod transform
   // so the hash uses the EXACT bytes the EA sent. This fixes the confirmed 2h
   // shift: whatever was converting T20:17:20Z→T18:17:20Z in the Zod/transform
@@ -221,61 +207,24 @@ async function validateV2Envelope(args: {
     close_time: rawCloseTime || null,
   };
 
-  const tradeHash = tradeFieldsHash(payloadForHash, rawJson);
+  const tradeHash = tradeFieldsHash(payloadForHash);
   const message = canonicalMessage({
     tokenId: args.tokenId,
     sentAt: envelope.sent_at,
     nonce: envelope.nonce,
     tradeHash,
   });
-  const computedSig = signMessage(message, signingSecret);
-
-  // ── canonical-message byte dump ───────────────────────────────────────────
-  // Log every component of the canonical envelope message AND a hex dump so
-  // we can detect invisible characters, wrong encoding, or field ordering.
-  console.log('ENVELOPE_TOKEN_ID:', args.tokenId);
-  console.log('ENVELOPE_SENT_AT:', envelope.sent_at);
-  console.log('ENVELOPE_NONCE:', envelope.nonce);
-  console.log('ENVELOPE_TRADE_HASH:', tradeHash);
-  console.log('MESSAGE_TO_SIGN:', JSON.stringify(message));
-  console.log('CANONICAL_HEX:', Buffer.from(message, 'utf8').toString('hex'));
-  // Reconstruct what the EA would have signed to check for byte-level differences.
-  const eaMessage = `v2\n${args.tokenId}\n${envelope.sent_at}\n${envelope.nonce}\n${tradeHash}`;
-  console.log('EA_CANONICAL_RECONSTRUCTED:', JSON.stringify(eaMessage));
-  console.log('SERVER_CANONICAL:', JSON.stringify(message));
-  console.log('CANONICAL_STRINGS_MATCH:', eaMessage === message);
-
-  //â”€â”€ debug logging (fires regardless of SKIP_SIG_VERIFY) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  console.log("EA_SENT_OPEN_TIME:", args.tradePayload.open_time);
-  console.log("EA_SENT_CLOSE_TIME:", args.tradePayload.close_time);
-  console.log("RAW_JSON_OPEN_TIME:", (args.parsedJson as Record<string,unknown>).open_time);
-  console.log("HASH_USED_OPEN_TIME:", rawOpenTime);
-  console.log("EA_SENT_SIG:", envelope.sig);
-  console.log("SERVER_CANONICAL_MSG:", message);
-  console.log("SERVER_TRADE_HASH:", tradeHash);
-  // Show full EA sig and full server sig for direct comparison
-  console.log("EA_SENT_SIG_FULL:", envelope.sig);
-  console.log("SERVER_COMPUTED_SIG_FULL:", computedSig);
-  console.log("SIG_MATCH:", envelope.sig === computedSig);
-
-  console.log('INGEST_VERIFY_INPUT:', JSON.stringify({
-    tokenId: args.tokenId,
-    sentAt: envelope.sent_at,
-    nonce: envelope.nonce,
-    tradeHashPreview: tradeHash?.substring(0, 16)
-  }));
 
   if (!SKIP_SIG_VERIFY) {
     if (!verifySig(message, signingSecret, envelope.sig)) {
-      console.error('ENVELOPE_FAIL:', 'signature mismatch', { tokenId: args.tokenId, sentAt: envelope.sent_at, nonce: envelope.nonce, now: Date.now() });
-      console.error('INGEST_SIG_FAIL: signature mismatch for token', args.tokenId);
+      console.error("EA ingest: signature mismatch for token", args.tokenId);
       return {
         ok: false,
         res: NextResponse.json({ error: "Invalid signature" }, { status: 401 }),
       };
     }
   } else {
-    console.warn("SKIP_SIG_VERIFY enabled â€” signature check bypassed for debug");
+    console.warn("SKIP_SIG_VERIFY enabled — signature check bypassed");
   }
 
   return { ok: true, envelope };
@@ -283,7 +232,7 @@ async function validateV2Envelope(args: {
 
 /**
  * Atomic replay check: INSERT into ea_request_nonces. Duplicate
- * (unique_violation, Postgres code 23505) â†’ replay â†’ 409.
+ * (unique_violation, Postgres code 23505) → replay → 409.
  */
 async function recordNonce(
   supabase: SupabaseClient,
@@ -312,7 +261,7 @@ async function recordNonce(
   return { ok: true };
 }
 
-// â”€â”€ handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── handler ──────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   // 1. Bearer token
@@ -380,7 +329,7 @@ export async function POST(req: NextRequest) {
   // is for retiring LEGACY v1-only tokens; it's not a per-token policy.
   // Without this check, an attacker with only the raw bearer (no signing
   // secret) can downgrade the protocol by omitting the v2 header and
-  // bypass the entire HMAC + nonce + freshness stack â€” defeating the
+  // bypass the entire HMAC + nonce + freshness stack — defeating the
   // whole reason v2 exists.
   if (!isV2 && encryptedSecret) {
     return NextResponse.json(
@@ -397,13 +346,9 @@ export async function POST(req: NextRequest) {
     const allow = v1Allowed();
     if (!allow.allowed) {
       return NextResponse.json(
-        { error: "EA out of date â€” regenerate your token and update the EA in MT5" },
+        { error: "EA out of date — regenerate your token and update the EA in MT5" },
         { status: 410 },
       );
-    }
-    if (allow.cutoffMissing) {
-      // Don't flood logs from this branch â€” keep the noisy log to
-      // logV1Deprecation() below, gated by token id.
     }
     logV1Deprecation(tokenId);
   }
@@ -413,7 +358,7 @@ export async function POST(req: NextRequest) {
   // Audit H-7: the previous implementation did a SELECT count(*) and a
   // separate INSERT in two round-trips, leaving a TOCTOU race window.
   // Two concurrent requests with the same Bearer could both observe
-  // count < limit, both insert, both proceed â€” the cap was effectively
+  // count < limit, both insert, both proceed — the cap was effectively
   // multiplied by the parallelism factor under bursty load.
   //
   // The RPC below (migration 0045) collapses the INSERT + count into a
@@ -421,7 +366,7 @@ export async function POST(req: NextRequest) {
   // the count read afterward includes the just-written row, so
   // concurrent callers see each other's INSERT before deciding. Cap
   // holds under any parallelism. Rejected requests still consume a
-  // slot from the attacker's bucket â€” sustained burst is correctly
+  // slot from the attacker's bucket — sustained burst is correctly
   // rate-limited rather than spiking through.
   const rateRes = await supabase.rpc("ea_ingest_rate_check_and_log", {
     p_token_hash: hash,
@@ -435,7 +380,6 @@ export async function POST(req: NextRequest) {
   }
   const newCount = typeof rateRes.data === "number" ? rateRes.data : 0;
   if (newCount > TOKEN_RATE_LIMIT) {
-    console.error('INGEST_RATE_LIMIT: token', tokenId, 'exceeded rate limit')
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
@@ -444,8 +388,6 @@ export async function POST(req: NextRequest) {
   if (bodyText === null) {
     return NextResponse.json({ error: "Payload too large" }, { status: 413 });
   }
-  // Task 2 diagnostic: log raw body so we can see exact bytes the EA sent.
-  console.log('RAW_BODY:', bodyText.substring(0, 500));
 
   // 6. Parse JSON
   let parsedJson: unknown;
@@ -458,22 +400,12 @@ export async function POST(req: NextRequest) {
   // 7. zod-validate the trade fields. We do this BEFORE v2 sig verify so
   //    the canonical-message computation has a stable, validated payload.
   const parsed = eaTradeSchema.safeParse(parsedJson);
-  // Task 3 diagnostic logs — show open_time immediately after Zod parse and
-  // directly from the raw JSON so we can see if Zod is mutating the value.
-  if (parsed.success) {
-    const rawForLog = parsedJson as Record<string, unknown>;
-    console.log('RAW_OPEN_TIME_FROM_EA:', rawForLog.open_time);
-    console.log('ZOD_OPEN_TIME_AFTER_PARSE:', parsed.data.open_time);
-    const openTimeForHash =
-      typeof rawForLog.open_time === "string" ? rawForLog.open_time : parsed.data.open_time;
-    console.log('RAW_OPEN_TIME_BEFORE_HASH:', openTimeForHash);
-  }
   if (!parsed.success) {
-    console.error('INGEST_ZOD_FAIL:', JSON.stringify(parsed.error.issues, null, 2))
+    console.error("EA ingest: invalid trade payload", { tokenId, issues: parsed.error.issues });
     return NextResponse.json(
       { error: 'Invalid trade payload', issues: parsed.error.issues },
       { status: 400 }
-    )
+    );
   }
 
   // 8. v2 envelope: shape + timestamp + HMAC verify
@@ -496,7 +428,7 @@ export async function POST(req: NextRequest) {
   //    (linkEaTokenToAccountAction enforces ownership), but adding
   //    .eq("user_id", userId) here means even a row that somehow slipped
   //    through can't be read across users. If the account is missing or
-  //    isn't owned, default to non-demo (auto_verified) and continue â€”
+  //    isn't owned, default to non-demo (auto_verified) and continue —
   //    we don't 401 here because that would leak existence of a specific
   //    broker_account_id.
   let accountType: string | null = null;
@@ -517,7 +449,7 @@ export async function POST(req: NextRequest) {
   }
   const tradeRow = built.row;
 
-  // 11. v2 only: insert the nonce LAST â€” after envelope + payload validation
+  // 11. v2 only: insert the nonce LAST — after envelope + payload validation
   //     pass, immediately before the trade write. Atomic; a duplicate is the
   //     replay check.
   if (isV2 && envelopeForReplay) {
@@ -525,11 +457,11 @@ export async function POST(req: NextRequest) {
     if (!nonceRes.ok) return nonceRes.res;
   }
 
-  // 12. Save the trade â€” deal_entry-aware upsert logic.
+  // 12. Save the trade — deal_entry-aware upsert logic.
   //
-  //   deal_entry === 'in'   â†’ new position opening: upsert by (user_id, position_id)
-  //   deal_entry === 'out'  â†’ close an existing position: lookup by position_id and UPDATE
-  //   deal_entry absent     â†’ legacy / manual: keep the old ticket-based upsert
+  //   deal_entry === 'in'   → new position opening: upsert by (user_id, position_id)
+  //   deal_entry === 'out'  → close an existing position: lookup by position_id and UPDATE
+  //   deal_entry absent     → legacy / manual: keep the old ticket-based upsert
   const dealEntry = parsed.data.deal_entry;
   const positionId = parsed.data.position_id ?? null;
 
@@ -587,7 +519,7 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (findErr) {
-      console.error("EA ingest position lookup error:", findErr);
+      console.error("EA ingest: position lookup error", { tokenId });
       return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
     }
 
@@ -613,7 +545,7 @@ export async function POST(req: NextRequest) {
         .eq("user_id", userId);
       ingestAction = "updated";
     } else {
-      // EA was installed mid-trade â€” no open row exists; insert a complete closed row.
+      // EA was installed mid-trade — no open row exists; insert a complete closed row.
       const closedRow = {
         ...tradeRow,
         position_id: positionId,
@@ -657,7 +589,7 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (lookupError) {
-      console.error("EA ingest lookup error:", lookupError);
+      console.error("EA ingest: trade lookup error", { tokenId });
       return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
     }
 
@@ -673,8 +605,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (saveResult.error) {
-    // Audit M-7: keep code + message only — avoid echoing row values to logs.
-    console.error('EA_INGEST_SAVE_ERROR:', JSON.stringify(saveResult.error, null, 2))
+    console.error("EA ingest: failed to save trade", { tokenId, code: saveResult.error.code });
     return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
   }
 
@@ -688,7 +619,7 @@ export async function POST(req: NextRequest) {
   if (brokerAccountId) {
     const scoreResult = await recalculateAccountScoreWithClient(supabase, userId, brokerAccountId);
     if ("error" in scoreResult) {
-      console.error("EA ingest score recalc error:", scoreResult.error);
+      console.error("EA ingest: score recalc error", { tokenId });
     }
   }
 

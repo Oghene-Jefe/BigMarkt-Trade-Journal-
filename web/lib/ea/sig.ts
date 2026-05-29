@@ -50,7 +50,6 @@ const TRADE_FIELD_ORDER = [
 // hash it as "0" — not "" — to match the EA's canonical string.
 const ABSENT_AS_EMPTY = new Set<string>(["close_time"]);
 
-
 // Timestamp fields that MUST be passed through verbatim — no new Date(),
 // no .toISOString(), no timezone conversion of any kind. The EA hashes the
 // raw string it sends; the server must hash that exact same string.
@@ -58,119 +57,28 @@ const ABSENT_AS_EMPTY = new Set<string>(["close_time"]);
 // the server's local UTC offset and break the canonical match.
 const RAW_STRING_FIELDS = new Set<string>(["open_time", "close_time"]);
 
-// ── EA canonical simulation ──────────────────────────────────────────────────
-// Mirrors DoubleToCanonical in BigMarkt_EA.mq5 exactly:
-//   • integer values  → String(Math.trunc(v))   (no decimal point)
-//   • everything else → parseFloat(v.toFixed(10)).toString()
-//     (DoubleToString(v,10) then strip trailing zeros)
-function eaDoubleToCanonical(v: number): string {
-  if (Number.isFinite(v) && v % 1 === 0 && Math.abs(v) < 9007199254740992) {
-    return String(Math.trunc(v));
-  }
-  return parseFloat(v.toFixed(10)).toString();
-}
-
-/** Build the canonical string exactly as the MQL5 EA does, using the raw
- *  (pre-Zod) JSON fields where possible.  Used only for diagnostic logging. */
-export function simulateEaCanonical(raw: Record<string, unknown>): string {
-  const num = (k: string, def = 0): number => {
-    const v = raw[k];
-    return typeof v === "number" ? v : def;
-  };
-  const str = (k: string, def = ""): string => {
-    const v = raw[k];
-    return typeof v === "string" ? v : def;
-  };
-  const symbolUp = str("symbol").toUpperCase();
-  const fields: [string, string][] = [
-    ["ticket",      String(num("ticket"))],
-    ["symbol",      symbolUp],
-    ["type",        str("type")],
-    ["lots",        eaDoubleToCanonical(num("lots"))],
-    ["open_price",  eaDoubleToCanonical(num("open_price"))],
-    ["close_price", eaDoubleToCanonical(num("close_price", 0))],
-    ["open_time",   str("open_time")],
-    ["close_time",  str("close_time")],
-    ["profit",      eaDoubleToCanonical(num("profit", 0))],
-    ["swap",        eaDoubleToCanonical(num("swap", 0))],
-    ["commission",  eaDoubleToCanonical(num("commission", 0))],
-    ["magic",       String(Math.trunc(num("magic", 0)))],
-    ["comment",     str("comment")],
-  ];
-  return fields.map(([k, v]) => `${k}=${v}`).join("\n");
-}
-
 function fieldToString(key: string, v: unknown): string {
-  // close_price=0 (Zod default for absent) and close_time="" must both
-  // canonicalize as "" to match ComputeTradeFieldsHash in the MQL5 EA,
-  // which always writes these fields as empty when the trade is an open.
   if (ABSENT_AS_EMPTY.has(key)) {
     if (v === undefined || v === null || v === 0 || v === "") return "";
   }
   if (v === undefined || v === null) return "";
-  // Timestamp fields: return the raw string exactly as received from the EA.
-  // Never parse through new Date() or call .toISOString() — doing so applies
-  // the server's local timezone offset and shifts the value (e.g. +2 h on a
-  // GMT+2 broker server), which produces a canonical string that no longer
-  // matches the EA's own hash.
   if (RAW_STRING_FIELDS.has(key)) {
     return String(v);
   }
   if (typeof v === "number") {
-    // Number → String uses the shortest round-trip representation in
-    // JavaScript (e.g. 1.0876, 0.1). MQL5 must emit the same canonical
-    // representation; both languages produce identical output for
-    // typical price/lot values within IEEE-754 limits.
     return String(v);
   }
   return String(v);
 }
 
-/** SHA-256 hex of the canonical trade-field bundle.
- *  @param rawJson  The raw parsed-JSON object (pre-Zod).  When supplied,
- *                  the EA-simulated canonical is logged alongside the server
- *                  canonical so a byte-level diff is visible in Vercel logs. */
-export function tradeFieldsHash(
-  payload: EaTradePayload,
-  rawJson?: Record<string, unknown>,
-): string {
+/** SHA-256 hex of the canonical trade-field bundle. */
+export function tradeFieldsHash(payload: EaTradePayload): string {
   const p = payload as Record<string, unknown>;
   const lines = TRADE_FIELD_ORDER.map(
     (k) => `${k}=${fieldToString(k, p[k])}`,
   );
   const canonical = lines.join("\n");
-  const hash = createHash("sha256").update(canonical, "utf8").digest("hex");
-  console.log('TRADE_HASH_CANONICAL_FIELDS:', JSON.stringify(canonical));
-  // Field-by-field breakdown
-  console.log('FIELD_BY_FIELD:', JSON.stringify(
-    TRADE_FIELD_ORDER.map((k) => ({
-      key: k,
-      raw: p[k],
-      rawType: typeof p[k],
-      formatted: fieldToString(k, p[k]),
-    }))
-  ));
-  // Side-by-side comparison with what the EA would have hashed
-  if (rawJson) {
-    const eaCanonical = simulateEaCanonical(rawJson);
-    console.log('EA_SIMULATED_CANONICAL:', JSON.stringify(eaCanonical));
-    console.log('SERVER_CANONICAL:',       JSON.stringify(canonical));
-    if (eaCanonical === canonical) {
-      console.log('CANONICAL_MATCH: true — hashes should agree');
-    } else {
-      // Log the first differing line for quick diagnosis
-      const eaLines  = eaCanonical.split("\n");
-      const srvLines = canonical.split("\n");
-      for (let i = 0; i < Math.max(eaLines.length, srvLines.length); i++) {
-        if (eaLines[i] !== srvLines[i]) {
-          console.log('CANONICAL_DIFF_LINE:', i,
-            'EA=' + JSON.stringify(eaLines[i]),
-            'SRV=' + JSON.stringify(srvLines[i]));
-        }
-      }
-    }
-  }
-  return hash;
+  return createHash("sha256").update(canonical, "utf8").digest("hex");
 }
 
 // ── canonical signing message ────────────────────────────────────────────────
@@ -213,11 +121,6 @@ export function verifySig(
   if (typeof providedSigHex !== "string" || !/^[0-9a-f]{64}$/i.test(providedSigHex)) {
     return false;
   }
-
-  const tradeHash = message.split("\n")[4] ?? "";
-  console.log('CANONICAL_MSG:', JSON.stringify(message));
-  console.log('TRADE_HASH:', tradeHash);
-  console.log('RECEIVED_SIG:', providedSigHex.substring(0, 16) + '...');
 
   let expected: Buffer;
   try {
