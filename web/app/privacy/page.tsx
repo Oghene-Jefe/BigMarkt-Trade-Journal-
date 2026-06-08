@@ -25,8 +25,8 @@ export default function PrivacyPage() {
               BigMarkt (&ldquo;we&rdquo;, &ldquo;us&rdquo;) operates bigmarkt.co,
               journal.bigmarkt.co, fts.bigmarkt.co and club.bigmarkt.co. For questions
               about this policy or your data, contact us at{" "}
-              <a href="mailto:de.bigmarkt@gmail.com" className="text-gold hover:underline">
-                de.bigmarkt@gmail.com
+              <a href="mailto:support@bigmarkt.co" className="text-gold hover:underline">
+                support@bigmarkt.co
               </a>
               . BigMarkt is the data controller for the personal data described here.
             </p>
@@ -103,34 +103,42 @@ export default function PrivacyPage() {
               Where your data is stored and who processes it
             </h2>
             <p className="mt-3 leading-relaxed">
-              Your data is stored and processed by service providers acting on our behalf:
+              We use trusted third-party providers to run BigMarkt on our behalf. They fall
+              into these categories:
             </p>
             <ul className="mt-3 space-y-2 leading-relaxed">
               <li className="flex gap-3">
                 <span className="mt-1 text-gold">•</span>
                 <span>
-                  <strong className="text-white">Supabase</strong> — database, authentication
-                  and file storage, hosted in the EU (eu-west-1, Ireland).
+                  <strong className="text-white">Hosting and infrastructure providers</strong>{" "}
+                  — to run our websites and deliver content.
                 </span>
               </li>
               <li className="flex gap-3">
                 <span className="mt-1 text-gold">•</span>
                 <span>
-                  <strong className="text-white">Vercel</strong> — website hosting and content
-                  delivery.
+                  <strong className="text-white">Database, authentication and storage providers</strong>{" "}
+                  — to securely store your account and journal data, hosted within the
+                  European Union (Ireland).
                 </span>
               </li>
               <li className="flex gap-3">
                 <span className="mt-1 text-gold">•</span>
                 <span>
-                  <strong className="text-white">Google (Gmail)</strong> — handling email you
-                  send to our contact address.
+                  <strong className="text-white">Email and communication providers</strong>{" "}
+                  — to handle messages you send us.
                 </span>
               </li>
             </ul>
             <p className="mt-4 leading-relaxed">
-              Where a provider processes data outside the UK/EEA, that transfer is covered by
-              appropriate safeguards such as Standard Contractual Clauses.
+              We share only what each provider needs to do its job and require them to protect
+              your data. Where data is processed outside the UK/EEA, the transfer is covered
+              by appropriate safeguards such as Standard Contractual Clauses. A current list
+              of the specific providers we use is available on request at{" "}
+              <a href="mailto:support@bigmarkt.co" className="text-gold hover:underline">
+                support@bigmarkt.co
+              </a>
+              .
             </p>
           </section>
 
@@ -151,8 +159,8 @@ export default function PrivacyPage() {
               Under UK GDPR and EU GDPR you have the right to access, correct, delete, or
               receive a copy of your personal data, to object to or restrict certain
               processing, and to withdraw consent at any time. To exercise any of these, email{" "}
-              <a href="mailto:de.bigmarkt@gmail.com" className="text-gold hover:underline">
-                de.bigmarkt@gmail.com
+              <a href="mailto:support@bigmarkt.co" className="text-gold hover:underline">
+                support@bigmarkt.co
               </a>
               .
             </p>
@@ -208,8 +216,8 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold text-white">Contact</h2>
             <p className="mt-3 leading-relaxed">
-              <a href="mailto:de.bigmarkt@gmail.com" className="text-gold hover:underline">
-                de.bigmarkt@gmail.com
+              <a href="mailto:support@bigmarkt.co" className="text-gold hover:underline">
+                support@bigmarkt.co
               </a>
             </p>
           </section>
