@@ -56,9 +56,17 @@ export default function TokenPage() {
 
       <section className="border-b border-[#1f1f1f] px-6 py-24">
         <div className="mx-auto max-w-7xl">
-          <h2 className="text-3xl font-bold tracking-tight md:text-5xl">
-            Eight <span className="text-[#C9A84C]">use cases</span>
-          </h2>
+          <div className="flex flex-wrap items-center gap-4">
+            <h2 className="text-3xl font-bold tracking-tight md:text-5xl">
+              Eight <span className="text-[#C9A84C]">use cases</span>
+            </h2>
+            <span className="rounded border border-[#C9A84C]/40 px-3 py-1 font-mono text-xs uppercase tracking-widest text-[#C9A84C]/70">
+              Future phase · Planned
+            </span>
+          </div>
+          <p className="mt-4 text-sm text-white/50">
+            These features are planned for future phases of the protocol and are not yet available.
+          </p>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {useCases.map((u) => (
               <div key={u.tag} className="border border-[#1f1f1f] bg-[#111111] p-6 transition hover:border-[#C9A84C]/50">

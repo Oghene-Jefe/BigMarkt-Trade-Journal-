@@ -12,15 +12,6 @@ const covers = [
   { title: "Personal Finance", body: "How professionals actually manage their own money." },
 ];
 
-const mentors = [
-  { cat: "Commercial Banking", name: "Adaeze N., VP at First Bank", profile: "Credit, lending, corporate banking careers." },
-  { cat: "Investment Analysis", name: "Kwame A., Analyst at Investec", profile: "Stock research, valuation, asset management." },
-  { cat: "Forex & Prop Trading", name: "Marcus T., Head Trader at Titan Capital", profile: "Live trading, SMC, risk management." },
-  { cat: "Crypto & Blockchain", name: "Yemi O., DeFi Lead at Binance Africa", profile: "Digital assets, DeFi, exchange operations." },
-  { cat: "Brokerage & Market Ops", name: "Fatima S., Director at IC Markets Africa", profile: "Market structure, execution, brokerage careers." },
-  { cat: "Corporate Finance", name: "David K., CFO at Pan-African Holdings", profile: "FP&A, financial planning, corporate money." },
-  { cat: "Entrepreneurship & Fintech", name: "Amina C., PayStack alumni", profile: "Startup finance, building in Africa, financial products." },
-];
 
 export default function MentorshipPage() {
   return (
@@ -60,22 +51,9 @@ export default function MentorshipPage() {
 
       <section className="border-b border-[#1f1f1f] px-6 py-24">
         <div className="mx-auto max-w-7xl">
-          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Mentor Categories</h2>
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {mentors.map((m, i) => (
-              <div key={m.cat} className="border border-[#1f1f1f] bg-[#111111] p-6">
-                <div className="text-xs font-semibold uppercase tracking-widest text-white/40">
-                  {String(i + 1).padStart(2, "0")}
-                </div>
-                <h3 className="mt-3 text-lg font-semibold text-[#C9A84C]">{m.cat}</h3>
-                <p className="mt-3 text-sm text-white">{m.name}</p>
-                <p className="mt-2 text-sm text-white/70">{m.profile}</p>
-              </div>
-            ))}
-          </div>
-          <p className="mt-8 text-xs text-white/40">
-            Mentor names and affiliations are placeholders for launch. Real mentor profiles will
-            be published when the programme opens.
+          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Mentor Profiles</h2>
+          <p className="mt-8 text-white/60">
+            Mentor profiles will be announced as the programme launches.
           </p>
         </div>
       </section>

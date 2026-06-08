@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="grid gap-12 md:grid-cols-4">
           <div>
             <div className="font-bold tracking-[0.2em] text-[#C9A84C]">BIGMARKT</div>
-            <p className="mt-3 text-sm text-white/60">Trade. Verify. Earn.</p>
+            <p className="mt-3 text-sm text-white/60">Trade. Journal. Verify.</p>
           </div>
 
           <div>

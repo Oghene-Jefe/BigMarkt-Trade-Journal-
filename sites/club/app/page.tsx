@@ -31,7 +31,7 @@ const stats = [
 const tiers = [
   { name: "Explorer", price: "Free", body: "Access to community, tracks overview, announcements.", status: "Open" },
   { name: "Builder", price: "Free — Founding Phase", body: "Full track access, assignments, mentorship matching.", status: "Founding Members Only" },
-  { name: "Leader", price: "Merit Only", body: "Chapter leadership, capital programme access, industry connections.", status: "By Selection" },
+  { name: "Leader", price: "Merit Only", body: "Chapter leadership, industry connections.", status: "By Selection" },
 ];
 
 const testimonials = [
@@ -54,7 +54,7 @@ export default function HomePage() {
             <span className="text-[#C9A84C]">For real this time.</span>
           </h1>
           <p className="mt-8 max-w-2xl text-lg text-white/80 md:text-xl">
-            Financial literacy. Trading skills. Industry mentorship. Real capital opportunities.
+            Financial literacy. Trading skills. Industry mentorship.
           </p>
           <p className="mt-3 max-w-2xl text-white/60">
             Free to join. Built for students who want more than a degree.

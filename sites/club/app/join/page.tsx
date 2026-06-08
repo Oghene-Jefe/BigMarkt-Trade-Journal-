@@ -34,7 +34,6 @@ const tiers = [
     status: "By Selection",
     perks: [
       "Chapter leadership opportunities",
-      "Capital programme access",
       "Direct industry connections",
       "Speaking and ambassador roles",
     ],
