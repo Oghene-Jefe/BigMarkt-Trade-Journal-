@@ -211,6 +211,7 @@ export default async function Home() {
               <Link href="/login" className="hover:text-white">Log In</Link>
               <Link href="/leaderboard" className="hover:text-white">Leaderboard</Link>
               <Link href={"/brokers" as Route} className="hover:text-white">Broker Guide</Link>
+              <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
             </nav>
           </div>
           <p className="mt-8 text-xs leading-relaxed text-muted">

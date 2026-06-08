@@ -43,7 +43,10 @@ export default function Footer() {
           <p className="text-xs leading-relaxed text-white/40">
             Trading involves substantial risk of loss. This is an educational programme — not financial advice. Past performance is not indicative of future results.
           </p>
-          <p className="mt-4 text-xs text-white/40">© 2026 Free Trading Academy. All rights reserved.</p>
+          <div className="mt-4 flex flex-wrap items-center gap-4">
+            <Link href="/privacy" className="text-xs text-white/40 hover:text-white/70">Privacy Policy</Link>
+            <p className="text-xs text-white/40">© 2026 Free Trading Academy. All rights reserved.</p>
+          </div>
         </div>
       </div>
     </footer>

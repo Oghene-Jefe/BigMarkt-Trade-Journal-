@@ -16,6 +16,7 @@ const LINKS: Link[] = [
   { href: "/dashboard", label: "Journal" },
   { href: "https://club.bigmarkt.co", label: "Campus Club", external: true },
   { href: "https://fts.bigmarkt.co", label: "Academy", external: true },
+  { href: "/privacy", label: "Privacy Policy" },
 ];
 
 export function EcosystemFooter() {

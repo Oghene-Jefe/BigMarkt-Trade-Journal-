@@ -46,7 +46,10 @@ export default function Footer() {
           </p>
           <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
             <SocialLinks />
-            <p className="text-xs text-white/40">© 2026 BigMarkt Protocol. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              <Link href="/privacy" className="text-xs text-white/40 hover:text-white/70">Privacy Policy</Link>
+              <p className="text-xs text-white/40">© 2026 BigMarkt Protocol. All rights reserved.</p>
+            </div>
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { submitApplication, type ApplicationState } from "../actions";
 import Turnstile from "./Turnstile";
@@ -102,6 +103,14 @@ export default function ApplicationForm() {
       >
         {pending ? "Submitting…" : "Submit Application"}
       </button>
+
+      <p className="text-center text-xs text-white/40">
+        By submitting, you agree to our{" "}
+        <Link href="/privacy" className="text-white/60 hover:text-white underline">
+          Privacy Policy
+        </Link>
+        .
+      </p>
     </form>
   );
 }

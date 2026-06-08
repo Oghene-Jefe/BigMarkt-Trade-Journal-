@@ -102,6 +102,14 @@ function SignupForm() {
       </button>
 
       <p className="text-center text-xs text-muted">
+        By submitting, you agree to our{" "}
+        <Link href="/privacy" className="text-white hover:underline">
+          Privacy Policy
+        </Link>
+        .
+      </p>
+
+      <p className="text-center text-xs text-muted">
         Already have an account?{" "}
         <Link href="/login" className="text-white">
           Log in

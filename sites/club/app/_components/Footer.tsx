@@ -59,7 +59,10 @@ export default function Footer() {
           <p className="text-xs leading-relaxed text-white/40">
             BigMarkt Club is an educational community. Nothing on this site constitutes financial advice.
           </p>
-          <p className="mt-4 text-xs text-white/40">© 2026 BigMarkt Club. All rights reserved.</p>
+          <div className="mt-4 flex flex-wrap items-center gap-4">
+            <Link href="/privacy" className="text-xs text-white/40 hover:text-white/70">Privacy Policy</Link>
+            <p className="text-xs text-white/40">© 2026 BigMarkt Club. All rights reserved.</p>
+          </div>
         </div>
       </div>
     </footer>
