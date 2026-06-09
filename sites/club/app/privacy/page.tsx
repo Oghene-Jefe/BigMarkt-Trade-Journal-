@@ -156,35 +156,18 @@ export default function PrivacyPage() {
           <div>
             <h2 className="text-2xl font-bold text-white">Your rights</h2>
             <p className="mt-4 leading-relaxed">
-              Under UK GDPR and EU GDPR you have the right to access, correct, delete, or
-              receive a copy of your personal data, to object to or restrict certain
-              processing, and to withdraw consent at any time. To exercise any of these, email{" "}
+              Under applicable data protection law (the GDPR) you have the right to access,
+              correct, delete, or receive a copy of your personal data, to object to or restrict
+              certain processing, and to withdraw consent at any time. To exercise any of these,
+              email{" "}
               <a href="mailto:support@bigmarkt.co" className="text-[#C9A84C] hover:underline">
                 support@bigmarkt.co
               </a>
               .
             </p>
             <p className="mt-4 leading-relaxed">
-              You also have the right to complain to a supervisory authority — in the UK, the
-              Information Commissioner&apos;s Office (
-              <a
-                href="https://ico.org.uk"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#C9A84C] hover:underline"
-              >
-                ico.org.uk
-              </a>
-              ); in Estonia, the Data Protection Inspectorate (Andmekaitse Inspektsioon,{" "}
-              <a
-                href="https://aki.ee"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#C9A84C] hover:underline"
-              >
-                aki.ee
-              </a>
-              ).
+              You also have the right to lodge a complaint with your local data protection
+              authority.
             </p>
           </div>
 
