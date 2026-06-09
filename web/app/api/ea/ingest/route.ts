@@ -12,6 +12,7 @@ import {
   orderFieldsHash,
   PROTOCOL_VERSION,
   SIG_RE,
+  signMessage,
   tradeFieldsHash,
   verifySig,
 } from "@/lib/ea/sig";
@@ -240,6 +241,27 @@ async function validateV2Envelope(args: {
     nonce: envelope.nonce,
     tradeHash: hashForSig,
   });
+
+  // ── TEMPORARY DEBUG LOG — remove once 401 is resolved ──────────────────────
+  // Fires for every v2 request regardless of SKIP_SIG_VERIFY so the prefix
+  // comparison is visible in Vercel logs even while the bypass is active.
+  // Shows: whether field_hash arrived, parity between EA and server hashes,
+  // which hash was actually signed, and the first 16 hex chars of both the
+  // expected and provided HMAC (enough to spot a total mismatch without
+  // leaking the full secret).
+  console.warn("EA SIG DEBUG", {
+    tokenId: args.tokenId,
+    hasFieldHash: !!eaFieldHash,
+    eaFieldHash,
+    serverHash,
+    parity: eaFieldHash ? eaFieldHash === serverHash : null,
+    usedForSig: hashForSig,
+    sentAt: envelope.sent_at,
+    nonce: envelope.nonce,
+    expectedSigPrefix: signMessage(message, signingSecret).slice(0, 16),
+    providedSigPrefix: envelope.sig.slice(0, 16),
+  });
+  // ── END TEMPORARY DEBUG LOG ──────────────────────────────────────────────────
 
   if (!SKIP_SIG_VERIFY) {
     if (!verifySig(message, signingSecret, envelope.sig)) {
