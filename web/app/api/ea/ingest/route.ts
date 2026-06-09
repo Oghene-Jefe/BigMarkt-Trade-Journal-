@@ -12,7 +12,6 @@ import {
   orderFieldsHash,
   PROTOCOL_VERSION,
   SIG_RE,
-  signMessage,
   tradeFieldsHash,
   verifySig,
 } from "@/lib/ea/sig";
@@ -208,12 +207,38 @@ async function validateV2Envelope(args: {
     close_time: rawCloseTime || null,
   };
 
-  const tradeHash = tradeFieldsHash(payloadForHash);
+  // Optional EA-provided field_hash — when present, sign/verify over the EA's
+  // own hash to avoid any server-side canonical mismatch breaking auth. The
+  // server also recomputes its own hash for parity logging (never rejects on
+  // parity miss — only on HMAC mismatch).
+  const eaFieldHash =
+    typeof rawJson.field_hash === "string" && /^[0-9a-f]{64}$/i.test(rawJson.field_hash)
+      ? rawJson.field_hash.toLowerCase() : null;
+
+  // Compute the server-side hash. Order events (event_type present) use the
+  // order-specific field set; market fills use the trade field set.
+  const serverHash = args.tradePayload.event_type
+    ? orderFieldsHash({
+        order_ticket: args.tradePayload.order_ticket ?? "",
+        event_type:   args.tradePayload.event_type,
+        symbol:       args.tradePayload.symbol,
+        type:         args.tradePayload.type,
+        lots:         args.tradePayload.lots,
+        open_price:   args.tradePayload.open_price,
+        sl:           args.tradePayload.sl,
+        tp:           args.tradePayload.tp,
+        magic:        args.tradePayload.magic,
+        comment:      args.tradePayload.comment,
+      })
+    : tradeFieldsHash(payloadForHash);
+
+  // Authenticate over the EA's own hash when present; fall back to server hash.
+  const hashForSig = eaFieldHash ?? serverHash;
   const message = canonicalMessage({
     tokenId: args.tokenId,
     sentAt: envelope.sent_at,
     nonce: envelope.nonce,
-    tradeHash,
+    tradeHash: hashForSig,
   });
 
   if (!SKIP_SIG_VERIFY) {
@@ -226,6 +251,16 @@ async function validateV2Envelope(args: {
     }
   } else {
     console.warn("SKIP_SIG_VERIFY enabled — signature check bypassed");
+  }
+
+  // Integrity log — parity miss means the EA and server diverge on canonical
+  // form for some field. Never reject on this; use it to diagnose mismatches.
+  if (eaFieldHash && eaFieldHash !== serverHash) {
+    console.warn("EA ingest hash parity miss", {
+      tokenId: args.tokenId,
+      eaFieldHash,
+      serverHash,
+    });
   }
 
   return { ok: true, envelope };

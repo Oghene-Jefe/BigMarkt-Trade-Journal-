@@ -14,10 +14,25 @@ import type { EaTradePayload } from "./normalize";
 
 export const PROTOCOL_VERSION = "v2" as const;
 
+// ── shared canonical number renderer ────────────────────────────────────────
+// Mirrors DoubleToCanonical() in BigMarkt_EA.mq5 exactly:
+//   • non-finite  → "0"
+//   • integer     → decimal integer string (no decimal point)
+//   • non-integer → toFixed(10) with trailing zeros and trailing decimal stripped
+// Never uses exponential notation. Used by BOTH tradeFieldsHash and
+// orderFieldsHash so the two hash paths share one renderer.
+function eaCanon(v: number): string {
+  if (!Number.isFinite(v)) return "0";
+  if (Number.isInteger(v)) return String(v);
+  let s = v.toFixed(10);
+  s = s.replace(/0+$/, "").replace(/\.$/, "");
+  return s;
+}
+
 // ── canonical trade-fields hash ──────────────────────────────────────────────
 // The fields here are the EXACT set in eaTradeSchema. Each is rendered to a
-// deterministic string ("" for absent optionals, ISO for strings, base-10
-// for numbers via String()). Lines are joined with `\n` and SHA-256 hashed.
+// deterministic string ("" for absent optionals, ISO for strings, numbers via
+// eaCanon()). Lines are joined with `\n` and SHA-256 hashed.
 //
 // Changing this list is a breaking change to the wire protocol — bump
 // PROTOCOL_VERSION (and add a new branch in the route handler) before doing
@@ -66,18 +81,9 @@ function fieldToString(key: string, v: unknown): string {
     return String(v);
   }
   if (typeof v === "number") {
-    return String(v);
+    return eaCanon(v);
   }
   return String(v);
-}
-
-// ── EA double canonical (mirrors DoubleToCanonical in BigMarkt_EA.mq5) ──────
-// Used by orderFieldsHash to produce the same canonical strings as the EA.
-function eaDoubleToCanonical(v: number): string {
-  if (Number.isFinite(v) && v % 1 === 0 && Math.abs(v) < 9007199254740992) {
-    return String(Math.trunc(v));
-  }
-  return parseFloat(v.toFixed(10)).toString();
 }
 
 /** SHA-256 hex of the canonical trade-field bundle. */
@@ -109,11 +115,11 @@ export function orderFieldsHash(fields: {
     `event_type=${fields.event_type}`,
     `symbol=${fields.symbol}`,
     `type=${fields.type}`,
-    `lots=${eaDoubleToCanonical(fields.lots)}`,
-    `open_price=${eaDoubleToCanonical(fields.open_price)}`,
-    `sl=${eaDoubleToCanonical(fields.sl)}`,
-    `tp=${eaDoubleToCanonical(fields.tp)}`,
-    `magic=${Math.trunc(fields.magic)}`,
+    `lots=${eaCanon(fields.lots)}`,
+    `open_price=${eaCanon(fields.open_price)}`,
+    `sl=${eaCanon(fields.sl)}`,
+    `tp=${eaCanon(fields.tp)}`,
+    `magic=${eaCanon(fields.magic)}`,
     `comment=${fields.comment}`,
   ].join("\n");
   return createHash("sha256").update(lines, "utf8").digest("hex");
