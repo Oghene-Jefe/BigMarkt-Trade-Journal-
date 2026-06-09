@@ -56,7 +56,7 @@ export default async function SubscriptionsPage() {
               ? `/@${s.leader_username}`
               : `/p/${s.leader_id}`) as Route;
             const avatarUrl = s.leader_avatar_path ? avatars[s.leader_avatar_path] : null;
-            const isExecution = s.mode === "execution";
+            // Execution disabled pre-authorisation — always display as Journal only.
             const isActive = s.status === "active";
             const isPaused = s.status === "paused";
             const minGradeLabel =
@@ -92,9 +92,7 @@ export default async function SubscriptionsPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <StatusPill tone={isExecution ? "info" : "neutral"}>
-                    {isExecution ? "Execution" : "Journal only"}
-                  </StatusPill>
+                  <StatusPill tone="neutral">Journal only</StatusPill>
                   <StatusPill tone={isActive ? "ok" : isPaused ? "warn" : "neutral"}>
                     {isActive ? "Active" : isPaused ? "Paused" : s.status}
                   </StatusPill>
@@ -122,7 +120,7 @@ export default async function SubscriptionsPage() {
                   <form action={unfollowFromFormAction}>
                     <input type="hidden" name="id" value={s.id} />
                     <ConfirmButton
-                      message={`Unfollow ${s.leader_display_name ?? "this leader"}? Any active execution will stop.`}
+                      message={`Unfollow ${s.leader_display_name ?? "this leader"}? You'll stop receiving this leader's signals.`}
                       confirmLabel="Yes, unfollow"
                       className="rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs text-rose-300 hover:bg-rose-500/20"
                     >

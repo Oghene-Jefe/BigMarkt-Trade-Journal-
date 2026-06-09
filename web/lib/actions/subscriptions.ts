@@ -23,6 +23,11 @@ export async function followLeaderAction(
   brokerAccountId: string,
   mode: SubscriptionMode
 ) {
+  // Execution disabled pre-authorisation — journal-only only.
+  // Silently downgrade any execution request to journal_only so crafted
+  // requests cannot create execution subscriptions even if the UI guard is bypassed.
+  const safeMode: SubscriptionMode = mode === "execution" ? "journal_only" : mode;
+
   const user = await requireUser();
   const sb = await supabaseServer();
 
@@ -37,9 +42,10 @@ export async function followLeaderAction(
     return { error: "Broker account not found" };
   }
 
-  if (mode === "execution" && account.flow_direction !== "follower") {
-    return { error: "Broker account must be in follower mode for execution" };
-  }
+  // Execution gate retained for when execution is re-enabled behind a flag:
+  // if (safeMode === "execution" && account.flow_direction !== "follower") {
+  //   return { error: "Broker account must be in follower mode for execution" };
+  // }
 
   const { data: leaderSubs, error: leaderSubsErr } = await sb
     .from("subscriptions")
@@ -56,7 +62,7 @@ export async function followLeaderAction(
     follower_id: user.id,
     leader_id: leaderId,
     broker_account_id: brokerAccountId,
-    mode,
+    mode: safeMode,
     status: "active",
     min_signal_grade: "any",
     leader_also_follows: leaderAlsoFollows,
@@ -117,12 +123,18 @@ export async function updateSubscriptionAction(
     status?: SubscriptionStatus;
   }
 ) {
+  // Execution disabled pre-authorisation — journal-only only.
+  const safeUpdates = {
+    ...updates,
+    ...(updates.mode === "execution" ? { mode: "journal_only" as SubscriptionMode } : {}),
+  };
+
   const user = await requireUser();
   const sb = await supabaseServer();
 
   const { error } = await sb
     .from("subscriptions")
-    .update(updates)
+    .update(safeUpdates)
     .eq("id", subscriptionId)
     .eq("follower_id", user.id);
 
