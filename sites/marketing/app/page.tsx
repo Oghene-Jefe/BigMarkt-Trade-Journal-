@@ -64,12 +64,10 @@ export default function Home() {
               Start Free
             </a>
             <a
-              href="https://journal.bigmarkt.co/leaderboard"
-              target="_blank"
-              rel="noopener"
+              href="#how-it-works"
               className="border border-[#C9A84C] px-8 py-4 text-center text-sm font-semibold uppercase tracking-wider text-[#C9A84C] transition hover:bg-[#C9A84C]/10"
             >
-              See the Leaderboard
+              How it works
             </a>
           </div>
 
@@ -82,7 +80,7 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section className="border-b border-[#1f1f1f] px-6 py-24">
+      <section id="how-it-works" className="border-b border-[#1f1f1f] px-6 py-24">
         <div className="mx-auto max-w-7xl">
           <h2 className="max-w-3xl text-3xl font-bold tracking-tight md:text-5xl">
             Not self-reported. <span className="text-[#C9A84C]">Verified.</span>

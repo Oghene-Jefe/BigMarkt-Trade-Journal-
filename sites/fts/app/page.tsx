@@ -65,12 +65,17 @@ export default function Home() {
           <p className="mt-8 max-w-2xl text-base text-white/70 md:text-lg">
             Learn to trade properly. No hype. No expensive courses. A growing community of traders building real skills.
           </p>
+          <p className="mt-3 max-w-2xl text-sm text-white/50">
+            Track every trade properly — the academy&apos;s own journal.
+          </p>
           <div className="mt-10 flex flex-col gap-3 sm:flex-row">
             <a
-              href="#apply"
+              href="https://journal.bigmarkt.co/signup"
+              target="_blank"
+              rel="noopener"
               className="bg-[#C9A84C] px-6 py-3 text-center text-sm font-semibold text-black transition hover:bg-[#d8b955]"
             >
-              Apply for Boot Camp
+              Start your verified journal
             </a>
             <a
               href="https://t.me/fts_bigmarkt"
@@ -78,7 +83,7 @@ export default function Home() {
               rel="noopener"
               className="border border-[#C9A84C] px-6 py-3 text-center text-sm font-semibold text-[#C9A84C] transition hover:bg-[#C9A84C] hover:text-black"
             >
-              Join FTS Channel
+              Join the community
             </a>
           </div>
         </div>
