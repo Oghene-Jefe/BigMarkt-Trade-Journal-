@@ -116,12 +116,26 @@ async function TradesView({
     );
   }
 
+  // Signals fan-out is not yet built — capture_source = 'signal' is never
+  // written, so this list will always be empty until fan-out ships.
+  if (view === "signals" && trades.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-lg border border-white/10 bg-panel py-20 text-center">
+        <p className="text-base font-semibold text-white">Signals are coming soon</p>
+        <p className="mt-3 max-w-sm text-sm text-muted">
+          When you follow a leader, their verified trades will appear here. We&apos;re
+          building this now.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
-      {view === "signals" ? (
+      {view === "signals" && trades.length > 0 ? (
         <p className="rounded-md border border-white/10 bg-panel p-3 text-xs text-muted">
-          Signals received from leaders you follow. These trades are excluded
-          from your performance score.
+          Trades from leaders you follow. These are excluded from your personal
+          performance score.
         </p>
       ) : null}
       <JournalClient trades={trades} chartUrls={chartUrls} defaultAccountId={defaultAccountId} />
