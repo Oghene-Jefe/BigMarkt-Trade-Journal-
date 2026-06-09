@@ -203,7 +203,7 @@ export default async function Home() {
             <div>
               <Logo size="md" />
               <p className="mt-1 text-xs uppercase tracking-[0.3em] text-muted">
-                Trade. Verify. Earn.
+                Trade. Journal. Verify.
               </p>
             </div>
             <nav className="flex flex-wrap gap-4 text-sm text-muted">

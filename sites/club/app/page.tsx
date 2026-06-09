@@ -34,11 +34,6 @@ const tiers = [
   { name: "Leader", price: "Merit Only", body: "Chapter leadership, industry connections.", status: "By Selection" },
 ];
 
-const testimonials = [
-  { q: "BigMarkt Club changed how I think about money completely.", a: "Amara O., University of Lagos" },
-  { q: "The Trading Track gave me skills my finance degree never covered.", a: "Kwame A., KNUST Ghana" },
-  { q: "I joined knowing nothing. Now I actually understand markets.", a: "Fatima S., University of Nairobi" },
-];
 
 export default function HomePage() {
   return (
@@ -54,7 +49,7 @@ export default function HomePage() {
             <span className="text-[#C9A84C]">For real this time.</span>
           </h1>
           <p className="mt-8 max-w-2xl text-lg text-white/80 md:text-xl">
-            Financial literacy. Trading skills. Industry mentorship.
+            Financial literacy. Trading skills. Mentorship launching soon.
           </p>
           <p className="mt-3 max-w-2xl text-white/60">
             Free to join. Built for students who want more than a degree.
@@ -131,19 +126,6 @@ export default function HomePage() {
                 <p className="mt-1 text-xs uppercase tracking-widest text-white/40">{t.price}</p>
                 <p className="mt-4 text-sm text-white/70">{t.body}</p>
                 <p className="mt-6 text-xs font-semibold uppercase tracking-widest text-[#C9A84C]">Status: {t.status}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-[#1f1f1f] px-6 py-24">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid gap-6 md:grid-cols-3">
-            {testimonials.map((t) => (
-              <div key={t.a} className="border border-[#1f1f1f] bg-[#111111] p-6">
-                <p className="italic text-white/80">&ldquo;{t.q}&rdquo;</p>
-                <p className="mt-6 text-sm font-semibold text-[#C9A84C]">— {t.a}</p>
               </div>
             ))}
           </div>
