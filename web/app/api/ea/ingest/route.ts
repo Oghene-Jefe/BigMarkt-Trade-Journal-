@@ -651,7 +651,7 @@ export async function POST(req: NextRequest) {
   const dealEntry = parsed.data.deal_entry;
   const positionId = parsed.data.position_id ?? null;
 
-  let saveResult: { error: { code: string; message: string } | null };
+  let saveResult: { error: { code: string; message: string; details: string; hint: string } | null };
   let ingestAction: "inserted" | "updated" = "inserted";
   let resultStatus: "open" | "closed" = "closed";
 
@@ -705,7 +705,7 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (findErr) {
-      console.error("EA ingest: position lookup error", { tokenId });
+      console.error("EA ingest: position lookup error", { tokenId, code: findErr.code, message: findErr.message, details: findErr.details, hint: findErr.hint });
       return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
     }
 
@@ -778,7 +778,7 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (lookupError) {
-      console.error("EA ingest: trade lookup error", { tokenId });
+      console.error("EA ingest: trade lookup error", { tokenId, code: lookupError.code, message: lookupError.message, details: lookupError.details, hint: lookupError.hint });
       return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
     }
 
@@ -794,7 +794,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (saveResult.error) {
-    console.error("EA ingest: failed to save trade", { tokenId, code: saveResult.error.code });
+    console.error("EA ingest: failed to save trade", { tokenId, code: saveResult.error.code, message: saveResult.error.message, details: saveResult.error.details, hint: saveResult.error.hint });
     return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
   }
 

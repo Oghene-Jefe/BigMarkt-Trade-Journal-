@@ -67,7 +67,7 @@ function isLoss(t: ScoringTrade): boolean {
   return t.result === 'loss' || t.pnl < 0;
 }
 function isBE(t: ScoringTrade): boolean {
-  return t.result === 'be' || t.result === 'breakeven' || t.pnl === 0;
+  return t.result === 'BE' || t.pnl === 0;
 }
 
 export function calcExpectancy(trades: ScoringTrade[]): number {
