@@ -1,44 +1,60 @@
 import { z } from "zod";
 
-// ── schema ───────────────────────────────────────────────────────────────────
-// Strict validation of trade payloads coming in from the MT5 Expert Advisor.
-// Every field has bounded length / range; anything that doesn't parse is
-// rejected at the API boundary so the rest of the pipeline (buildEaTradeRow,
-// the trades insert, scoring recalc) only ever sees clean data.
-
-const isoString = z
-  .string()
-  .min(1)
-  .max(40)
-  .refine((s) => {
-    const t = Date.parse(s);
-    if (!Number.isFinite(t)) return false;
-    // Reject obvious garbage timestamps: before 2000 or more than a year
-    // in the future. MT5 should never send anything outside this window.
-    const min = Date.UTC(2000, 0, 1);
-    const max = Date.now() + 365 * 24 * 60 * 60 * 1000;
-    return t >= min && t <= max;
-  }, "open_time/close_time must be a sane ISO timestamp");
+// ── shared helpers ────────────────────────────────────────────────────────────
 
 const finiteBounded = (max: number) =>
   z.number().refine((n) => Number.isFinite(n) && Math.abs(n) <= max, {
     message: `value must be finite and |value| ≤ ${max}`,
   });
 
-export const eaTradeSchema = z.object({
-  // ticket: positive integer up to MT5's 64-bit ticket range; we cap at
-  // JS's safe-int ceiling so it round-trips through Number losslessly.
-  ticket: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
-  // symbol: 1-32 chars, alphanumeric + . / _ - (broker variants like
-  // "EURUSD.m", "XAU/USD"). Normalised to uppercase.
+// ── eaOrderSchema ─────────────────────────────────────────────────────────────
+// Used when event_type is present (TRADE_TRANSACTION_ORDER_ADD/UPDATE/DELETE).
+// These events never carry a deal ticket — requiring it was the root cause of
+// the 400 errors on order events.
+//
+// Required: event_type, order_ticket, symbol, type.
+// Optional: price/sl/tp/lots/timing/meta — a broker may omit any of these.
+
+export const eaOrderSchema = z.object({
+  event_type: z.enum(["order_add", "order_update", "order_delete"]),
+  order_ticket: z.coerce.string().min(1),
   symbol: z
     .string()
     .min(1)
     .max(32)
     .regex(/^[A-Za-z0-9._/\-]+$/, "symbol contains invalid characters")
     .transform((s) => s.toUpperCase()),
-  // type: free text but must contain buy or sell after lowercasing; capped
-  // at 32 chars (MT5 sends "buy", "sell", "buy_limit", etc).
+  type: z
+    .string()
+    .min(1)
+    .max(32)
+    .refine((s) => /buy|sell/i.test(s), "type must contain buy or sell"),
+  // Optional fields — all default to 0 / '' so the route can write nullif(x,0).
+  lots:        finiteBounded(10_000).default(0),
+  open_price:  finiteBounded(1_000_000_000).default(0),
+  sl:          z.number().default(0),
+  tp:          z.number().default(0),
+  order_time:  z.string().max(40).optional(),
+  magic:       z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
+  comment:     z.string().max(500).default(""),
+  // Position linkage — sent by newer EA builds when an order fills.
+  position_id: z.coerce.string().optional(),
+});
+
+export type EaOrderPayload = z.infer<typeof eaOrderSchema>;
+
+// ── eaDealSchema ──────────────────────────────────────────────────────────────
+// Used for market fills: DEAL_ENTRY_IN and DEAL_ENTRY_OUT.
+// Ticket is required here because deal rows are keyed by it for legacy fallback.
+
+export const eaDealSchema = z.object({
+  ticket: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  symbol: z
+    .string()
+    .min(1)
+    .max(32)
+    .regex(/^[A-Za-z0-9._/\-]+$/, "symbol contains invalid characters")
+    .transform((s) => s.toUpperCase()),
   type: z
     .string()
     .min(1)
@@ -47,44 +63,32 @@ export const eaTradeSchema = z.object({
   lots: finiteBounded(10_000),
   open_price: finiteBounded(1_000_000_000),
   close_price: finiteBounded(1_000_000_000).default(0),
-  open_time: z.string().default('').transform(v => v || null),
-  close_time: z.string().default("").transform(v => v || null),
+  open_time:  z.string().default("").transform((v) => v || null),
+  close_time: z.string().default("").transform((v) => v || null),
   profit: finiteBounded(1_000_000_000).default(0),
-  swap: finiteBounded(1_000_000_000).default(0),
+  swap:   finiteBounded(1_000_000_000).default(0),
   commission: finiteBounded(1_000_000_000).default(0),
-  magic: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
-  comment: z.string().max(500).default(''),
-  position_id:  z.coerce.string().optional(),
-  deal_entry:   z.enum(["in", "out"]).optional(),
-  sl:           z.number().default(0),
-  tp:           z.number().default(0),
-  r_multiple:   z.number().default(0),
-  // ── Pending order fields (EA v2.2.0) ────────────────────────────────────
-  // event_type is set by the EA for TRADE_TRANSACTION_ORDER_* events.
-  // When present, deal_entry is absent and the route uses a separate code path.
-  event_type:   z.enum(["order_add", "order_update", "order_delete"]).optional(),
-  // order_ticket: the MT5 order ticket (not the deal ticket in `ticket`).
-  // Coerced to string since JSON may send it as a number.
+  magic:   z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
+  comment: z.string().max(500).default(""),
+  position_id: z.coerce.string().optional(),
+  deal_entry:  z.enum(["in", "out"]).optional(),
+  sl:          z.number().default(0),
+  tp:          z.number().default(0),
+  r_multiple:  z.number().default(0),
+  // order_ticket forwarded by the EA so the ingest route can link a fill to its
+  // pending-order row.  Coerced to string since JSON may send it as a number.
   order_ticket: z.coerce.string().optional(),
-  order_status: z.string().max(32).optional(),
-  // order_time: ISO timestamp of when the pending order was placed/modified.
-  order_time:   z.string().max(40).optional(),
 }).superRefine((data, ctx) => {
-  // Pending order events (event_type present) bypass the open_price/lots
-  // positivity checks — they always have prices but lots may be 0 in some
-  // order_delete cases (filled quantity already gone from the order).
-  const isOrderEvent = !!data.event_type;
-
-  // open_price=0 is valid for ENTRY_OUT (closing) deals sent by MT5.
-  if (!isOrderEvent && data.deal_entry !== "out" && data.open_price <= 0) {
+  // open_price=0 is valid for ENTRY_OUT (closing) deals.
+  if (data.deal_entry !== "out" && data.open_price <= 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["open_price"],
       message: "open_price must be > 0 for opening deals",
     });
   }
-  // lots=0 is valid for ENTRY_OUT closing deals and order_delete events.
-  if (!isOrderEvent && data.deal_entry !== "out" && data.lots <= 0) {
+  // lots=0 is valid for ENTRY_OUT closing deals.
+  if (data.deal_entry !== "out" && data.lots <= 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["lots"],
@@ -93,9 +97,15 @@ export const eaTradeSchema = z.object({
   }
 });
 
-export type EaTradePayload = z.infer<typeof eaTradeSchema>;
+export type EaDealPayload = z.infer<typeof eaDealSchema>;
 
-// ── derivations ──────────────────────────────────────────────────────────────
+// Unified payload type used inside the route after the branch.
+export type EaTradePayload = EaDealPayload;
+
+// Keep the old name as an alias so any callers outside the route still compile.
+export const eaTradeSchema = eaDealSchema;
+
+// ── derivations ───────────────────────────────────────────────────────────────
 
 export function deriveEaResult(profit?: number): "WIN" | "LOSS" | "BE" {
   if (!profit || profit === 0) return "BE";
@@ -110,39 +120,26 @@ export function deriveEaDirection(type: string): "BUY" | "SELL" | null {
 }
 
 export function buildEaTradeRow(args: {
-  payload: EaTradePayload;
+  payload: EaDealPayload;
   userId: string;
   brokerAccountId?: string | null;
   accountType?: string | null;
   /** 'in' = opening deal (result is null — trade not yet closed)
    *  'out' = closing deal (result derived from profit)
    *  undefined = legacy / manual (result derived from profit) */
-  dealEntry?: 'in' | 'out';
+  dealEntry?: "in" | "out";
 }) {
   const direction = deriveEaDirection(args.payload.type);
   if (!direction) return { error: "Trade type must include buy or sell" } as const;
 
-  // Trust badge derives from the broker account's type:
-  //   • demo      → tagged "demo" so the UI shows a demo badge and the
-  //                 leaderboard excludes the row from verified rankings.
-  //   • prop_firm → tagged "prop_firm" so followers can see the trade
-  //                 belongs to a funded account, not a live retail one.
-  //                 Project rule: prop firm accounts are journal-only;
-  //                 they never affect copy execution. The trust badge
-  //                 must reflect that reality even before the scoring
-  //                 gate filters them out.
-  //   • everything else (live / unknown) → "auto_verified".
-  // Closes audit finding H-6a in docs/security-audit-2026-05-17.md.
-  // H-6b (updating get_public_trades to label or filter prop_firm rows)
-  // ships in a separate batch — needs a migration.
-  // trust_badge CHECK constraint: ('manual','auto_verified','draft','edited','prop_firm')
-  // 'demo' is NOT in the constraint — demo accounts use 'manual' trust_badge so the
-  // leaderboard scoring gate (trust_badge = 'auto_verified') naturally excludes them.
+  // Goal 3: demo accounts get trust_badge='demo' (constraint allows it since 0043).
+  // Previously this mapped to 'manual', which made demo trades indistinguishable from
+  // manual entries and allowed them to appear in public profiles.
   const trustBadge =
     args.accountType === "prop_firm"
       ? "prop_firm"
       : args.accountType === "demo"
-        ? "manual"
+        ? "demo"
         : "auto_verified";
 
   const row: Record<string, unknown> = {
@@ -160,9 +157,12 @@ export function buildEaTradeRow(args: {
     commission: args.payload.commission ?? null,
     magic: args.payload.magic ?? null,
     comment: args.payload.comment ?? null,
-    // Open trades have no result yet — only set on close (ENTRY_OUT) or legacy inserts.
-    // Migration 0050 makes this column nullable so null is valid here.
-    result: args.dealEntry === 'in' ? null : deriveEaResult(args.payload.profit),
+    // Canonical stop_loss/take_profit written on every deal so the share card
+    // shows them without having to fall back to the ea-only sl/tp columns.
+    stop_loss:   args.payload.sl ? args.payload.sl : null,
+    take_profit: args.payload.tp ? args.payload.tp : null,
+    // Open trades have no result yet — only set on close (ENTRY_OUT).
+    result: args.dealEntry === "in" ? null : deriveEaResult(args.payload.profit),
     capture_source: "ea",
     trust_badge: trustBadge,
     core_fields_locked: true,

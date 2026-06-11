@@ -3,7 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { recalculateAccountScoreWithClient } from "@/lib/scoring-recalculate";
-import { buildEaTradeRow, deriveEaResult, eaTradeSchema, type EaTradePayload } from "@/lib/ea/normalize";
+import {
+  buildEaTradeRow,
+  deriveEaDirection,
+  deriveEaResult,
+  eaDealSchema,
+  eaOrderSchema,
+  type EaDealPayload,
+  type EaOrderPayload,
+} from "@/lib/ea/normalize";
 import { decryptSigningSecret } from "@/lib/ea/secrets";
 import {
   canonicalMessage,
@@ -12,48 +20,26 @@ import {
   orderFieldsHash,
   PROTOCOL_VERSION,
   SIG_RE,
-  signMessage,
   tradeFieldsHash,
   verifySig,
 } from "@/lib/ea/sig";
 
 // ── debug bypass ────────────────────────────────────────────────────────────
-// TODO: Set SKIP_SIG_VERIFY=false in Vercel env after canonical hash fix.
-// The open_time timezone mismatch (EA sends broker local time, server
-// expects UTC) causes HMAC mismatch when sig verify is enabled.
-// Tracked issue: ENTRY_IN open_time → EA uses DEAL_TIME_MSC (fixed in
-// mql5/BigMarkt_EA.mq5 v2.1.1) but compiled .ex5 must be recompiled and
-// redeployed before sig verify can be re-enabled.
-// Do NOT set to false until the new EA is compiled and live.
+// TODO: Set SKIP_SIG_VERIFY=false after EA v2.2.0 is compiled and confirmed live.
 const SKIP_SIG_VERIFY = process.env.SKIP_SIG_VERIFY === "true";
 
-// ── migration guard ─────────────────────────────────────────────────────────
-// Migrations 0021 + 0022 add nine columns to the  table:
-//   position_id, deal_entry, close_price, sl, tp, r_multiple, status  (0021)
-//   source, verified                                                    (0022)
-// Until those migrations are applied to the live DB and MIGRATIONS_APPLIED=true
-// is set in Vercel env vars, the position-aware upsert paths are bypassed and
-// all inserts fall back to the safe ticket-based path (columns from baseline +
-// migration 0018 only). Set MIGRATIONS_APPLIED=true after running the SQL.
+// MIGRATIONS_APPLIED is always true in prod (0021+0022+0052+0054 all applied).
+// Keep the guard for local dev environments that haven't run migrations yet.
 const MIGRATIONS_APPLIED = process.env.MIGRATIONS_APPLIED === "true";
 
 // ── constants ────────────────────────────────────────────────────────────────
 
-/** Hard cap on request body size. MT5 trades are ~500 bytes; 32 KB is generous. */
 const MAX_BODY_BYTES = 32 * 1024;
-
-/** Per-token rate limit: at most this many ingests in the rolling window. */
 const TOKEN_RATE_LIMIT = 60;
 const TOKEN_RATE_WINDOW_SEC = 60;
 
-/**
- * Per-process in-memory throttle for the v1-deprecation warning log line.
- * Each token id gets one log every DEPRECATION_LOG_INTERVAL_MS; without
- * this a busy EA would spam Vercel logs with the same warning 60×/min.
- * Map entries naturally TTL out by process restart.
- */
 const lastDeprecationLogByTokenId = new Map<string, number>();
-const DEPRECATION_LOG_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const DEPRECATION_LOG_INTERVAL_MS = 60 * 60 * 1000;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -61,7 +47,6 @@ function hashToken(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
 }
 
-/** Read the body with a hard byte cap. Returns null if the body is too large. */
 async function readCappedBody(req: NextRequest): Promise<string | null> {
   const lenHeader = req.headers.get("content-length");
   if (lenHeader && Number(lenHeader) > MAX_BODY_BYTES) return null;
@@ -83,13 +68,6 @@ async function readCappedBody(req: NextRequest): Promise<string | null> {
   return Buffer.concat(chunks).toString("utf8");
 }
 
-/**
- * Is v1 (no X-Ingest-Protocol header) still accepted right now?
- *
- * EA_INGEST_V1_CUTOFF_AT (ISO-8601). If unset → allow v1 with a server
- * warning (per Codex: "do not accidentally brick current users because
- * an env var is missing"). If set and NOW ≥ cutoff → reject v1.
- */
 function v1Allowed(): { allowed: true; cutoffMissing: boolean } | { allowed: false } {
   const raw = process.env.EA_INGEST_V1_CUTOFF_AT;
   if (!raw) return { allowed: true, cutoffMissing: true };
@@ -98,9 +76,7 @@ function v1Allowed(): { allowed: true; cutoffMissing: boolean } | { allowed: fal
     console.warn("EA_INGEST_V1_CUTOFF_AT is set but unparseable — treating as not set:", raw);
     return { allowed: true, cutoffMissing: true };
   }
-  return Date.now() < cutoff
-    ? { allowed: true, cutoffMissing: false }
-    : { allowed: false };
+  return Date.now() < cutoff ? { allowed: true, cutoffMissing: false } : { allowed: false };
 }
 
 function logV1Deprecation(tokenId: string): void {
@@ -114,13 +90,50 @@ function logV1Deprecation(tokenId: string): void {
   );
 }
 
-// ── v2 envelope handling ─────────────────────────────────────────────────────
+// ── trade_events helper ───────────────────────────────────────────────────────
 
-type V2Envelope = {
-  sent_at: string;
-  nonce: string;
-  sig: string;
-};
+// Wraps every trade_events insert in try/catch so it can NEVER throw into the
+// request path.  A failed event log is silent — the ingest still returns 200.
+async function logEvent(
+  supabase: SupabaseClient,
+  event: {
+    trade_id?: string | null;
+    user_id: string;
+    position_id?: string | null;
+    order_ticket?: string | null;
+    event_type: string;
+    price?: number | null;
+    sl?: number | null;
+    tp?: number | null;
+    lots?: number | null;
+    pnl?: number | null;
+    event_time?: string | null;
+    raw?: Record<string, unknown>;
+  },
+) {
+  try {
+    await supabase.from("trade_events").insert({
+      trade_id:     event.trade_id ?? null,
+      user_id:      event.user_id,
+      position_id:  event.position_id ?? null,
+      order_ticket: event.order_ticket ?? null,
+      event_type:   event.event_type,
+      price:        event.price ?? null,
+      sl:           event.sl ?? null,
+      tp:           event.tp ?? null,
+      lots:         event.lots ?? null,
+      pnl:          event.pnl ?? null,
+      event_time:   event.event_time ?? null,
+      raw:          event.raw ?? null,
+    });
+  } catch (err) {
+    console.error("EA ingest: trade_events log failed (non-fatal)", { event_type: event.event_type, err });
+  }
+}
+
+// ── v2 envelope ───────────────────────────────────────────────────────────────
+
+type V2Envelope = { sent_at: string; nonce: string; sig: string };
 
 function readV2Envelope(parsed: unknown): V2Envelope | null {
   if (typeof parsed !== "object" || parsed === null) return null;
@@ -129,24 +142,17 @@ function readV2Envelope(parsed: unknown): V2Envelope | null {
     typeof obj.sent_at !== "string" ||
     typeof obj.nonce !== "string" ||
     typeof obj.sig !== "string"
-  ) {
-    return null;
-  }
+  ) return null;
   if (!NONCE_RE.test(obj.nonce)) return null;
   if (!SIG_RE.test(obj.sig)) return null;
   return { sent_at: obj.sent_at, nonce: obj.nonce, sig: obj.sig };
 }
 
-/**
- * Verify the v2 envelope: shape → timestamp window → signature.
- *
- * Returns NextResponse on failure (the route returns it as-is), or
- * `{ ok: true }` to continue. Nonce-insert happens later in the route,
- * after zod payload validation also passes.
- */
 async function validateV2Envelope(args: {
   parsedJson: unknown;
-  tradePayload: EaTradePayload;
+  isOrderEvent: boolean;
+  orderPayload?: EaOrderPayload;
+  dealPayload?: EaDealPayload;
   tokenId: string;
   userId: string;
   encryptedSecret: {
@@ -160,80 +166,56 @@ async function validateV2Envelope(args: {
   if (!envelope) {
     return { ok: false, res: NextResponse.json({ error: "Invalid envelope" }, { status: 400 }) };
   }
-
   if (!isTimestampFresh(envelope.sent_at)) {
     return { ok: false, res: NextResponse.json({ error: "Stale request" }, { status: 409 }) };
   }
-
-  // Legacy token (pre-0041) → cannot v2-verify.
   if (!args.encryptedSecret) {
-    return {
-      ok: false,
-      res: NextResponse.json({ error: "Invalid signature" }, { status: 401 }),
-    };
+    return { ok: false, res: NextResponse.json({ error: "Invalid signature" }, { status: 401 }) };
   }
 
   let signingSecret: string;
   try {
     signingSecret = decryptSigningSecret(args.encryptedSecret, args.userId, args.tokenId);
   } catch (err) {
-    // Tampered ciphertext, wrong master key, wrong row binding. Don't leak
-    // which; just refuse.
     console.error("EA ingest signing-secret decrypt failed:", { tokenId: args.tokenId, err });
-    return {
-      ok: false,
-      res: NextResponse.json({ error: "Invalid signature" }, { status: 401 }),
-    };
+    return { ok: false, res: NextResponse.json({ error: "Invalid signature" }, { status: 401 }) };
   }
 
-  // ── Defensive raw-string extraction for timestamp fields ──────────────────
-  // Pull open_time/close_time from the raw JSON body before any Zod transform
-  // so the hash uses the EXACT bytes the EA sent. This fixes the confirmed 2h
-  // shift: whatever was converting T20:17:20Z→T18:17:20Z in the Zod/transform
-  // chain is bypassed entirely.
   const rawJson = args.parsedJson as Record<string, unknown>;
-  const rawOpenTime: string =
-    typeof rawJson.open_time === "string" ? rawJson.open_time
-    : typeof args.tradePayload.open_time === "string" ? args.tradePayload.open_time
-    : "";
-  const rawCloseTime: string =
-    typeof rawJson.close_time === "string" ? rawJson.close_time
-    : typeof args.tradePayload.close_time === "string" ? args.tradePayload.close_time
-    : "";
 
-  // Build a hash-only payload with verbatim timestamp strings.
-  const payloadForHash: typeof args.tradePayload = {
-    ...args.tradePayload,
-    open_time: rawOpenTime || null,
-    close_time: rawCloseTime || null,
-  };
+  let serverHash: string;
+  if (args.isOrderEvent && args.orderPayload) {
+    serverHash = orderFieldsHash({
+      order_ticket: args.orderPayload.order_ticket,
+      event_type:   args.orderPayload.event_type,
+      symbol:       args.orderPayload.symbol,
+      type:         args.orderPayload.type,
+      lots:         args.orderPayload.lots,
+      open_price:   args.orderPayload.open_price,
+      sl:           args.orderPayload.sl,
+      tp:           args.orderPayload.tp,
+      magic:        args.orderPayload.magic,
+      comment:      args.orderPayload.comment,
+    });
+  } else if (args.dealPayload) {
+    const rawOpenTime: string =
+      typeof rawJson.open_time === "string" ? rawJson.open_time
+      : typeof args.dealPayload.open_time === "string" ? args.dealPayload.open_time
+      : "";
+    const rawCloseTime: string =
+      typeof rawJson.close_time === "string" ? rawJson.close_time
+      : typeof args.dealPayload.close_time === "string" ? args.dealPayload.close_time
+      : "";
+    const payloadForHash = { ...args.dealPayload, open_time: rawOpenTime || null, close_time: rawCloseTime || null };
+    serverHash = tradeFieldsHash(payloadForHash);
+  } else {
+    return { ok: false, res: NextResponse.json({ error: "Invalid envelope" }, { status: 400 }) };
+  }
 
-  // Optional EA-provided field_hash — when present, sign/verify over the EA's
-  // own hash to avoid any server-side canonical mismatch breaking auth. The
-  // server also recomputes its own hash for parity logging (never rejects on
-  // parity miss — only on HMAC mismatch).
   const eaFieldHash =
     typeof rawJson.field_hash === "string" && /^[0-9a-f]{64}$/i.test(rawJson.field_hash)
       ? rawJson.field_hash.toLowerCase() : null;
 
-  // Compute the server-side hash. Order events (event_type present) use the
-  // order-specific field set; market fills use the trade field set.
-  const serverHash = args.tradePayload.event_type
-    ? orderFieldsHash({
-        order_ticket: args.tradePayload.order_ticket ?? "",
-        event_type:   args.tradePayload.event_type,
-        symbol:       args.tradePayload.symbol,
-        type:         args.tradePayload.type,
-        lots:         args.tradePayload.lots,
-        open_price:   args.tradePayload.open_price,
-        sl:           args.tradePayload.sl,
-        tp:           args.tradePayload.tp,
-        magic:        args.tradePayload.magic,
-        comment:      args.tradePayload.comment,
-      })
-    : tradeFieldsHash(payloadForHash);
-
-  // Authenticate over the EA's own hash when present; fall back to server hash.
   const hashForSig = eaFieldHash ?? serverHash;
   const message = canonicalMessage({
     tokenId: args.tokenId,
@@ -245,60 +227,555 @@ async function validateV2Envelope(args: {
   if (!SKIP_SIG_VERIFY) {
     if (!verifySig(message, signingSecret, envelope.sig)) {
       console.error("EA ingest: signature mismatch for token", args.tokenId);
-      return {
-        ok: false,
-        res: NextResponse.json({ error: "Invalid signature" }, { status: 401 }),
-      };
+      return { ok: false, res: NextResponse.json({ error: "Invalid signature" }, { status: 401 }) };
     }
   } else {
     console.warn("SKIP_SIG_VERIFY enabled — signature check bypassed");
   }
 
-  // Integrity log — parity miss means the EA and server diverge on canonical
-  // form for some field. Never reject on this; use it to diagnose mismatches.
   if (eaFieldHash && eaFieldHash !== serverHash) {
-    console.warn("EA ingest hash parity miss", {
-      tokenId: args.tokenId,
-      eaFieldHash,
-      serverHash,
-    });
+    console.warn("EA ingest hash parity miss", { tokenId: args.tokenId, eaFieldHash, serverHash });
   }
 
   return { ok: true, envelope };
 }
 
-/**
- * Atomic replay check: INSERT into ea_request_nonces. Duplicate
- * (unique_violation, Postgres code 23505) → replay → 409.
- */
 async function recordNonce(
   supabase: SupabaseClient,
   tokenHash: string,
   envelope: V2Envelope,
 ): Promise<{ ok: true } | { ok: false; res: NextResponse }> {
-  const ins = await supabase
-    .from("ea_request_nonces")
-    .insert({
-      token_hash: tokenHash,
-      nonce: envelope.nonce,
-      sent_at: envelope.sent_at,
-    });
+  const ins = await supabase.from("ea_request_nonces").insert({
+    token_hash: tokenHash,
+    nonce: envelope.nonce,
+    sent_at: envelope.sent_at,
+  });
   if (ins.error) {
-    // postgrest exposes the underlying Postgres code; 23505 is unique_violation
-    // i.e. (token_hash, nonce) already exists.
     if (ins.error.code === "23505") {
       return { ok: false, res: NextResponse.json({ error: "Replayed request" }, { status: 409 }) };
     }
     console.error("EA ingest ea_request_nonces insert failed:", ins.error.message);
-    return {
-      ok: false,
-      res: NextResponse.json({ error: "Ingest temporarily unavailable" }, { status: 503 }),
-    };
+    return { ok: false, res: NextResponse.json({ error: "Ingest temporarily unavailable" }, { status: 503 }) };
   }
   return { ok: true };
 }
 
-// ── handler ──────────────────────────────────────────────────────────────────
+// ── order event handler ───────────────────────────────────────────────────────
+
+async function handleOrderEvent(
+  supabase: SupabaseClient,
+  payload: EaOrderPayload,
+  userId: string,
+  tokenId: string,
+  brokerAccountId: string | null,
+  accountType: string | null,
+): Promise<NextResponse> {
+  const { event_type, order_ticket, symbol, type: orderType } = payload;
+
+  const trustBadge =
+    accountType === "prop_firm" ? "prop_firm"
+    : accountType === "demo"    ? "demo"
+    : "auto_verified";
+
+  const direction = deriveEaDirection(orderType);
+  if (!direction) {
+    return NextResponse.json({ error: "Invalid trade type" }, { status: 400 });
+  }
+
+  // ── order_add ──────────────────────────────────────────────────────────────
+  if (event_type === "order_add") {
+    // UPSERT on (user_id, order_ticket) so a retried order_add is idempotent.
+    // idx_trades_user_ticket covers (user_id, ticket) but order_ticket is a
+    // TEXT column with only a non-unique index — we do a manual check+insert.
+    const { data: existing } = await supabase
+      .from("trades")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("order_ticket", order_ticket)
+      .maybeSingle();
+
+    const orderRow: Record<string, unknown> = {
+      user_id:      userId,
+      pair:         symbol,
+      direction,
+      lot_size:     payload.lots || null,
+      entry_price:  payload.open_price || null,
+      stop_loss:    payload.sl ? payload.sl : null,
+      take_profit:  payload.tp ? payload.tp : null,
+      open_time:    payload.order_time ?? null,
+      magic:        payload.magic || null,
+      comment:      payload.comment || null,
+      order_ticket,
+      event_type:   "order_add",
+      order_status: "pending",
+      status:       "pending",
+      source:       "ea",
+      verified:     true,
+      visibility:   "private",
+      capture_source: "ea",
+      trust_badge:  trustBadge,
+      result:       null,
+    };
+    if (brokerAccountId) orderRow.broker_account_id = brokerAccountId;
+
+    let tradeId: string | null = null;
+    if (existing?.id) {
+      // Idempotent re-delivery — update the existing pending row.
+      await supabase
+        .from("trades")
+        .update({ ...orderRow, event_type: "order_add" })
+        .eq("id", existing.id);
+      tradeId = existing.id;
+    } else {
+      const { data: inserted, error: insertErr } = await supabase
+        .from("trades")
+        .insert(orderRow)
+        .select("id")
+        .single();
+      if (insertErr) {
+        console.error("EA ingest: order_add insert failed", { tokenId, code: insertErr.code, message: insertErr.message, details: insertErr.details, hint: insertErr.hint });
+        return NextResponse.json({ error: "Failed to save order" }, { status: 500 });
+      }
+      tradeId = inserted?.id ?? null;
+    }
+
+    await logEvent(supabase, {
+      trade_id:     tradeId,
+      user_id:      userId,
+      order_ticket,
+      event_type:   "pending_set",
+      price:        payload.open_price || null,
+      sl:           payload.sl || null,
+      tp:           payload.tp || null,
+      lots:         payload.lots || null,
+      event_time:   payload.order_time ?? null,
+      raw:          { order_type: orderType, symbol },
+    });
+
+    return NextResponse.json({ success: true, action: existing ? "updated" : "inserted", event_type }, { status: 200 });
+  }
+
+  // ── order_update ───────────────────────────────────────────────────────────
+  if (event_type === "order_update") {
+    const { data: existing } = await supabase
+      .from("trades")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("order_ticket", order_ticket)
+      .maybeSingle();
+
+    let tradeId: string | null = existing?.id ?? null;
+
+    if (existing?.id) {
+      await supabase
+        .from("trades")
+        .update({
+          entry_price:  payload.open_price || null,
+          stop_loss:    payload.sl ? payload.sl : null,
+          take_profit:  payload.tp ? payload.tp : null,
+          order_status: "modified",
+          event_type:   "order_update",
+        })
+        .eq("id", existing.id)
+        .eq("user_id", userId);
+    } else {
+      // Order update arrived before order_add — create the pending row.
+      const orderRow: Record<string, unknown> = {
+        user_id:      userId,
+        pair:         symbol,
+        direction,
+        lot_size:     payload.lots || null,
+        entry_price:  payload.open_price || null,
+        stop_loss:    payload.sl ? payload.sl : null,
+        take_profit:  payload.tp ? payload.tp : null,
+        open_time:    payload.order_time ?? null,
+        order_ticket,
+        event_type:   "order_update",
+        order_status: "modified",
+        status:       "pending",
+        source:       "ea",
+        verified:     true,
+        visibility:   "private",
+        capture_source: "ea",
+        trust_badge:  trustBadge,
+        result:       null,
+      };
+      if (brokerAccountId) orderRow.broker_account_id = brokerAccountId;
+      const { data: inserted } = await supabase.from("trades").insert(orderRow).select("id").single();
+      tradeId = inserted?.id ?? null;
+    }
+
+    await logEvent(supabase, {
+      trade_id:     tradeId,
+      user_id:      userId,
+      order_ticket,
+      event_type:   "pending_modified",
+      price:        payload.open_price || null,
+      sl:           payload.sl || null,
+      tp:           payload.tp || null,
+      event_time:   payload.order_time ?? null,
+      raw:          { order_type: orderType, symbol },
+    });
+
+    return NextResponse.json({ success: true, action: "updated", event_type }, { status: 200 });
+  }
+
+  // ── order_delete ───────────────────────────────────────────────────────────
+  if (event_type === "order_delete") {
+    const { data: existing } = await supabase
+      .from("trades")
+      .select("id, status")
+      .eq("user_id", userId)
+      .eq("order_ticket", order_ticket)
+      .maybeSingle();
+
+    if (existing?.id) {
+      const rowStatus = (existing as { id: string; status?: string | null }).status;
+      if (rowStatus === "pending") {
+        // True cancellation — the order left the book without filling.
+        await supabase
+          .from("trades")
+          .update({ order_status: "cancelled", status: "cancelled", event_type: "order_delete" })
+          .eq("id", existing.id)
+          .eq("user_id", userId);
+
+        await logEvent(supabase, {
+          trade_id:     existing.id,
+          user_id:      userId,
+          order_ticket,
+          event_type:   "pending_cancelled",
+          event_time:   payload.order_time ?? null,
+          raw:          { order_type: orderType, symbol },
+        });
+      }
+      // If status='open' the order filled and this delete is MT5 removing it from
+      // the pending book — skip, the fill already transitioned the row.
+    }
+
+    return NextResponse.json({ success: true, action: "updated", event_type }, { status: 200 });
+  }
+
+  // Unknown event_type — ignored silently.
+  return NextResponse.json({ success: true, action: "ignored", event_type }, { status: 200 });
+}
+
+// ── deal event handler ────────────────────────────────────────────────────────
+
+async function handleDealEvent(
+  supabase: SupabaseClient,
+  payload: EaDealPayload,
+  userId: string,
+  tokenId: string,
+  brokerAccountId: string | null,
+  accountType: string | null,
+): Promise<{ res: NextResponse; action: string; positionId: string | null; resultStatus: "open" | "closed" }> {
+  const dealEntry  = payload.deal_entry;
+  const positionId = payload.position_id ?? null;
+
+  let action: "inserted" | "updated" = "inserted";
+  let resultStatus: "open" | "closed" = "closed";
+
+  // ── ENTRY_IN ───────────────────────────────────────────────────────────────
+  if (MIGRATIONS_APPLIED && dealEntry === "in" && positionId) {
+    // Step 1: look for a pending-order row to merge into.
+    // MT5 linkage: the deal's order_ticket is the order that got filled.
+    // The pending row was keyed by order_ticket.
+    const dealOrderTicket = payload.order_ticket ?? null;
+    let mergedFromPending = false;
+    let tradeId: string | null = null;
+
+    if (dealOrderTicket) {
+      const { data: pendingRow } = await supabase
+        .from("trades")
+        .select("id, status")
+        .eq("user_id", userId)
+        .eq("order_ticket", dealOrderTicket)
+        .in("status", ["pending", "cancelled"])
+        .maybeSingle();
+
+      if (pendingRow?.id) {
+        // Flip the pending row to open.
+        const { error: mergeErr } = await supabase
+          .from("trades")
+          .update({
+            position_id:  positionId,
+            ticket:       payload.ticket,
+            entry_price:  payload.open_price,
+            open_time:    payload.open_time || null,
+            lot_size:     payload.lots,
+            stop_loss:    payload.sl ? payload.sl : null,
+            take_profit:  payload.tp ? payload.tp : null,
+            sl:           payload.sl || null,
+            tp:           payload.tp || null,
+            direction:    deriveEaDirection(payload.type) ?? undefined,
+            pair:         payload.symbol,
+            deal_entry:   "in",
+            order_status: "filled",
+            status:       "open",
+            result:       null,
+          })
+          .eq("id", pendingRow.id)
+          .eq("user_id", userId);
+
+        if (mergeErr) {
+          console.error("EA ingest: pending→open merge failed", { tokenId, code: mergeErr.code, message: mergeErr.message, details: mergeErr.details, hint: mergeErr.hint });
+        } else {
+          mergedFromPending = true;
+          tradeId = pendingRow.id;
+          action = "updated";
+        }
+      }
+    }
+
+    if (!mergedFromPending) {
+      // No pending row — UPSERT a fresh open row on (user_id, position_id).
+      const built = buildEaTradeRow({ payload, userId, brokerAccountId, accountType, dealEntry: "in" });
+      if ("error" in built) {
+        return { res: NextResponse.json({ error: "Invalid trade payload" }, { status: 400 }), action: "error", positionId, resultStatus: "open" };
+      }
+      const openRow = {
+        ...built.row,
+        position_id: positionId,
+        deal_entry:  "in",
+        sl:          payload.sl || null,
+        tp:          payload.tp || null,
+        status:      "open",
+        source:      "ea",
+        verified:    true,
+        visibility:  "private",
+      };
+
+      const { data: existingPos } = await supabase
+        .from("trades")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("position_id", positionId)
+        .maybeSingle();
+
+      if (existingPos?.id) {
+        await supabase.from("trades").update(openRow).eq("id", existingPos.id);
+        tradeId = existingPos.id;
+        action = "updated";
+      } else {
+        const { data: inserted, error: insertErr } = await supabase
+          .from("trades")
+          .insert(openRow)
+          .select("id")
+          .single();
+        if (insertErr) {
+          console.error("EA ingest: ENTRY_IN insert failed", { tokenId, code: insertErr.code, message: insertErr.message, details: insertErr.details, hint: insertErr.hint });
+          return { res: NextResponse.json({ error: "Failed to save trade" }, { status: 500 }), action: "error", positionId, resultStatus: "open" };
+        }
+        tradeId = inserted?.id ?? null;
+        action = "inserted";
+      }
+    }
+
+    await logEvent(supabase, {
+      trade_id:     tradeId,
+      user_id:      userId,
+      position_id:  positionId,
+      order_ticket: payload.order_ticket ?? null,
+      event_type:   "filled",
+      price:        payload.open_price,
+      sl:           payload.sl || null,
+      tp:           payload.tp || null,
+      lots:         payload.lots,
+      event_time:   payload.open_time || null,
+      raw:          { ticket: payload.ticket, type: payload.type, mergedFromPending },
+    });
+
+    resultStatus = "open";
+    return {
+      res: NextResponse.json({ success: true, action, position_id: positionId, status: resultStatus }, { status: 200 }),
+      action,
+      positionId,
+      resultStatus,
+    };
+  }
+
+  // ── ENTRY_OUT ──────────────────────────────────────────────────────────────
+  if (MIGRATIONS_APPLIED && dealEntry === "out" && positionId) {
+    const { data: openTrade, error: findErr } = await supabase
+      .from("trades")
+      .select("id, status")
+      .eq("user_id", userId)
+      .eq("position_id", positionId)
+      .maybeSingle();
+
+    if (findErr) {
+      console.error("EA ingest: position lookup error", { tokenId, code: findErr.code, message: findErr.message, details: findErr.details, hint: findErr.hint });
+      return { res: NextResponse.json({ error: "Failed to save trade" }, { status: 500 }), action: "error", positionId, resultStatus: "closed" };
+    }
+
+    if (openTrade?.id) {
+      const rowStatus = (openTrade as { id: string; status?: string | null }).status;
+
+      if (rowStatus === "closed") {
+        // Double-close guard: row is already closed — this is a partial close event.
+        // Log it but do NOT overwrite the closed row.
+        await logEvent(supabase, {
+          trade_id:    openTrade.id,
+          user_id:     userId,
+          position_id: positionId,
+          event_type:  "partial_close",
+          price:       payload.close_price || null,
+          pnl:         payload.profit ?? null,
+          lots:        payload.lots || null,
+          event_time:  payload.close_time || null,
+          raw:         { ticket: payload.ticket, profit: payload.profit },
+        });
+        return {
+          res: NextResponse.json({ success: true, action: "partial_close", position_id: positionId, status: "closed" }, { status: 200 }),
+          action: "partial_close",
+          positionId,
+          resultStatus: "closed",
+        };
+      }
+
+      // Normal close.
+      const { error: closeErr } = await supabase
+        .from("trades")
+        .update({
+          exit_price:  payload.close_price || null,
+          close_time:  payload.close_time || null,
+          pnl:         payload.profit ?? null,
+          swap:        payload.swap ?? null,
+          commission:  payload.commission ?? null,
+          rr_ratio:    payload.r_multiple ? payload.r_multiple : null,
+          r_multiple:  payload.r_multiple || null,
+          result:      deriveEaResult(payload.profit),
+          deal_entry:  "out",
+          status:      "closed",
+          source:      "ea",
+          verified:    true,
+        })
+        .eq("id", openTrade.id)
+        .eq("user_id", userId);
+
+      if (closeErr) {
+        console.error("EA ingest: failed to save trade", { tokenId, code: closeErr.code, message: closeErr.message, details: closeErr.details, hint: closeErr.hint });
+        return { res: NextResponse.json({ error: "Failed to save trade" }, { status: 500 }), action: "error", positionId, resultStatus: "closed" };
+      }
+
+      await logEvent(supabase, {
+        trade_id:    openTrade.id,
+        user_id:     userId,
+        position_id: positionId,
+        event_type:  "closed",
+        price:       payload.close_price || null,
+        pnl:         payload.profit ?? null,
+        lots:        payload.lots || null,
+        event_time:  payload.close_time || null,
+        raw:         { ticket: payload.ticket, swap: payload.swap, commission: payload.commission, r_multiple: payload.r_multiple },
+      });
+
+      action = "updated";
+    } else {
+      // EA installed mid-trade — no open row exists; insert a complete closed row.
+      const built = buildEaTradeRow({ payload, userId, brokerAccountId, accountType, dealEntry: "out" });
+      if ("error" in built) {
+        return { res: NextResponse.json({ error: "Invalid trade payload" }, { status: 400 }), action: "error", positionId, resultStatus: "closed" };
+      }
+      const closedRow = {
+        ...built.row,
+        position_id: positionId,
+        deal_entry:  "out",
+        sl:          payload.sl || null,
+        tp:          payload.tp || null,
+        r_multiple:  payload.r_multiple || null,
+        rr_ratio:    payload.r_multiple ? payload.r_multiple : null,
+        status:      "closed",
+        source:      "ea",
+        verified:    true,
+        visibility:  "private",
+      };
+      const { data: inserted, error: insertErr } = await supabase
+        .from("trades")
+        .insert(closedRow)
+        .select("id")
+        .single();
+      if (insertErr) {
+        console.error("EA ingest: failed to save trade", { tokenId, code: insertErr.code, message: insertErr.message, details: insertErr.details, hint: insertErr.hint });
+        return { res: NextResponse.json({ error: "Failed to save trade" }, { status: 500 }), action: "error", positionId, resultStatus: "closed" };
+      }
+      await logEvent(supabase, {
+        trade_id:    inserted?.id ?? null,
+        user_id:     userId,
+        position_id: positionId,
+        event_type:  "closed",
+        price:       payload.close_price || null,
+        pnl:         payload.profit ?? null,
+        event_time:  payload.close_time || null,
+        raw:         { ticket: payload.ticket, note: "mid_trade_install" },
+      });
+      action = "inserted";
+    }
+
+    resultStatus = "closed";
+    return {
+      res: NextResponse.json({ success: true, action, position_id: positionId, status: resultStatus }, { status: 200 }),
+      action,
+      positionId,
+      resultStatus,
+    };
+  }
+
+  // ── Legacy ticket-based upsert ─────────────────────────────────────────────
+  // Used when MIGRATIONS_APPLIED=false OR the payload has no deal_entry/position_id.
+  if (!MIGRATIONS_APPLIED && (dealEntry || positionId)) {
+    console.warn(
+      "EA ingest: position-aware path skipped — MIGRATIONS_APPLIED is not set.",
+      { dealEntry, positionId, tokenId },
+    );
+  }
+
+  const { data: existingTrade, error: lookupError } = await supabase
+    .from("trades")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("ticket", payload.ticket)
+    .maybeSingle();
+
+  if (lookupError) {
+    console.error("EA ingest: trade lookup error", { tokenId, code: lookupError.code, message: lookupError.message, details: lookupError.details, hint: lookupError.hint });
+    return { res: NextResponse.json({ error: "Failed to save trade" }, { status: 500 }), action: "error", positionId, resultStatus: "closed" };
+  }
+
+  const built = buildEaTradeRow({ payload, userId, brokerAccountId, accountType, dealEntry });
+  if ("error" in built) {
+    return { res: NextResponse.json({ error: "Invalid trade payload" }, { status: 400 }), action: "error", positionId, resultStatus: "closed" };
+  }
+
+  const legacyRow = MIGRATIONS_APPLIED
+    ? { ...built.row, source: "ea" as const, verified: true, visibility: "private" }
+    : { ...built.row, visibility: "private" };
+
+  let saveError: { code: string; message: string; details: string; hint: string } | null = null;
+  if (existingTrade?.id) {
+    const { error } = await supabase.from("trades").update(legacyRow).eq("id", existingTrade.id).eq("user_id", userId);
+    saveError = error ?? null;
+    action = "updated";
+  } else {
+    const { error } = await supabase.from("trades").insert(legacyRow);
+    saveError = error ?? null;
+    action = "inserted";
+  }
+
+  if (saveError) {
+    console.error("EA ingest: failed to save trade", { tokenId, code: saveError.code, message: saveError.message, details: saveError.details, hint: saveError.hint });
+    return { res: NextResponse.json({ error: "Failed to save trade" }, { status: 500 }), action: "error", positionId, resultStatus: "closed" };
+  }
+
+  return {
+    res: NextResponse.json({ success: true, action, position_id: positionId, status: resultStatus }, { status: 200 }),
+    action,
+    positionId,
+    resultStatus,
+  };
+}
+
+// ── handler ───────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   // 1. Bearer token
@@ -311,7 +788,7 @@ export async function POST(req: NextRequest) {
   const supabase = supabaseAdmin();
   const hash = hashToken(raw);
 
-  // 2. Token lookup (now also pulls the encrypted signing-secret blob)
+  // 2. Token lookup
   type TokenRow = {
     id: string;
     user_id: string;
@@ -337,8 +814,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid or revoked token" }, { status: 401 });
   }
 
-  const userId = tokenRow.user_id;
-  const tokenId = tokenRow.id;
+  const userId        = tokenRow.user_id;
+  const tokenId       = tokenRow.id;
   const brokerAccountId = tokenRow.broker_account_id ?? null;
   const encryptedSecret =
     tokenRow.signing_secret_ciphertext &&
@@ -347,38 +824,25 @@ export async function POST(req: NextRequest) {
     tokenRow.signing_secret_key_version != null
       ? {
           ciphertext: tokenRow.signing_secret_ciphertext,
-          iv: tokenRow.signing_secret_iv,
-          tag: tokenRow.signing_secret_tag,
+          iv:         tokenRow.signing_secret_iv,
+          tag:        tokenRow.signing_secret_tag,
           keyVersion: tokenRow.signing_secret_key_version,
         }
       : null;
 
-  // 3. Protocol version header
+  // 3. Protocol version
   const protocolHeader = req.headers.get("x-ingest-protocol");
   if (protocolHeader && protocolHeader !== PROTOCOL_VERSION) {
     return NextResponse.json({ error: "Unsupported protocol version" }, { status: 400 });
   }
   const isV2 = protocolHeader === PROTOCOL_VERSION;
 
-  // Audit H-3: a token that has been provisioned with a signing secret
-  // (i.e. a v2-capable token) MUST NOT accept v1 unsigned requests, no
-  // matter what `EA_INGEST_V1_CUTOFF_AT` is set to. The env-driven cutoff
-  // is for retiring LEGACY v1-only tokens; it's not a per-token policy.
-  // Without this check, an attacker with only the raw bearer (no signing
-  // secret) can downgrade the protocol by omitting the v2 header and
-  // bypass the entire HMAC + nonce + freshness stack — defeating the
-  // whole reason v2 exists.
   if (!isV2 && encryptedSecret) {
     return NextResponse.json(
-      {
-        error:
-          "This token requires the v2 ingest protocol. Update your EA to the latest version.",
-      },
+      { error: "This token requires the v2 ingest protocol. Update your EA to the latest version." },
       { status: 401 },
     );
   }
-
-  // Cutover check for legacy v1-only tokens (no signing secret on file).
   if (!isV2) {
     const allow = v1Allowed();
     if (!allow.allowed) {
@@ -390,21 +854,7 @@ export async function POST(req: NextRequest) {
     logV1Deprecation(tokenId);
   }
 
-  // 4. Per-token rate limit (applies to BOTH v1 and v2).
-  //
-  // Audit H-7: the previous implementation did a SELECT count(*) and a
-  // separate INSERT in two round-trips, leaving a TOCTOU race window.
-  // Two concurrent requests with the same Bearer could both observe
-  // count < limit, both insert, both proceed — the cap was effectively
-  // multiplied by the parallelism factor under bursty load.
-  //
-  // The RPC below (migration 0045) collapses the INSERT + count into a
-  // single transactional unit. INSERT happens first to claim a slot;
-  // the count read afterward includes the just-written row, so
-  // concurrent callers see each other's INSERT before deciding. Cap
-  // holds under any parallelism. Rejected requests still consume a
-  // slot from the attacker's bucket — sustained burst is correctly
-  // rate-limited rather than spiking through.
+  // 4. Rate limit
   const rateRes = await supabase.rpc("ea_ingest_rate_check_and_log", {
     p_token_hash: hash,
     p_limit: TOKEN_RATE_LIMIT,
@@ -412,7 +862,6 @@ export async function POST(req: NextRequest) {
   });
   if (rateRes.error) {
     console.error("EA ingest rate-limit RPC failed:", rateRes.error.message);
-    // Fail-CLOSED: a broken rate-limiter must not become an open gate.
     return NextResponse.json({ error: "Ingest temporarily unavailable" }, { status: 503 });
   }
   const newCount = typeof rateRes.data === "number" ? rateRes.data : 0;
@@ -420,13 +869,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  // 5. Read body under a 32 KB cap.
+  // 5. Read + parse body
   const bodyText = await readCappedBody(req);
   if (bodyText === null) {
     return NextResponse.json({ error: "Payload too large" }, { status: 413 });
   }
-
-  // 6. Parse JSON
   let parsedJson: unknown;
   try {
     parsedJson = JSON.parse(bodyText);
@@ -434,23 +881,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  // 7. zod-validate the trade fields. We do this BEFORE v2 sig verify so
-  //    the canonical-message computation has a stable, validated payload.
-  const parsed = eaTradeSchema.safeParse(parsedJson);
-  if (!parsed.success) {
-    console.error("EA ingest: invalid trade payload", { tokenId, issues: parsed.error.issues });
-    return NextResponse.json(
-      { error: 'Invalid trade payload', issues: parsed.error.issues },
-      { status: 400 }
-    );
+  // 6. Detect event type and validate with the appropriate schema.
+  //    event_type present → order lifecycle event (eaOrderSchema)
+  //    otherwise          → market fill / deal (eaDealSchema)
+  const rawObj = parsedJson as Record<string, unknown>;
+  const isOrderEvent = typeof rawObj.event_type === "string";
+
+  let orderPayload: EaOrderPayload | undefined;
+  let dealPayload: EaDealPayload | undefined;
+
+  if (isOrderEvent) {
+    const parsed = eaOrderSchema.safeParse(parsedJson);
+    if (!parsed.success) {
+      console.error("EA ingest: invalid order payload", { tokenId, issues: parsed.error.issues });
+      return NextResponse.json({ error: "Invalid order payload", issues: parsed.error.issues }, { status: 400 });
+    }
+    orderPayload = parsed.data;
+  } else {
+    const parsed = eaDealSchema.safeParse(parsedJson);
+    if (!parsed.success) {
+      console.error("EA ingest: invalid trade payload", { tokenId, issues: parsed.error.issues });
+      return NextResponse.json({ error: "Invalid trade payload", issues: parsed.error.issues }, { status: 400 });
+    }
+    dealPayload = parsed.data;
   }
 
-  // 8. v2 envelope: shape + timestamp + HMAC verify
+  // 7. v2 envelope verify (after schema validation so the hash has a clean payload)
   let envelopeForReplay: V2Envelope | null = null;
   if (isV2) {
     const env = await validateV2Envelope({
       parsedJson,
-      tradePayload: parsed.data,
+      isOrderEvent,
+      orderPayload,
+      dealPayload,
       tokenId,
       userId,
       encryptedSecret,
@@ -459,143 +922,7 @@ export async function POST(req: NextRequest) {
     envelopeForReplay = env.envelope;
   }
 
-  // 8b. Pending order event — early-return path.
-  //
-  //   When event_type is present (order_add | order_update | order_delete)
-  //   the payload is a pending order lifecycle event, not a market fill.
-  //   Handle it here and return so the deal-specific code below is untouched.
-  //   Requires migration 0052 (order_ticket, event_type, order_status columns).
-  if (MIGRATIONS_APPLIED && parsed.data.event_type) {
-    const eventType    = parsed.data.event_type;
-    const orderTicket  = parsed.data.order_ticket ?? null;
-    const symbolUp     = parsed.data.symbol; // already uppercased by Zod
-    const typeStr      = parsed.data.type;
-
-    // Consume the nonce before writing so replayed order events are rejected.
-    if (isV2 && envelopeForReplay) {
-      const nonceRes = await recordNonce(supabase, hash, envelopeForReplay);
-      if (!nonceRes.ok) return nonceRes.res;
-    }
-
-    if (eventType === "order_add") {
-      // New pending order — insert a fresh row with order_status='pending'.
-      const orderRow = {
-        user_id:      userId,
-        pair:         symbolUp,
-        direction:    parsed.data.type.toLowerCase().includes("buy") ? "BUY" : "SELL",
-        lot_size:     parsed.data.lots || null,
-        entry_price:  parsed.data.open_price || null,
-        open_time:    parsed.data.order_time ?? parsed.data.open_time ?? null,
-        sl:           parsed.data.sl || null,
-        tp:           parsed.data.tp || null,
-        magic:        parsed.data.magic ?? null,
-        comment:      parsed.data.comment ?? null,
-        order_ticket: orderTicket,
-        event_type:   eventType,
-        order_status: "pending",
-        status:       "open",
-        source:       "ea",
-        verified:     true,
-        visibility:   "private",
-        capture_source: "ea",
-        trust_badge:  "auto_verified",
-        result:       null,
-      };
-      if (brokerAccountId) (orderRow as Record<string, unknown>).broker_account_id = brokerAccountId;
-
-      const { error: insertErr } = await supabase.from("trades").insert(orderRow);
-      if (insertErr) {
-        console.error("EA ingest: order_add insert failed", { tokenId, code: insertErr.code });
-        return NextResponse.json({ error: "Failed to save order" }, { status: 500 });
-      }
-      return NextResponse.json({ success: true, action: "inserted", event_type: eventType }, { status: 200 });
-    }
-
-    if (eventType === "order_update" && orderTicket) {
-      // Pending order modified — update open_price, sl, tp.
-      const { data: existing } = await supabase
-        .from("trades")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("order_ticket", orderTicket)
-        .maybeSingle();
-
-      if (existing?.id) {
-        const { error: updateErr } = await supabase
-          .from("trades")
-          .update({
-            entry_price:  parsed.data.open_price || null,
-            sl:           parsed.data.sl || null,
-            tp:           parsed.data.tp || null,
-            order_status: "modified",
-            event_type:   eventType,
-          })
-          .eq("id", existing.id)
-          .eq("user_id", userId);
-        if (updateErr) {
-          console.error("EA ingest: order_update failed", { tokenId, code: updateErr.code });
-          return NextResponse.json({ error: "Failed to update order" }, { status: 500 });
-        }
-      }
-      return NextResponse.json({ success: true, action: "updated", event_type: eventType }, { status: 200 });
-    }
-
-    if (eventType === "order_delete" && orderTicket) {
-      // Pending order cancelled (not filled) — mark as cancelled.
-      const { data: existing } = await supabase
-        .from("trades")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("order_ticket", orderTicket)
-        .maybeSingle();
-
-      if (existing?.id) {
-        const { error: updateErr } = await supabase
-          .from("trades")
-          .update({
-            order_status: "cancelled",
-            status:       "closed",
-            event_type:   eventType,
-          })
-          .eq("id", existing.id)
-          .eq("user_id", userId);
-        if (updateErr) {
-          console.error("EA ingest: order_delete failed", { tokenId, code: updateErr.code });
-          return NextResponse.json({ error: "Failed to cancel order" }, { status: 500 });
-        }
-      }
-      return NextResponse.json({ success: true, action: "updated", event_type: eventType }, { status: 200 });
-    }
-
-    // Unknown event_type or missing order_ticket — fall through to 200 silently.
-    return NextResponse.json({ success: true, action: "ignored", event_type: eventType }, { status: 200 });
-  }
-
-  // When a DEAL_ENTRY_IN arrives with a position_id that matches an existing
-  // pending order row, mark that row as filled. This links the pending order
-  // record to the actual market fill.
-  if (MIGRATIONS_APPLIED && parsed.data.deal_entry === "in" && parsed.data.position_id) {
-    const pendingOrderTicket = parsed.data.order_ticket ?? null;
-    if (pendingOrderTicket) {
-      // Best-effort — don't fail the ingest if this update errors.
-      await supabase
-        .from("trades")
-        .update({ order_status: "filled", event_type: "market_open" })
-        .eq("user_id", userId)
-        .eq("order_ticket", pendingOrderTicket)
-        .eq("order_status", "pending");
-    }
-  }
-
-  // 9. Fetch account type to tag demo trades with trust_badge = 'demo'.
-  //    Defence in depth: scope the lookup to the calling user. The bearer
-  //    + broker_account_id pair on the token row is already user-owned
-  //    (linkEaTokenToAccountAction enforces ownership), but adding
-  //    .eq("user_id", userId) here means even a row that somehow slipped
-  //    through can't be read across users. If the account is missing or
-  //    isn't owned, default to non-demo (auto_verified) and continue —
-  //    we don't 401 here because that would leak existence of a specific
-  //    broker_account_id.
+  // 8. Account type lookup (for trust_badge derivation)
   let accountType: string | null = null;
   if (brokerAccountId) {
     const { data: account } = await supabase
@@ -607,183 +934,33 @@ export async function POST(req: NextRequest) {
     accountType = (account?.account_type as string | null) ?? null;
   }
 
-  // 10. Build the canonical DB row
-  const built = buildEaTradeRow({ payload: parsed.data, userId, brokerAccountId, accountType, dealEntry: parsed.data.deal_entry });
-  if ("error" in built) {
-    return NextResponse.json({ error: "Invalid trade payload" }, { status: 400 });
-  }
-  const tradeRow = built.row;
-
-  // 11. v2 only: insert the nonce LAST — after envelope + payload validation
-  //     pass, immediately before the trade write. Atomic; a duplicate is the
-  //     replay check.
+  // 9. Nonce record (v2 only — before any DB writes)
   if (isV2 && envelopeForReplay) {
     const nonceRes = await recordNonce(supabase, hash, envelopeForReplay);
     if (!nonceRes.ok) return nonceRes.res;
   }
 
-  // 12. Save the trade — deal_entry-aware upsert logic.
-  //
-  //   deal_entry === 'in'   → new position opening: upsert by (user_id, position_id)
-  //   deal_entry === 'out'  → close an existing position: lookup by position_id and UPDATE
-  //   deal_entry absent     → legacy / manual: keep the old ticket-based upsert
-  const dealEntry = parsed.data.deal_entry;
-  const positionId = parsed.data.position_id ?? null;
+  // 10. Dispatch to the appropriate handler
+  let finalRes: NextResponse;
+  let positionId: string | null = null;
 
-  let saveResult: { error: { code: string; message: string; details: string; hint: string } | null };
-  let ingestAction: "inserted" | "updated" = "inserted";
-  let resultStatus: "open" | "closed" = "closed";
-
-  if (MIGRATIONS_APPLIED && dealEntry === "in" && positionId) {
-    // Opening leg — upsert by (user_id, position_id); set status = 'open'.
-    // Requires: migration 0021 (position_id column + unique index on user_id,position_id).
-    const openRow = {
-      ...tradeRow,
-      position_id: positionId,
-      deal_entry: "in",
-      sl: parsed.data.sl || null,
-      tp: parsed.data.tp || null,
-      status: "open",
-      source: 'ea',
-      verified: true,
-      visibility: 'private',
-    };
-    // Check if a row already exists for this position
-    const { data: existing } = await supabase
-      .from('trades')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('position_id', positionId)
-      .maybeSingle()
-
-    if (existing) {
-      // Row exists — update it
-      const { error: updateErr } = await supabase
-        .from('trades')
-        .update(openRow)
-        .eq('id', existing.id)
-      saveResult = { error: updateErr ?? null }
-      ingestAction = 'updated'
-    } else {
-      // No row — insert fresh
-      const { error: insertErr } = await supabase
-        .from('trades')
-        .insert(openRow)
-      saveResult = { error: insertErr ?? null }
-      ingestAction = 'inserted'
-    }
-    resultStatus = "open";
-  } else if (MIGRATIONS_APPLIED && dealEntry === "out" && positionId) {
-    // Closing leg — find the open row and UPDATE it with close fields.
-    // Requires: migration 0021 (position_id column).
-    const { data: openTrade, error: findErr } = await supabase
-      .from("trades")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("position_id", positionId)
-      .maybeSingle();
-
-    if (findErr) {
-      console.error("EA ingest: position lookup error", { tokenId, code: findErr.code, message: findErr.message, details: findErr.details, hint: findErr.hint });
-      return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
-    }
-
-    if (openTrade?.id) {
-      // Happy path: close the existing open row.
-      // NOTE: the DB column is exit_price (trades schema), not close_price
-      // (which is the EA payload field name). Using close_price here would
-      // silently write to a nonexistent column and the UI would show 0.
-      const closeFields = {
-        exit_price: parsed.data.close_price || null,
-        close_time: parsed.data.close_time || null,
-        pnl: parsed.data.profit ?? null,
-        swap: parsed.data.swap ?? null,
-        commission: parsed.data.commission ?? null,
-        r_multiple: parsed.data.r_multiple || null,
-        result: deriveEaResult(parsed.data.profit),   // set result on close
-        deal_entry: "out",
-        status: "closed",
-        source: 'ea',
-        verified: true,
-      };
-      saveResult = await supabase
-        .from("trades")
-        .update(closeFields)
-        .eq("id", openTrade.id)
-        .eq("user_id", userId);
-      ingestAction = "updated";
-    } else {
-      // EA was installed mid-trade — no open row exists; insert a complete closed row.
-      const closedRow = {
-        ...tradeRow,
-        position_id: positionId,
-        deal_entry: "out",
-        sl: parsed.data.sl || null,
-        tp: parsed.data.tp || null,
-        r_multiple: parsed.data.r_multiple || null,
-        status: "closed",
-        source: 'ea',
-        verified: true,
-      visibility: 'private',
-      };
-      saveResult = await supabase.from("trades").insert(closedRow);
-      ingestAction = "inserted";
-    }
-    resultStatus = "closed";
+  if (isOrderEvent && orderPayload) {
+    finalRes = await handleOrderEvent(supabase, orderPayload, userId, tokenId, brokerAccountId, accountType);
+  } else if (dealPayload) {
+    const result = await handleDealEvent(supabase, dealPayload, userId, tokenId, brokerAccountId, accountType);
+    finalRes   = result.res;
+    positionId = result.positionId;
   } else {
-    // Ticket-based upsert — the safe baseline path used in two cases:
-    //   1. MIGRATIONS_APPLIED is not "true": columns from 0021+0022 don't exist
-    //      yet; any insert containing them causes Postgres 42703 and a 500.
-    //   2. EA payload has no deal_entry / position_id: legacy format.
-    //
-    // Stopgap note: when migrations are not applied, 'source' and 'verified'
-    // are also excluded from the insert since they too require migration 0022.
-    // Once migrations are applied + MIGRATIONS_APPLIED=true is set in Vercel,
-    // all paths automatically use the full column set.
-    if (!MIGRATIONS_APPLIED && (dealEntry || positionId)) {
-      console.warn(
-        "EA ingest: position-aware path skipped — MIGRATIONS_APPLIED is not set. " +
-        "Apply migrations 0021+0022 to your Supabase project and set " +
-        "MIGRATIONS_APPLIED=true in Vercel env vars to enable position tracking.",
-        { dealEntry, positionId, tokenId },
-      );
-    }
-
-    const { data: existingTrade, error: lookupError } = await supabase
-      .from("trades")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("ticket", parsed.data.ticket)
-      .maybeSingle();
-
-    if (lookupError) {
-      console.error("EA ingest: trade lookup error", { tokenId, code: lookupError.code, message: lookupError.message, details: lookupError.details, hint: lookupError.hint });
-      return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
-    }
-
-    // Include source+verified only when the columns exist (migration 0022 applied).
-    const legacyRow = MIGRATIONS_APPLIED
-      ? { ...tradeRow, source: 'ea' as const, verified: true, visibility: 'private' }
-      : { ...tradeRow, visibility: 'private' };
-
-    saveResult = existingTrade?.id
-      ? await supabase.from("trades").update(legacyRow).eq("id", existingTrade.id).eq("user_id", userId)
-      : await supabase.from("trades").insert(legacyRow);
-    ingestAction = existingTrade?.id ? "updated" : "inserted";
+    finalRes = NextResponse.json({ error: "Unrecognised payload" }, { status: 400 });
   }
 
-  if (saveResult.error) {
-    console.error("EA ingest: failed to save trade", { tokenId, code: saveResult.error.code, message: saveResult.error.message, details: saveResult.error.details, hint: saveResult.error.hint });
-    return NextResponse.json({ error: "Failed to save trade" }, { status: 500 });
-  }
-
-  // 13. Update last_used_at (best-effort)
+  // 11. Update token last_used_at (best-effort)
   await supabase
     .from("ea_tokens")
     .update({ last_used_at: new Date().toISOString() })
     .eq("id", tokenRow.id);
 
-  // 14. Recalculate account score (best-effort; never fail ingest on error)
+  // 12. Score recalc (best-effort; never fail ingest on error)
   if (brokerAccountId) {
     const scoreResult = await recalculateAccountScoreWithClient(supabase, userId, brokerAccountId);
     if ("error" in scoreResult) {
@@ -791,13 +968,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json(
-    {
-      success: true,
-      action: ingestAction,
-      position_id: positionId,
-      status: resultStatus,
-    },
-    { status: 200 },
-  );
+  return finalRes;
 }
