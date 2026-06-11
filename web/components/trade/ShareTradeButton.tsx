@@ -7,7 +7,7 @@ import { Share2, Download, Loader2 } from "lucide-react";
 type Props = {
   cardRef: RefObject<HTMLDivElement | null>;
   pair: string;
-  result: "WIN" | "LOSS" | "BREAKEVEN";
+  result: "WIN" | "LOSS" | "BE";
 };
 
 async function captureCard(node: HTMLDivElement): Promise<Blob> {

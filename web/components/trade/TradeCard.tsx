@@ -4,7 +4,7 @@ import Logo from "@/components/ui/Logo";
 export interface TradeCardProps {
   pair: string;
   direction: "BUY" | "SELL";
-  result: "WIN" | "LOSS" | "BREAKEVEN";
+  result: "WIN" | "LOSS" | "BE";
   pnl: number;
   rrRatio: string | null;
   lotSize: number | null;

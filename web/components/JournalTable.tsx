@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Share2, Zap, ShieldCheck, Pencil, Lock } from "lucide-react";
 import type { TradeRow } from "@/lib/types";
 import { fmtDate, fmtDateTime, fmtMoney } from "@/lib/format";
@@ -13,11 +14,11 @@ import { Plus } from "lucide-react";
 
 type SourceFilter = "all" | "ea" | "manual";
 
-// All trade fields render as React text â€” never as raw HTML â€” which
+// All trade fields render as React text — never as raw HTML — which
 // structurally prevents the stored-XSS class of bug the old static app was
 // vulnerable to.
 //
-// chartUrls is a path â†’ signed URL lookup minted by the parent page so we
+// chartUrls is a path → signed URL lookup minted by the parent page so we
 // only round-trip Storage once for the whole list. URLs expire on the next
 // request, so a cached page can't be replayed forever.
 export default function JournalTable({
@@ -28,18 +29,25 @@ export default function JournalTable({
   chartUrls: Record<string, string>;
 }) {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+  const router = useRouter();
 
-  const eaCount = useMemo(() => trades.filter((t) => t.source === "ea").length, [trades]);
-  const manualCount = useMemo(
-    () => trades.filter((t) => t.source === "manual" || t.source === null).length,
+  // Hide cancelled orders from all tabs
+  const nonCancelledTrades = useMemo(
+    () => trades.filter((t) => t.order_status !== "cancelled"),
     [trades],
   );
 
+  const eaCount = useMemo(() => nonCancelledTrades.filter((t) => t.source === "ea").length, [nonCancelledTrades]);
+  const manualCount = useMemo(
+    () => nonCancelledTrades.filter((t) => t.source === "manual" || t.source === null).length,
+    [nonCancelledTrades],
+  );
+
   const visibleTrades = useMemo(() => {
-    if (sourceFilter === "ea") return trades.filter((t) => t.source === "ea");
-    if (sourceFilter === "manual") return trades.filter((t) => t.source === "manual" || t.source === null);
-    return trades;
-  }, [trades, sourceFilter]);
+    if (sourceFilter === "ea") return nonCancelledTrades.filter((t) => t.source === "ea");
+    if (sourceFilter === "manual") return nonCancelledTrades.filter((t) => t.source === "manual" || t.source === null);
+    return nonCancelledTrades;
+  }, [nonCancelledTrades, sourceFilter]);
 
   const FILTER_OPTIONS: { value: SourceFilter; label: string }[] = [
     { value: "all", label: "All" },
@@ -64,7 +72,7 @@ export default function JournalTable({
   return (
     <div className="space-y-3">
       {/* Summary strip */}
-      {trades.length > 0 ? (
+      {nonCancelledTrades.length > 0 ? (
         <div className="flex items-center gap-3 rounded-md border border-white/10 bg-panel px-4 py-2 text-xs text-muted">
           <span>
             <span className="font-medium text-white">{eaCount}</span> EA trades
@@ -128,84 +136,145 @@ export default function JournalTable({
               </tr>
             </thead>
             <tbody>
-              {visibleTrades.map((t) => (
-                <tr key={t.id} className="border-t border-white/5">
-                  <td className="px-3 py-2 text-muted">{fmtDateTime((t as any).open_time ?? t.created_at)}</td>
-                  <td className="px-3 py-2">
-                    {t.chart_path && chartUrls[t.chart_path] ? (
-                      <a href={chartUrls[t.chart_path]} target="_blank" rel="noreferrer">
-                        {/* eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render */}
-                        <img
-                          src={chartUrls[t.chart_path]}
-                          alt=""
-                          className="h-8 w-12 rounded object-cover"
-                          loading="lazy"
-                        />
-                      </a>
-                    ) : (
-                      <span className="text-xs text-muted">â€”</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 font-medium">{t.pair ?? "â€”"}</td>
-                  <td className="px-3 py-2">
-                    <span className={`rounded px-2 py-0.5 text-xs ${t.direction === "BUY" ? "bg-win/20 text-win" : "bg-loss/20 text-loss"}`}>
-                      {t.direction ?? "â€”"}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2">
-                    <span className={`text-xs uppercase ${t.result === "WIN" ? "text-win" : t.result === "LOSS" ? "text-loss" : "text-muted"}`}>
-                      {t.result ?? "â€”"}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2">
-                    <SourceBadge source={t.source} verified={t.verified} trustBadge={t.trust_badge} />
-                  </td>
-                  <td className={`px-3 py-2 text-right tabular-nums ${(t.pnl ?? 0) >= 0 ? "text-win" : "text-loss"}`}>
-                    {fmtMoney(t.pnl)}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-muted">
-                    {t.rr_ratio != null ? t.rr_ratio.toFixed(2) : "â€”"}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-muted">{t.tags ?? "â€”"}</td>
-                  <td className="px-3 py-2 text-xs">
-                    <VisibilityPill v={t.visibility} />
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <div className="flex justify-end gap-2">
-                      <Link
-                        href={`/trades/${t.id}`}
-                        title="View & Share"
-                        aria-label="View & Share"
-                        className="inline-flex items-center justify-center rounded border border-transparent p-1.5 text-gold hover:bg-gold/10"
-                      >
-                        <Share2 className="h-4 w-4" />
-                      </Link>
-                      {t.source === "ea" ? (
-                        <span
-                          title="Auto-verified trade — cannot be edited manually"
-                          className="inline-flex items-center justify-center rounded border border-white/10 p-1.5 text-muted cursor-default"
-                          aria-label="Auto-verified trade — cannot be edited manually"
+              {visibleTrades.map((t) => {
+                const isClosed = t.status === "closed" || t.status == null;
+                const isOpen = t.status === "open";
+                const isPending = t.order_status === "pending" || t.order_status === "modified";
+                return (
+                  <tr
+                    key={t.id}
+                    className="border-t border-white/5 cursor-pointer hover:bg-white/[0.02] transition-colors"
+                    onClick={() => router.push(`/trades/${t.id}`)}
+                  >
+                    <td className="px-3 py-2 text-muted">{fmtDateTime((t as any).open_time ?? t.created_at)}</td>
+                    <td className="px-3 py-2">
+                      {t.chart_path && chartUrls[t.chart_path] ? (
+                        <a
+                          href={chartUrls[t.chart_path]}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <Lock className="h-4 w-4" />
-                        </span>
+                          {/* eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render */}
+                          <img
+                            src={chartUrls[t.chart_path]}
+                            alt=""
+                            className="h-8 w-12 rounded object-cover"
+                            loading="lazy"
+                          />
+                        </a>
                       ) : (
-                        <>
-                          <Link href={`/journal/${t.id}/edit`} className="rounded border border-white/20 px-2 py-1 text-xs hover:bg-white/5">
-                            Edit
-                          </Link>
-                          <DeleteForm id={t.id} />
-                        </>
+                        <span className="text-xs text-muted">—</span>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-3 py-2 font-medium">{t.pair ?? "—"}</td>
+                    <td className="px-3 py-2">
+                      <span className={`rounded px-2 py-0.5 text-xs ${t.direction === "BUY" ? "bg-win/20 text-win" : "bg-loss/20 text-loss"}`}>
+                        {t.direction ?? "—"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <ResultCell result={t.result} isClosed={isClosed} isOpen={isOpen} isPending={isPending} />
+                    </td>
+                    <td className="px-3 py-2">
+                      <SourceBadge source={t.source} verified={t.verified} trustBadge={t.trust_badge} />
+                    </td>
+                    <td className={`px-3 py-2 text-right tabular-nums ${isClosed ? ((t.pnl ?? 0) >= 0 ? "text-win" : "text-loss") : "text-muted"}`}>
+                      {isClosed ? fmtMoney(t.pnl) : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums text-muted">
+                      <RRCell stopLoss={t.stop_loss} rrRatio={t.rr_ratio} />
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted">{t.tags ?? "—"}</td>
+                    <td className="px-3 py-2 text-xs">
+                      <VisibilityPill v={t.visibility} />
+                    </td>
+                    <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-end gap-2">
+                        <Link
+                          href={`/trades/${t.id}`}
+                          title="View & Share"
+                          aria-label="View & Share"
+                          className="inline-flex items-center justify-center rounded border border-transparent p-1.5 text-gold hover:bg-gold/10"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </Link>
+                        {t.source === "ea" ? (
+                          <span
+                            title="Auto-verified trade — cannot be edited manually"
+                            className="inline-flex items-center justify-center rounded border border-white/10 p-1.5 text-muted cursor-default"
+                            aria-label="Auto-verified trade — cannot be edited manually"
+                          >
+                            <Lock className="h-4 w-4" />
+                          </span>
+                        ) : (
+                          <>
+                            <Link href={`/journal/${t.id}/edit`} className="rounded border border-white/20 px-2 py-1 text-xs hover:bg-white/5">
+                              Edit
+                            </Link>
+                            <DeleteForm id={t.id} />
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
     </div>
   );
+}
+
+function ResultCell({
+  result,
+  isClosed,
+  isOpen,
+  isPending,
+}: {
+  result: TradeRow["result"];
+  isClosed: boolean;
+  isOpen: boolean;
+  isPending: boolean;
+}) {
+  if (isOpen) {
+    return (
+      <span className="rounded px-2 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+        LIVE
+      </span>
+    );
+  }
+  if (isPending) {
+    return (
+      <span className="rounded px-2 py-0.5 text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+        PENDING
+      </span>
+    );
+  }
+  if (isClosed) {
+    return (
+      <span
+        className={`text-xs uppercase font-medium ${
+          result === "WIN" ? "text-win" : result === "LOSS" ? "text-loss" : "text-muted"
+        }`}
+      >
+        {result ?? "—"}
+      </span>
+    );
+  }
+  return <span className="text-xs text-muted">—</span>;
+}
+
+function RRCell({ stopLoss, rrRatio }: { stopLoss: number | null; rrRatio: number | null }) {
+  if (stopLoss != null && rrRatio != null) {
+    return <span>{rrRatio.toFixed(2)}R</span>;
+  }
+  if (stopLoss == null) {
+    return <span className="text-[10px] text-white/30 italic">no SL</span>;
+  }
+  return <span>—</span>;
 }
 
 function SourceBadge({

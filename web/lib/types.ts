@@ -35,6 +35,10 @@ export type TradeRow = {
   auto_approved: boolean;
   source: string | null;
   verified: boolean | null;
+  status: "open" | "closed" | null;
+  order_status: "pending" | "modified" | "filled" | "cancelled" | null;
+  open_time: string | null;
+  close_time: string | null;
   created_at: string;
 };
 

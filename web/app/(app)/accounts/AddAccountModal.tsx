@@ -37,9 +37,7 @@ export default function AddAccountModal() {
   );
 
   const propFirmLocked = accountType === "prop_firm";
-  const demoLocked = accountType === "demo";
-  const modeLocked = propFirmLocked || demoLocked;
-  const effectiveMode: JournalMode = modeLocked ? "manual" : journalMode;
+  const effectiveMode: JournalMode = propFirmLocked ? "manual" : journalMode;
 
   function reset() {
     setSearch("");
@@ -195,11 +193,7 @@ export default function AddAccountModal() {
 
               <div>
                 <label className="mb-1 block text-sm text-white/80">Journal Mode</label>
-                {demoLocked ? (
-                  <div className="rounded-md border border-white/15 bg-white/5 px-3 py-2 text-xs text-white/70">
-                    Manual only — demo accounts cannot run automated mode.
-                  </div>
-                ) : propFirmLocked ? (
+                {propFirmLocked ? (
                   <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
                     Manual only — prop firm accounts cannot run automated mode. Copy execution is disabled.
                   </div>
