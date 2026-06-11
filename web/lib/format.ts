@@ -4,14 +4,14 @@ export function fmtMoney(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return "â€”";
   const sign = n < 0 ? "-" : "";
   const abs = Math.abs(n);
-  return `${sign}$${abs.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  return `${sign}$${abs.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
 }
 
 export function fmtDate(d: string | Date | null | undefined): string {
   if (!d) return "â€”";
   const t = typeof d === "string" ? new Date(d) : d;
   if (Number.isNaN(t.getTime())) return "â€”";
-  return t.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  return t.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" });
 }
 
 export function fmtPct(n: number | null | undefined): string {

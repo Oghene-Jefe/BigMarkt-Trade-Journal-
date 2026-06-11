@@ -20,9 +20,6 @@ function enforceModeRules(input: {
   if (input.account_type === "prop_firm") {
     return { journal_mode: "manual", is_prop_firm: true };
   }
-  if (input.account_type === "demo") {
-    return { journal_mode: "manual", is_prop_firm: false };
-  }
   return { journal_mode: input.journal_mode, is_prop_firm: false };
 }
 

@@ -106,7 +106,7 @@ export default async function TradeDetailPage({
 
   const status = typeof t.status === "string" ? t.status : "closed";
   const isOpen = status === "open";
-  const isPending = (t.order_status === "pending" || t.order_status === "modified") && !isOpen;
+  const isPending = !isOpen && (t.order_status === "pending" || t.order_status === "modified");
   const isClosed = !isOpen && !isPending;
 
   const entry = typeof t.entry_price === "number" ? t.entry_price : null;

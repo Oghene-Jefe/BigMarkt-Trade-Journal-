@@ -239,17 +239,19 @@ function ResultCell({
   isOpen: boolean;
   isPending: boolean;
 }) {
-  if (isOpen) {
-    return (
-      <span className="rounded px-2 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
-        LIVE
-      </span>
-    );
-  }
+  // isPending first: pending orders arrive with status='closed' (DB default),
+  // so order_status must be checked before falling through to the closed badge.
   if (isPending) {
     return (
       <span className="rounded px-2 py-0.5 text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
         PENDING
+      </span>
+    );
+  }
+  if (isOpen) {
+    return (
+      <span className="rounded px-2 py-0.5 text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+        LIVE
       </span>
     );
   }

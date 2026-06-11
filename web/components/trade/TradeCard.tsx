@@ -47,7 +47,7 @@ function directionColor(d: TradeCardProps["direction"]) {
 
 function fmtPrice(n: number | null): string {
   if (n == null) return "—";
-  return n.toLocaleString(undefined, { maximumFractionDigits: 5 });
+  return n.toLocaleString("en-US", { maximumFractionDigits: 5 });
 }
 
 function fmtDate(iso: string): string {
