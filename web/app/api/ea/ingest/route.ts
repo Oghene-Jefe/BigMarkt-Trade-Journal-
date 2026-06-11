@@ -282,6 +282,19 @@ async function handleOrderEvent(
     return NextResponse.json({ error: "Invalid trade type" }, { status: 400 });
   }
 
+  // Fix 1: ignore market-order transient events.
+  // MT5 fires ORDER_ADD/UPDATE/DELETE for instant market executions (type='buy'
+  // or 'sell') as well as pending orders. Market-order events are transient
+  // housekeeping — the deal handler creates the position row from the
+  // accompanying ENTRY_IN deal. Writing a pending row here would create a
+  // phantom that never gets merged and pollutes the journal.
+  // Pending order types always contain 'limit' or 'stop' in their type string
+  // (buy_limit, sell_limit, buy_stop, sell_stop, buy_stop_limit, sell_stop_limit).
+  const isPendingOrderType = /limit|stop/i.test(orderType);
+  if (!isPendingOrderType) {
+    return NextResponse.json({ success: true, ignored: "market_order_event" }, { status: 200 });
+  }
+
   // ── order_add ──────────────────────────────────────────────────────────────
   if (event_type === "order_add") {
     // UPSERT on (user_id, order_ticket) so a retried order_add is idempotent.
