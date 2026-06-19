@@ -829,7 +829,9 @@ export async function POST(req: NextRequest) {
 
   const userId        = tokenRow.user_id;
   const tokenId       = tokenRow.id;
-  const brokerAccountId = tokenRow.broker_account_id ?? null;
+  // Mutable: if the token carries no broker_account_id we try to resolve one
+  // from the user's accounts in step 8 (self-healing the link).
+  let brokerAccountId = tokenRow.broker_account_id ?? null;
   const encryptedSecret =
     tokenRow.signing_secret_ciphertext &&
     tokenRow.signing_secret_iv &&
@@ -935,7 +937,11 @@ export async function POST(req: NextRequest) {
     envelopeForReplay = env.envelope;
   }
 
-  // 8. Account type lookup (for trust_badge derivation)
+  // 8. Resolve broker account + type (for attribution + trust_badge derivation).
+  //    If the token already links an account, just read its type. Otherwise, if
+  //    the user has exactly one broker account, adopt it automatically and
+  //    self-heal the token link so the UI reflects it and future requests skip
+  //    this lookup. Ambiguous (0 or >1 accounts) → leave unlinked.
   let accountType: string | null = null;
   if (brokerAccountId) {
     const { data: account } = await supabase
@@ -945,6 +951,21 @@ export async function POST(req: NextRequest) {
       .eq("user_id", userId)
       .maybeSingle();
     accountType = (account?.account_type as string | null) ?? null;
+  } else {
+    const { data: accts } = await supabase
+      .from("broker_accounts")
+      .select("id, account_type")
+      .eq("user_id", userId);
+    if (accts && accts.length === 1) {
+      brokerAccountId = accts[0].id as string;
+      accountType = (accts[0].account_type as string | null) ?? null;
+      // self-heal: persist the link so the UI reflects it and future
+      // requests resolve immediately.
+      await supabase
+        .from("ea_tokens")
+        .update({ broker_account_id: brokerAccountId })
+        .eq("id", tokenRow.id);
+    }
   }
 
   // 9. Nonce record (v2 only — before any DB writes)

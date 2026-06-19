@@ -7,7 +7,7 @@ import { signChart } from "@/lib/storage";
 import ShareableTradeCard from "@/components/trade/ShareableTradeCard";
 
 const SELECT_FIELDS =
-  "id, pair, direction, lot_size, entry_price, exit_price, stop_loss, take_profit, pnl, rr_ratio, result, session, strategy, setup_grade, emotions, tags, notes, chart_path, created_at, status, open_time, close_time, order_status, source, trust_badge";
+  "id, pair, direction, lot_size, entry_price, exit_price, stop_loss, take_profit, pnl, rr_ratio, result, session, strategy, setup_grade, emotions, tags, notes, chart_path, created_at, status, open_time, close_time, order_status, source, trust_badge, capture_source, position_id, ticket";
 
 // Mirrors the formula in TradeForm.tsx — keep in sync.
 function getPnlMultiplier(pair: string): number {
@@ -173,6 +173,8 @@ export default async function TradeDetailPage({
           stopLoss={stopLoss}
           takeProfit={takeProfit}
           lotSize={lotSize}
+          openTime={typeof t.open_time === "string" ? t.open_time : null}
+          isPending={isPending}
         />
       )}
 
@@ -306,7 +308,7 @@ function ClosedTradeCard({
 
 // Lightweight stats card for open/pending trades (no share)
 function OpenTradeCard({
-  pair, direction, entry, stopLoss, takeProfit, lotSize,
+  pair, direction, entry, stopLoss, takeProfit, lotSize, openTime, isPending,
 }: {
   pair: string;
   direction: "BUY" | "SELL";
@@ -314,8 +316,9 @@ function OpenTradeCard({
   stopLoss: number | null;
   takeProfit: number | null;
   lotSize: number | null;
+  openTime: string | null;
+  isPending: boolean;
 }) {
-  const dColor = direction === "BUY" ? "text-win" : "text-loss";
   return (
     <div className="rounded-lg border border-white/10 bg-panel p-6 space-y-4">
       <div className="flex items-center gap-3">
@@ -331,6 +334,17 @@ function OpenTradeCard({
         <PriceCell label="Stop Loss" value={fmtPrice(stopLoss)} />
         <PriceCell label="Take Profit" value={fmtPrice(takeProfit)} />
         <PriceCell label="Lot Size" value={lotSize != null ? lotSize.toFixed(2) : "—"} />
+      </div>
+      <div className="flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-[10px] uppercase tracking-widest text-muted">
+            {isPending ? "Order Time" : "Opened"}
+          </div>
+          <div className="mt-0.5 text-sm text-white">{fmtDT(openTime)}</div>
+        </div>
+        <p className="text-xs text-muted">
+          {isPending ? "Pending order — awaiting fill" : "Position open — awaiting close"}
+        </p>
       </div>
     </div>
   );
