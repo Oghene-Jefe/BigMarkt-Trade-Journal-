@@ -8,6 +8,32 @@ import { tradeSchema, tradeVisibility } from "@/lib/schemas";
 import { updateChallengeStreak } from "@/lib/challengeStreak";
 import { extForSniffedType, sniffImageType } from "@/lib/upload/imageSniff";
 import { safeDbError } from "@/lib/db-error";
+import { recomputeViolationsForTrade, type RecomputeTrade } from "@/lib/constitution/recompute";
+
+// Columns the constitution engine reads. Fetched after a manual write so the
+// recompute hook sees the persisted row.
+const CONSTITUTION_TRADE_FIELDS =
+  "id, user_id, broker_account_id, pair, entry_price, stop_loss, take_profit, lot_size, balance_at_open, open_time, close_time, pnl, status";
+
+// Best-effort: recompute this trade's constitution violations. Wrapped so a
+// failure here can NEVER break the trade-save path.
+async function recomputeConstitution(
+  sb: Awaited<ReturnType<typeof supabaseServer>>,
+  tradeId: string,
+  userId: string,
+): Promise<void> {
+  try {
+    const { data: row } = await sb
+      .from("trades")
+      .select(CONSTITUTION_TRADE_FIELDS)
+      .eq("id", tradeId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (row) await recomputeViolationsForTrade(sb, row as RecomputeTrade);
+  } catch (err) {
+    console.error("constitution recompute (manual) failed — swallowed", err);
+  }
+}
 
 export type TradeActionState = { error?: string; ok?: string; fieldErrors?: Record<string, string> };
 
@@ -144,6 +170,8 @@ export async function createTradeAction(_: TradeActionState, fd: FormData): Prom
     console.error("updateChallengeStreak failed:", err);
   }
 
+  await recomputeConstitution(sb, inserted.id, user.id);
+
   revalidatePath("/journal");
   revalidatePath("/dashboard");
   redirect("/journal");
@@ -235,6 +263,8 @@ export async function updateTradeAction(id: string, _: TradeActionState, fd: For
 
   const { error } = await sb.from("trades").update(updateRow).eq("id", id).eq("user_id", user.id);
   if (error) return { error: safeDbError(error, "Couldn't save trade changes.", "trade_update") };
+
+  await recomputeConstitution(sb, id, user.id);
 
   revalidatePath("/journal");
   revalidatePath("/dashboard");

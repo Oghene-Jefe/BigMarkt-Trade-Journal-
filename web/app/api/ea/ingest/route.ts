@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { recalculateAccountScoreWithClient } from "@/lib/scoring-recalculate";
+import { recomputeViolationsForTrade, type RecomputeTrade } from "@/lib/constitution/recompute";
+
+// Columns the constitution engine reads.
+const CONSTITUTION_TRADE_FIELDS =
+  "id, user_id, broker_account_id, pair, entry_price, stop_loss, take_profit, lot_size, balance_at_open, open_time, close_time, pnl, status";
 import {
   buildEaTradeRow,
   deriveEaDirection,
@@ -1159,6 +1164,7 @@ export async function POST(req: NextRequest) {
   // 10. Dispatch to the appropriate handler
   let finalRes: NextResponse;
   let positionId: string | null = null;
+  let resultStatus: "open" | "closed" | null = null;
 
   if (isPositionModify && positionModifyPayload) {
     finalRes = await handlePositionModifyEvent(supabase, positionModifyPayload, userId);
@@ -1168,6 +1174,7 @@ export async function POST(req: NextRequest) {
     const result = await handleDealEvent(supabase, dealPayload, userId, tokenId, brokerAccountId, accountType, acct);
     finalRes   = result.res;
     positionId = result.positionId;
+    resultStatus = result.resultStatus;
   } else {
     finalRes = NextResponse.json({ error: "Unrecognised payload" }, { status: 400 });
   }
@@ -1190,6 +1197,26 @@ export async function POST(req: NextRequest) {
     const scoreResult = await recalculateAccountScoreWithClient(supabase, userId, brokerAccountId);
     if ("error" in scoreResult) {
       console.error("EA ingest: score recalc error", { tokenId });
+    }
+  }
+
+  // 13. Constitution recompute — ONLY for a closed trade (skip open ENTRY_IN).
+  //     Best-effort; wrapped so it can never break ingest.
+  if (resultStatus === "closed" && positionId) {
+    try {
+      const { data: closedTrade } = await supabase
+        .from("trades")
+        .select(CONSTITUTION_TRADE_FIELDS)
+        .eq("user_id", userId)
+        .eq("position_id", positionId)
+        .eq("status", "closed")
+        .limit(1)
+        .maybeSingle();
+      if (closedTrade) {
+        await recomputeViolationsForTrade(supabase, closedTrade as RecomputeTrade);
+      }
+    } catch (err) {
+      console.error("EA ingest: constitution recompute failed — swallowed", { tokenId, err });
     }
   }
 

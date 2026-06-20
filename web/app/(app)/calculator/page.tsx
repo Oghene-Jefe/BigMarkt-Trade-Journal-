@@ -2,72 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { AlertTriangle } from "lucide-react";
-
-type Unit = "pips" | "points";
-
-type Instrument = {
-  symbol: string;
-  pipValue: number; // $ per pip at 1.00 standard lot
-  unit: Unit;
-  pipFactor: number; // multiplier to convert |entry - sl| price diff into pip/point distance
-  hint: string;
-};
+import { INSTRUMENTS, ALL_INSTRUMENTS } from "@/lib/pip-values";
 
 const MIN_LOT = 0.01;
-
-const INSTRUMENTS: Record<string, Instrument[]> = {
-  Metals: [
-    {
-      symbol: "XAU/USD",
-      pipValue: 10,
-      unit: "pips",
-      pipFactor: 100,
-      hint: "1 pip = $0.01 price move (2nd decimal). $4000→$4010 = 1000 pips. At 0.01 lot: 1 pip = $0.10.",
-    },
-    {
-      symbol: "XAG/USD",
-      pipValue: 5,
-      unit: "pips",
-      pipFactor: 1000,
-      hint: "1 pip = $0.001 price move for Silver. Count from 3rd decimal. 0.01 lot × 1 pip = $0.05.",
-    },
-  ],
-  "Forex Majors": [
-    { symbol: "EUR/USD", pipValue: 10, unit: "pips", pipFactor: 10000, hint: "1 pip = 0.0001 (4th decimal). 0.01 lot × 1 pip = $0.10." },
-    { symbol: "GBP/USD", pipValue: 10, unit: "pips", pipFactor: 10000, hint: "1 pip = 0.0001 (4th decimal). 0.01 lot × 1 pip = $0.10." },
-    { symbol: "AUD/USD", pipValue: 10, unit: "pips", pipFactor: 10000, hint: "1 pip = 0.0001 (4th decimal). 0.01 lot × 1 pip = $0.10." },
-    { symbol: "USD/CAD", pipValue: 7.5, unit: "pips", pipFactor: 10000, hint: "1 pip = 0.0001 (4th decimal). Pip value ≈ $7.50/lot." },
-    { symbol: "USD/JPY", pipValue: 6.8, unit: "pips", pipFactor: 100, hint: "1 pip = 0.01 (2nd decimal for JPY). Pip value ≈ $6.80/lot." },
-    { symbol: "GBP/JPY", pipValue: 6.8, unit: "pips", pipFactor: 100, hint: "1 pip = 0.01 (2nd decimal for JPY). Pip value ≈ $6.80/lot." },
-    { symbol: "EUR/JPY", pipValue: 6.8, unit: "pips", pipFactor: 100, hint: "1 pip = 0.01 (2nd decimal for JPY). Pip value ≈ $6.80/lot." },
-  ],
-  Indices: [
-    { symbol: "US30", pipValue: 1, unit: "points", pipFactor: 1, hint: "1 point = 1 index unit. Entry 39800, SL 39700 → 100 points." },
-    { symbol: "NAS100", pipValue: 1, unit: "points", pipFactor: 1, hint: "1 point = 1 index unit. Entry 18000, SL 17950 → 50 points." },
-    { symbol: "US500", pipValue: 1, unit: "points", pipFactor: 1, hint: "1 point = 1 index unit. Entry 5300, SL 5280 → 20 points." },
-    { symbol: "UK100", pipValue: 1, unit: "points", pipFactor: 1, hint: "1 point = 1 index unit (FTSE)." },
-    { symbol: "GER40", pipValue: 1, unit: "points", pipFactor: 1, hint: "1 point = 1 index unit (DAX)." },
-  ],
-  Oil: [
-    { symbol: "USOIL", pipValue: 10, unit: "pips", pipFactor: 100, hint: "1 pip = $0.01 price move. 0.01 lot × 1 pip = $0.10." },
-    { symbol: "UKOIL", pipValue: 10, unit: "pips", pipFactor: 100, hint: "1 pip = $0.01 price move. 0.01 lot × 1 pip = $0.10." },
-  ],
-  Crypto: [
-    { symbol: "BTC/USD", pipValue: 1, unit: "pips", pipFactor: 1, hint: "1 pip = $1 price move. Entry $65,000, SL $64,500 → 500 pips." },
-    { symbol: "ETH/USD", pipValue: 1, unit: "pips", pipFactor: 100, hint: "1 pip ≈ $0.01 price move. Use price diff × 100." },
-    { symbol: "XRP/USD", pipValue: 1, unit: "pips", pipFactor: 10000, hint: "1 pip = $0.0001 price move. Multiply price diff × 10,000." },
-  ],
-  "Synthetics (Deriv)": [
-    { symbol: "Boom 500", pipValue: 0.1, unit: "points", pipFactor: 1, hint: "Enter prices in points as shown on MT5/DTrader." },
-    { symbol: "Boom 1000", pipValue: 0.1, unit: "points", pipFactor: 1, hint: "Enter prices in points as shown on MT5/DTrader." },
-    { symbol: "Crash 500", pipValue: 0.1, unit: "points", pipFactor: 1, hint: "Enter prices in points as shown on MT5/DTrader." },
-    { symbol: "Crash 1000", pipValue: 0.1, unit: "points", pipFactor: 1, hint: "Enter prices in points as shown on MT5/DTrader." },
-    { symbol: "V75", pipValue: 0.1, unit: "points", pipFactor: 1, hint: "Volatility 75 Index — points from your chart." },
-    { symbol: "V25", pipValue: 0.1, unit: "points", pipFactor: 1, hint: "Volatility 25 Index — points from your chart." },
-  ],
-};
-
-const ALL_INSTRUMENTS: Instrument[] = Object.values(INSTRUMENTS).flat();
 
 export default function CalculatorPage() {
   const [balance, setBalance] = useState<string>("10000");
