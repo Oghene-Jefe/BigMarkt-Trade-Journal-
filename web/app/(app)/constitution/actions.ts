@@ -111,3 +111,58 @@ export async function upsertConstitutionAction(
   revalidatePath("/constitution");
   return { ok: "Constitution saved." };
 }
+
+const selfCheckSchema = z.object({
+  trade_id: z.string().uuid(),
+  rule_id: z.string().min(1).max(64),
+  status: z.enum(["followed", "broke"]).nullable(),
+});
+
+// Owner self-attests (or clears) a CUSTOM rule on one of their trades. These
+// are reflections only — never blended into system-rule adherence.
+export async function setCustomRuleCheck(
+  trade_id: string,
+  rule_id: string,
+  status: "followed" | "broke" | null,
+): Promise<{ error: string } | { ok: true }> {
+  const parsed = selfCheckSchema.safeParse({ trade_id, rule_id, status });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const { sb, user } = await requireUser();
+
+  // Ownership guard — the trade must belong to the caller.
+  const { data: trade } = await sb
+    .from("trades")
+    .select("id")
+    .eq("id", parsed.data.trade_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!trade) return { error: "Trade not found." };
+
+  if (parsed.data.status === null) {
+    // Clear the attestation.
+    const { error } = await sb
+      .from("constitution_self_checks")
+      .delete()
+      .eq("trade_id", parsed.data.trade_id)
+      .eq("rule_id", parsed.data.rule_id)
+      .eq("user_id", user.id);
+    if (error) return { error: safeDbError(error, "Couldn't clear your self-check.", "self_check_delete") };
+  } else {
+    const { error } = await sb
+      .from("constitution_self_checks")
+      .upsert(
+        {
+          user_id: user.id,
+          trade_id: parsed.data.trade_id,
+          rule_id: parsed.data.rule_id,
+          status: parsed.data.status,
+        },
+        { onConflict: "trade_id,rule_id" },
+      );
+    if (error) return { error: safeDbError(error, "Couldn't save your self-check.", "self_check_upsert") };
+  }
+
+  revalidatePath(`/journal/${parsed.data.trade_id}`);
+  return { ok: true };
+}

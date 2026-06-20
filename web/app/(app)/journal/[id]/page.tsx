@@ -8,6 +8,7 @@ import { signChart } from "@/lib/storage";
 import { fmtPct } from "@/lib/format";
 import { ruleLabel } from "@/lib/constitution/labels";
 import ShareableTradeCard from "@/components/trade/ShareableTradeCard";
+import CustomRuleChecks, { type CustomRule } from "./CustomRuleChecks";
 
 const SELECT_FIELDS =
   "id, pair, direction, lot_size, entry_price, exit_price, stop_loss, take_profit, pnl, rr_ratio, return_pct, result, session, strategy, setup_grade, emotions, tags, notes, chart_path, created_at, status, open_time, close_time, order_status, source, trust_badge, capture_source, position_id, ticket";
@@ -104,7 +105,13 @@ export default async function TradeDetailPage({
   const user = await requireUser();
   const sb = await supabaseServer();
 
-  const [{ data: trade, error }, { data: events }, { data: violationsData }] = await Promise.all([
+  const [
+    { data: trade, error },
+    { data: events },
+    { data: violationsData },
+    { data: constitutionRow },
+    { data: selfCheckData },
+  ] = await Promise.all([
     sb
       .from("trades")
       .select(SELECT_FIELDS)
@@ -120,7 +127,29 @@ export default async function TradeDetailPage({
       .select("rule_key, actual, allowed, detail")
       .eq("trade_id", id)
       .eq("user_id", user.id),
+    sb
+      .from("trading_constitutions")
+      .select("custom_rules")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    sb
+      .from("constitution_self_checks")
+      .select("rule_id, status")
+      .eq("trade_id", id)
+      .eq("user_id", user.id),
   ]);
+
+  // Owner-only self-attestation of CUSTOM rules. The page is already scoped to
+  // the owner (requireUser + user_id filter), so showing it here is safe.
+  const customRules: CustomRule[] = Array.isArray(constitutionRow?.custom_rules)
+    ? (constitutionRow.custom_rules as CustomRule[]).filter(
+        (r) => r && typeof r.id === "string" && typeof r.text === "string",
+      )
+    : [];
+  const selfCheckInitial: Record<string, "followed" | "broke"> = {};
+  for (const c of (selfCheckData ?? []) as { rule_id: string; status: "followed" | "broke" }[]) {
+    selfCheckInitial[c.rule_id] = c.status;
+  }
 
   const violations = (violationsData ?? []) as Array<{
     rule_key: string;
@@ -262,6 +291,11 @@ export default async function TradeDetailPage({
 
       {/* Constitution rule deviations */}
       {violations.length > 0 ? <RuleDeviations violations={violations} /> : null}
+
+      {/* Custom-rule self-attestation (owner-only, optional) */}
+      {customRules.length > 0 ? (
+        <CustomRuleChecks tradeId={id} rules={customRules} initial={selfCheckInitial} />
+      ) : null}
 
       {/* Chart screenshot */}
       {chartUrl ? (
