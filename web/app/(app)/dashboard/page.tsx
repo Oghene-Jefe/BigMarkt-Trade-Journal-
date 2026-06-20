@@ -5,6 +5,7 @@ import type { TradeRow } from "@/lib/types";
 import { fmtMoney, fmtDate, fmtPct } from "@/lib/format";
 import { getMonthPulse } from "@/lib/heatmap";
 import { getActiveAccount } from "@/lib/accounts";
+import { computeAdherence } from "@/lib/constitution/adherence";
 import { PageHeader, MetricCard, Section, StatusPill } from "@/components/ui";
 import { buildActivationSummary } from "@/lib/activation";
 import Banners from "./Banners";
@@ -20,6 +21,10 @@ export default async function DashboardPage() {
   // The active account (driven by the global switcher in the shell) is the
   // single source of truth for what the dashboard shows.
   const { activeId } = await getActiveAccount(sb, user!.id);
+
+  // Compact rule-adherence stat (null when no active constitution / nothing evaluated).
+  const adherence = await computeAdherence(sb, user!.id);
+  const adherencePct = adherence?.pct ?? null;
 
   const [
     { data: tradesData },
@@ -139,6 +144,13 @@ export default async function DashboardPage() {
         <ModePill mode={journalMode} />
         <Link href="/profile" className="text-muted hover:text-white">
           Change in settings
+        </Link>
+        <span className="text-white/20">·</span>
+        <Link href="/constitution" className="text-muted hover:text-white">
+          Rule adherence{" "}
+          <span className="font-medium text-white">
+            {adherencePct == null ? "—" : `${adherencePct}%`}
+          </span>
         </Link>
       </div>
 
