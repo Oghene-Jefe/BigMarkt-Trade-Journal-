@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signCharts } from "@/lib/storage";
+import { getActiveAccount } from "@/lib/accounts";
 import JournalClient from "./JournalClient";
 import NewsFeed from "./NewsFeed";
 import type { TradeRow, NewsEvent } from "@/lib/types";
@@ -84,28 +85,26 @@ async function TradesView({
   sb: Awaited<ReturnType<typeof supabaseServer>>;
   view: Exclude<View, "news">;
 }) {
+  const { data: { user } } = await sb.auth.getUser();
+  const { activeId } = await getActiveAccount(sb, user!.id);
+
   let query = sb.from("trades").select("*");
   if (view === "my_trades") {
     query = query.neq("capture_source", "signal");
   } else if (view === "signals") {
     query = query.eq("capture_source", "signal");
   }
+  // Scope the journal to the active account (single source of truth from the
+  // global switcher in the shell).
+  if (activeId) {
+    query = query.eq("broker_account_id", activeId);
+  }
 
-  const [{ data, error }, { data: accountData }] = await Promise.all([
-    query.order("created_at", { ascending: false }),
-    sb
-      .from("broker_accounts")
-      .select("id")
-      .eq("is_active", true)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   const trades = (data ?? []) as TradeRow[];
   const paths = trades.map((t) => t.chart_path).filter((p): p is string => !!p);
   const chartUrls = await signCharts(paths);
-  const defaultAccountId = (accountData as { id: string } | null)?.id ?? null;
 
   if (error) {
     return (
@@ -138,7 +137,7 @@ async function TradesView({
           performance score.
         </p>
       ) : null}
-      <JournalClient trades={trades} chartUrls={chartUrls} defaultAccountId={defaultAccountId} />
+      <JournalClient trades={trades} chartUrls={chartUrls} />
     </div>
   );
 }

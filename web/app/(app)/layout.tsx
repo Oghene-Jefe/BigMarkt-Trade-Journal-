@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import { getUnreadNotificationCountAction } from "@/lib/actions/notifications";
+import { getActiveAccount } from "@/lib/accounts";
+import AccountSwitcher from "@/components/layout/AccountSwitcher";
 import DrawerNav from "./DrawerNav";
 import Logo from "@/components/ui/Logo";
 import { EcosystemFooter } from "@/components/ui/EcosystemFooter";
@@ -41,6 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!profile?.display_name) redirect("/onboarding");
 
   const admin = await isAdmin();
+  const { activeId, accounts } = await getActiveAccount(sb, user.id);
   const unreadRes = await getUnreadNotificationCountAction();
   const unreadCount = ("count" in unreadRes ? unreadRes.count : 0) ?? 0;
 
@@ -63,7 +66,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/dashboard">
             <Logo size="md" />
           </Link>
-          <DrawerNav admin={admin} unreadCount={unreadCount} userEmail={user.email ?? ""} />
+          <div className="flex items-center gap-3">
+            <AccountSwitcher activeId={activeId} accounts={accounts} />
+            <DrawerNav admin={admin} unreadCount={unreadCount} userEmail={user.email ?? ""} />
+          </div>
         </div>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 pb-16 md:pb-6">{children}</main>

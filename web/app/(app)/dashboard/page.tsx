@@ -1,35 +1,31 @@
 import Link from "next/link";
 import { Bot, PenLine, CircleDashed, ArrowRight } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
-import type { TradeRow, BrokerAccount } from "@/lib/types";
+import type { TradeRow } from "@/lib/types";
 import { fmtMoney, fmtDate, fmtPct } from "@/lib/format";
 import { getMonthPulse } from "@/lib/heatmap";
+import { getActiveAccount } from "@/lib/accounts";
 import { PageHeader, MetricCard, Section, StatusPill } from "@/components/ui";
 import { buildActivationSummary } from "@/lib/activation";
-import { BROKERS } from "@/lib/brokers";
 import Banners from "./Banners";
 import ActivationPanel from "./ActivationPanel";
-import AccountSwitcherNav from "@/components/dashboard/AccountSwitcherNav";
-import type { SwitcherAccount } from "@/components/dashboard/AccountSwitcher";
 import OpenPositionsPanel from "@/components/dashboard/OpenPositionsPanel";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ account?: string }>;
-}) {
+export default async function DashboardPage() {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
-  const params = await searchParams;
+
+  // The active account (driven by the global switcher in the shell) is the
+  // single source of truth for what the dashboard shows.
+  const { activeId } = await getActiveAccount(sb, user!.id);
 
   const [
     { data: tradesData },
     { data: profileData },
     { count: brokerAccountCountRaw },
     { count: eaTokenCountRaw },
-    { data: accountsData },
   ] = await Promise.all([
     sb.from("trades").select("*").order("created_at", { ascending: false }),
     sb.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
@@ -42,43 +38,17 @@ export default async function DashboardPage({
       .select("id", { count: "exact", head: true })
       .eq("user_id", user!.id)
       .is("revoked_at", null),
-    sb
-      .from("broker_accounts")
-      .select("*")
-      .eq("user_id", user!.id)
-      .eq("is_active", true)
-      .order("created_at", { ascending: true }),
   ]);
 
   const brokerAccountCount = brokerAccountCountRaw ?? 0;
   const eaTokenCount = eaTokenCountRaw ?? 0;
   const allTrades = (tradesData ?? []) as TradeRow[];
-  const accounts = (accountsData ?? []) as BrokerAccount[];
 
-  // Build switcher accounts
-  const switcherAccounts: SwitcherAccount[] = accounts.map((acc) => {
-    const broker = BROKERS.find((b) => b.id === acc.broker_slug);
-    return {
-      id: acc.id,
-      account_name: acc.label,
-      broker_name: broker?.name ?? acc.broker_slug,
-      account_type: acc.account_type,
-    };
-  });
-
-  // Determine selected account — prefer URL param, then first live, then first
-  const firstLive = accounts.find((a) => a.account_type === "live");
-  const defaultId = firstLive?.id ?? accounts[0]?.id ?? null;
-  const selectedAccountId =
-    params.account && accounts.some((a) => a.id === params.account)
-      ? params.account
-      : defaultId;
-
-  // Filter trades by selected account when one is chosen
-  const trades = selectedAccountId
+  // Scope all dashboard data to the active account.
+  const trades = activeId
     ? allTrades.filter((t) => {
         const row = t as TradeRow & { broker_account_id?: string | null };
-        return row.broker_account_id === selectedAccountId;
+        return row.broker_account_id === activeId;
       })
     : allTrades;
 
@@ -127,14 +97,6 @@ export default async function DashboardPage({
     <div className="space-y-6">
       <PageHeader title="Dashboard" />
 
-      {/* Account Switcher — shown when user has broker accounts */}
-      {switcherAccounts.length > 0 && (
-        <AccountSwitcherNav
-          accounts={switcherAccounts}
-          selectedId={selectedAccountId}
-        />
-      )}
-
       <ActivationPanel summary={activationSummary} />
 
       {activationSummary.nextStep === null ? (
@@ -177,7 +139,7 @@ export default async function DashboardPage({
       ) : null}
 
       {/* Open Positions Panel */}
-      <OpenPositionsPanel userId={user!.id} accountId={selectedAccountId} />
+      <OpenPositionsPanel userId={user!.id} accountId={activeId || null} />
 
       <Section
         title="Recent trades"
