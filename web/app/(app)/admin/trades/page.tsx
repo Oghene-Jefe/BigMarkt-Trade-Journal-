@@ -205,7 +205,7 @@ export default async function AdminTradesPage({
                     <td className="px-3 py-2 text-right">
                       <div className="flex justify-end gap-2">
                         <Link
-                          href={`/trades/${t.id}` as Route}
+                          href={`/journal/${t.id}` as Route}
                           className="rounded border border-white/20 px-2 py-1 text-xs hover:bg-white/5"
                         >
                           View

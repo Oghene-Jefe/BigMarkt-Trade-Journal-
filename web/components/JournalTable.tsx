@@ -144,7 +144,7 @@ export default function JournalTable({
                   <tr
                     key={t.id}
                     className="border-t border-white/5 cursor-pointer hover:bg-white/[0.02] transition-colors"
-                    onClick={() => router.push(`/trades/${t.id}`)}
+                    onClick={() => router.push(`/journal/${t.id}`)}
                   >
                     <td className="px-3 py-2 text-muted">{fmtDateTime((t as any).open_time ?? t.created_at)}</td>
                     <td className="px-3 py-2">
@@ -192,7 +192,7 @@ export default function JournalTable({
                     <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">
                         <Link
-                          href={`/trades/${t.id}`}
+                          href={`/journal/${t.id}`}
                           title="View & Share"
                           aria-label="View & Share"
                           className="inline-flex items-center justify-center rounded border border-transparent p-1.5 text-gold hover:bg-gold/10"
