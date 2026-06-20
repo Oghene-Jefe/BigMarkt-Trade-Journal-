@@ -49,8 +49,9 @@ export default function AutomationTosModal({
         <div className="flex-1 space-y-4 overflow-y-auto p-5 text-sm">
           <ol className="space-y-3 text-white/85">
             <li>
-              <span className="font-semibold text-white">EA is read-only.</span>{" "}
-              Our MT4/MT5 EA never calls{" "}
+              <span className="font-semibold text-white">Read-only by design.</span>{" "}
+              The EA only reads your trade history and reports it to your journal.
+              It never places, modifies, or closes trades — no{" "}
               <code className="rounded bg-black/40 px-1 font-mono text-xs">
                 OrderSend
               </code>
@@ -61,63 +62,40 @@ export default function AutomationTosModal({
               , or{" "}
               <code className="rounded bg-black/40 px-1 font-mono text-xs">
                 OrderClose
-              </code>
-              . It only reads your trade history. It cannot place, modify, or
-              close trades on your behalf.
+              </code>{" "}
+              calls, ever.
             </li>
             <li>
               <span className="font-semibold text-white">
-                Broker compliance is your responsibility.
+                Broker &amp; prop firm compliance is your responsibility.
               </span>{" "}
-              You confirm that running a read-only EA does not violate your
-              broker's terms of service. Some brokers and prop firms require
-              prior approval — check before you install.
+              Some brokers and prop firms require approval for any third-party EA,
+              even read-only ones. Check your account's terms before installing.
             </li>
             <li>
               <span className="font-semibold text-white">
-                Prop firm accounts are journal-only.
+                Your connection token is read-only.
               </span>{" "}
-              For any prop firm account connected to BigMarkt, copy-trading
-              execution is permanently disabled. Prop firm trades will be
-              displayed in your journal but will never be copied to followers.
+              It authorises journaling only and carries no trading, transfer, or
+              withdrawal permissions.
             </li>
             <li>
-              <span className="font-semibold text-white">
-                API keys are read-only and encrypted.
-              </span>{" "}
-              Exchange API keys must be created with read-only / view
-              permissions and no withdrawal rights. We validate this on
-              connection and reject keys with execution scope. Keys are
-              encrypted at rest with per-row salts.
-            </li>
-            <li>
-              <span className="font-semibold text-white">
-                Follower lot sizes never match leader lot sizes.
-              </span>{" "}
-              Copy-trading (where available) scales every position to the
-              follower's account size and risk settings. A follower's lot size
-              is computed independently and will not equal the leader's lot
-              size.
-            </li>
-            <li>
-              <span className="font-semibold text-white">
-                BigMarkt is a journaling tool, not a financial advisor.
-              </span>{" "}
-              Nothing on this platform is investment advice. Trade at your own
-              risk. Past performance does not predict future results.
+              <span className="font-semibold text-white">Not financial advice.</span>{" "}
+              BigMarkt is a journaling and trade-verification tool. Nothing here is
+              investment advice. Trade at your own risk; past performance does not
+              predict future results.
             </li>
           </ol>
 
           <div className="rounded-lg border border-orange-500/40 bg-orange-500/10 p-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-orange-300">
-              Prop firm users — read this
+              Prop firm / funded accounts
             </p>
             <p className="mt-2 text-xs leading-relaxed text-orange-100/90">
-              If your account is a prop firm challenge or funded account, copy
-              execution is permanently disabled on it. Your trades will appear
-              in your journal and on your public profile, but they will not be
-              copied to followers under any circumstances. This is enforced
-              server-side and cannot be turned on later.
+              The EA only logs your trades — it executes nothing. Confirm your firm
+              permits third-party journaling tools before connecting. Your trades
+              appear in your journal, and on your public profile only if you choose
+              to make it public.
             </p>
           </div>
         </div>
