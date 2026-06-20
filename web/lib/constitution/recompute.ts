@@ -103,9 +103,10 @@ export async function recomputeViolationsForTrade(
   // 4. Evaluate (pure).
   const violations = evaluateTrade({ trade, constitution, sameDayTrades, baseBalance });
 
-  // 5. Delete-before-insert dedupe. Upsert guards the manual path where RLS
-  //    has no delete policy (delete is a no-op there; re-insert merges instead
-  //    of erroring on the UNIQUE(trade_id, rule_key) constraint).
+  // 5. Clean delete-before-insert dedupe. Callers pass the SERVICE-ROLE client
+  //    (bypasses RLS), so the DELETE always clears this trade's rows — including
+  //    a rule that stopped failing on an edited trade — before the fresh INSERT.
+  //    Scoped strictly to this trade.
   await supabase.from("constitution_violations").delete().eq("trade_id", trade.id);
 
   if (violations.length > 0) {
@@ -117,8 +118,6 @@ export async function recomputeViolationsForTrade(
       allowed: v.allowed,
       detail: v.detail,
     }));
-    await supabase
-      .from("constitution_violations")
-      .upsert(rows, { onConflict: "trade_id,rule_key" });
+    await supabase.from("constitution_violations").insert(rows);
   }
 }

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { tradeSchema, tradeVisibility } from "@/lib/schemas";
 import { updateChallengeStreak } from "@/lib/challengeStreak";
 import { extForSniffedType, sniffImageType } from "@/lib/upload/imageSniff";
@@ -16,7 +17,11 @@ const CONSTITUTION_TRADE_FIELDS =
   "id, user_id, broker_account_id, pair, entry_price, stop_loss, take_profit, lot_size, balance_at_open, open_time, close_time, pnl, status";
 
 // Best-effort: recompute this trade's constitution violations. Wrapped so a
-// failure here can NEVER break the trade-save path.
+// failure here can NEVER break the trade-save path. The trade row is read under
+// the user session (RLS confirms ownership), but the violations DELETE+INSERT
+// run through the SERVICE-ROLE client — server-only writes keep violations
+// tamper-proof and allow the clean delete-before-insert dedupe (there is no
+// user DELETE policy on constitution_violations by design).
 async function recomputeConstitution(
   sb: Awaited<ReturnType<typeof supabaseServer>>,
   tradeId: string,
@@ -29,7 +34,7 @@ async function recomputeConstitution(
       .eq("id", tradeId)
       .eq("user_id", userId)
       .maybeSingle();
-    if (row) await recomputeViolationsForTrade(sb, row as RecomputeTrade);
+    if (row) await recomputeViolationsForTrade(supabaseAdmin(), row as RecomputeTrade);
   } catch (err) {
     console.error("constitution recompute (manual) failed — swallowed", err);
   }
