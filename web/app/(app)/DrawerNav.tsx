@@ -39,7 +39,6 @@ const GROUPS: { label: string; items: LinkItem[] }[] = [
       { href: "/dashboard", label: "Dashboard" },
       { href: "/journal", label: "Journal" },
       { href: "/calculator", label: "Risk Calc" },
-      { href: "/trades", label: "Trades" },
       { href: "/analytics", label: "Analytics" },
     ],
   },
