@@ -40,23 +40,36 @@ function fmtPrice(n: number | null): string {
   return n.toLocaleString("en-US", { maximumFractionDigits: 5 });
 }
 
-// Unified R:R: null (→ "—") when there's no stop loss. Otherwise prefer the
-// stored ratio, else derive from entry vs realized exit (closed) or target TP
-// (open). Mirrors the closed-card logic so the share card and risk strip agree.
+// R:R, null (→ "—") when there's no stop loss or no usable target.
+//   CLOSED: achieved R:R = |exit − entry| / |entry − stop_loss| (prefer stored).
+//   OPEN:   planned  R:R = |take_profit − entry| / |entry − stop_loss|.
+// Open trades never use exit_price (it's 0/null while open — using it produced
+// garbage like 378.03). Every division is guarded against a zero risk leg.
 function computeRR(args: {
   entry: number | null;
   exit: number | null;
   stopLoss: number | null;
   takeProfit: number | null;
   storedRR: number | null;
+  isClosed: boolean;
 }): string | null {
-  const { entry, exit, stopLoss, takeProfit, storedRR } = args;
-  if (stopLoss == null || stopLoss === 0) return null;
-  if (storedRR != null && storedRR !== 0) return storedRR.toFixed(2);
-  const target = exit != null ? exit : takeProfit;
-  if (entry != null && target != null) {
-    const risk = Math.abs(entry - stopLoss);
-    if (risk > 0) return (Math.abs(target - entry) / risk).toFixed(2);
+  const { entry, exit, stopLoss, takeProfit, storedRR, isClosed } = args;
+  if (stopLoss == null || stopLoss === 0 || entry == null) return null;
+  const risk = Math.abs(entry - stopLoss);
+  if (risk <= 0) return null;
+
+  if (isClosed) {
+    // Achieved R:R from the realized exit. Prefer the stored ratio.
+    if (storedRR != null && storedRR !== 0) return storedRR.toFixed(2);
+    if (exit != null && exit !== 0) {
+      return (Math.abs(exit - entry) / risk).toFixed(2);
+    }
+    return null;
+  }
+
+  // OPEN: planned R:R from the take-profit target — never the exit.
+  if (takeProfit != null && takeProfit !== 0) {
+    return (Math.abs(takeProfit - entry) / risk).toFixed(2);
   }
   return null;
 }
@@ -156,7 +169,7 @@ export default async function TradeDetailPage({
   const returnPct = typeof t.return_pct === "number" ? t.return_pct : null;
   const storedRR = typeof t.rr_ratio === "number" ? t.rr_ratio : null;
   const hasStopLoss = stopLoss != null && stopLoss !== 0;
-  const rrRatio = computeRR({ entry, exit, stopLoss, takeProfit, storedRR });
+  const rrRatio = computeRR({ entry, exit, stopLoss, takeProfit, storedRR, isClosed });
 
   const { data: profile } = await sb
     .from("profiles")
@@ -232,7 +245,7 @@ export default async function TradeDetailPage({
       )}
 
       {/* Risk metrics — return % + R:R / no-stop-loss discipline */}
-      <RiskMetrics returnPct={returnPct} rrRatio={rrRatio} hasStopLoss={hasStopLoss} />
+      <RiskMetrics returnPct={returnPct} rrRatio={rrRatio} hasStopLoss={hasStopLoss} planned={!isClosed} />
 
       {/* Chart screenshot */}
       {chartUrl ? (
@@ -314,11 +327,12 @@ export default async function TradeDetailPage({
 // per-trade return % and either the R:R ratio or a "No stop loss" discipline
 // flag (when SL is absent, R:R is meaningless and return % is the risk metric).
 function RiskMetrics({
-  returnPct, rrRatio, hasStopLoss,
+  returnPct, rrRatio, hasStopLoss, planned = false,
 }: {
   returnPct: number | null;
   rrRatio: string | null;
   hasStopLoss: boolean;
+  planned?: boolean;
 }) {
   return (
     <div className="grid grid-cols-2 gap-3">
@@ -333,7 +347,9 @@ function RiskMetrics({
         </div>
       </div>
       <div className="rounded-md p-2.5 bg-black/30">
-        <div className="text-[10px] uppercase tracking-widest text-muted">R:R Ratio</div>
+        <div className="text-[10px] uppercase tracking-widest text-muted">
+          {planned ? "R:R (planned)" : "R:R Ratio"}
+        </div>
         {hasStopLoss ? (
           <div className="mt-0.5 font-mono text-base text-gold">{rrRatio ?? "—"}</div>
         ) : (
