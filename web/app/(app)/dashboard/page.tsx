@@ -57,7 +57,19 @@ export default async function DashboardPage() {
             (t as TradeRow & { status?: string | null }).status == null
   );
 
-  const startBal = profileData?.starting_balance ?? null;
+  // Growth divisor: prefer the ACTIVE account's per-account starting balance
+  // (seeded from the EA's first-seen balance snapshot), else the user-level
+  // profile starting balance.
+  let acctStartBal: number | null = null;
+  if (activeId) {
+    const { data: acctRow } = await sb
+      .from("broker_accounts")
+      .select("starting_balance")
+      .eq("id", activeId)
+      .maybeSingle();
+    acctStartBal = (acctRow?.starting_balance as number | null) ?? null;
+  }
+  const startBal = acctStartBal ?? profileData?.starting_balance ?? null;
   const journalMode = (profileData?.journal_mode ?? null) as
     | "automated"
     | "manual"

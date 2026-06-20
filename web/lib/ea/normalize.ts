@@ -7,6 +7,16 @@ const finiteBounded = (max: number) =>
     message: `value must be finite and |value| ≤ ${max}`,
   });
 
+// EA v2.5.0 unsigned-passthrough account snapshot. These ride on EVERY payload
+// and are deliberately OUTSIDE every field_hash / signature computation — they
+// are never added to TRADE_FIELD_ORDER or orderFieldsHash. Optional so older
+// EA builds (which omit them) still parse.
+const accountPassthrough = {
+  account_balance:  z.number().optional(),
+  account_equity:   z.number().optional(),
+  account_currency: z.string().max(16).optional(),
+};
+
 // ── eaOrderSchema ─────────────────────────────────────────────────────────────
 // Used when event_type is present (TRADE_TRANSACTION_ORDER_ADD/UPDATE/DELETE).
 // These events never carry a deal ticket — requiring it was the root cause of
@@ -39,6 +49,7 @@ export const eaOrderSchema = z.object({
   comment:     z.string().max(500).default(""),
   // Position linkage — sent by newer EA builds when an order fills.
   position_id: z.coerce.string().optional(),
+  ...accountPassthrough,
 });
 
 export type EaOrderPayload = z.infer<typeof eaOrderSchema>;
@@ -78,6 +89,7 @@ export const eaDealSchema = z.object({
   // order_ticket forwarded by the EA so the ingest route can link a fill to its
   // pending-order row.  Coerced to string since JSON may send it as a number.
   order_ticket: z.coerce.string().optional(),
+  ...accountPassthrough,
 }).superRefine((data, ctx) => {
   // open_price=0 is valid for ENTRY_OUT (closing) deals.
   if (data.deal_entry !== "out" && data.open_price <= 0) {
@@ -98,6 +110,33 @@ export const eaDealSchema = z.object({
 });
 
 export type EaDealPayload = z.infer<typeof eaDealSchema>;
+
+// ── eaPositionModifySchema ─────────────────────────────────────────────────────
+// EA v2.5.0 "position_modify" event — a live SL/TP change on an already-open
+// position. Field_hash recipe (LF-separated, no trailing newline):
+//   event_type=position_modify
+//   position_id=<id>
+//   symbol=<SYMBOL_UPPER>
+//   sl=<canonical>
+//   tp=<canonical>
+// See positionModifyFieldsHash() in lib/ea/sig.ts.
+
+export const eaPositionModifySchema = z.object({
+  event_type: z.literal("position_modify"),
+  position_id: z.coerce.string().min(1),
+  symbol: z
+    .string()
+    .min(1)
+    .max(32)
+    .regex(/^[A-Za-z0-9._/\-]+$/, "symbol contains invalid characters")
+    .transform((s) => s.toUpperCase()),
+  sl: z.number().default(0),
+  tp: z.number().default(0),
+  magic: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
+  ...accountPassthrough,
+});
+
+export type EaPositionModifyPayload = z.infer<typeof eaPositionModifySchema>;
 
 // Unified payload type used inside the route after the branch.
 export type EaTradePayload = EaDealPayload;

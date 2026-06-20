@@ -9,8 +9,10 @@ import {
   deriveEaResult,
   eaDealSchema,
   eaOrderSchema,
+  eaPositionModifySchema,
   type EaDealPayload,
   type EaOrderPayload,
+  type EaPositionModifyPayload,
 } from "@/lib/ea/normalize";
 import { decryptSigningSecret } from "@/lib/ea/secrets";
 import {
@@ -18,11 +20,30 @@ import {
   isTimestampFresh,
   NONCE_RE,
   orderFieldsHash,
+  positionModifyFieldsHash,
   PROTOCOL_VERSION,
   SIG_RE,
   tradeFieldsHash,
   verifySig,
 } from "@/lib/ea/sig";
+
+// EA v2.5.0 account snapshot extracted from the (unsigned) passthrough fields.
+type AccountSnapshot = {
+  balance: number | null;
+  equity: number | null;
+  currency: string | null;
+};
+
+function readAccountSnapshot(raw: Record<string, unknown>): AccountSnapshot {
+  return {
+    balance: typeof raw.account_balance === "number" && Number.isFinite(raw.account_balance)
+      ? raw.account_balance : null,
+    equity: typeof raw.account_equity === "number" && Number.isFinite(raw.account_equity)
+      ? raw.account_equity : null,
+    currency: typeof raw.account_currency === "string" && raw.account_currency.trim()
+      ? raw.account_currency.trim().slice(0, 16) : null,
+  };
+}
 
 // ── debug bypass ────────────────────────────────────────────────────────────
 // TODO: Set SKIP_SIG_VERIFY=false after EA v2.2.0 is compiled and confirmed live.
@@ -153,6 +174,7 @@ async function validateV2Envelope(args: {
   isOrderEvent: boolean;
   orderPayload?: EaOrderPayload;
   dealPayload?: EaDealPayload;
+  positionModifyPayload?: EaPositionModifyPayload;
   tokenId: string;
   userId: string;
   encryptedSecret: {
@@ -184,7 +206,14 @@ async function validateV2Envelope(args: {
   const rawJson = args.parsedJson as Record<string, unknown>;
 
   let serverHash: string;
-  if (args.isOrderEvent && args.orderPayload) {
+  if (args.positionModifyPayload) {
+    serverHash = positionModifyFieldsHash({
+      position_id: args.positionModifyPayload.position_id,
+      symbol:      args.positionModifyPayload.symbol,
+      sl:          args.positionModifyPayload.sl,
+      tp:          args.positionModifyPayload.tp,
+    });
+  } else if (args.isOrderEvent && args.orderPayload) {
     serverHash = orderFieldsHash({
       order_ticket: args.orderPayload.order_ticket,
       event_type:   args.orderPayload.event_type,
@@ -386,6 +415,10 @@ async function handleOrderEvent(
           entry_price:  payload.open_price || null,
           stop_loss:    payload.sl ? payload.sl : null,
           take_profit:  payload.tp ? payload.tp : null,
+          // Legacy ea-only mirror columns — kept in sync so consumers reading
+          // either pair see the same SL/TP.
+          sl:           payload.sl ? payload.sl : null,
+          tp:           payload.tp ? payload.tp : null,
           order_status: "modified",
           event_type:   "order_update",
         })
@@ -401,6 +434,8 @@ async function handleOrderEvent(
         entry_price:  payload.open_price || null,
         stop_loss:    payload.sl ? payload.sl : null,
         take_profit:  payload.tp ? payload.tp : null,
+        sl:           payload.sl ? payload.sl : null,
+        tp:           payload.tp ? payload.tp : null,
         open_time:    payload.order_time ?? null,
         order_ticket,
         event_type:   "order_update",
@@ -481,6 +516,7 @@ async function handleDealEvent(
   tokenId: string,
   brokerAccountId: string | null,
   accountType: string | null,
+  acct: AccountSnapshot,
 ): Promise<{ res: NextResponse; action: string; positionId: string | null; resultStatus: "open" | "closed" }> {
   const dealEntry  = payload.deal_entry;
   const positionId = payload.position_id ?? null;
@@ -526,6 +562,10 @@ async function handleDealEvent(
             order_status: "filled",
             status:       "open",
             result:       null,
+            // Account snapshot at fill (EA v2.5.0 passthrough).
+            balance_at_open:  acct.balance,
+            equity_at_open:   acct.equity,
+            account_currency: acct.currency,
           })
           .eq("id", pendingRow.id)
           .eq("user_id", userId);
@@ -556,6 +596,10 @@ async function handleDealEvent(
         source:      "ea",
         verified:    true,
         visibility:  "private",
+        // Account snapshot at fill (EA v2.5.0 passthrough).
+        balance_at_open:  acct.balance,
+        equity_at_open:   acct.equity,
+        account_currency: acct.currency,
       };
 
       const { data: existingPos } = await supabase
@@ -611,7 +655,7 @@ async function handleDealEvent(
   if (MIGRATIONS_APPLIED && dealEntry === "out" && positionId) {
     const { data: openTrade, error: findErr } = await supabase
       .from("trades")
-      .select("id, status")
+      .select("id, status, balance_at_open")
       .eq("user_id", userId)
       .eq("position_id", positionId)
       .maybeSingle();
@@ -646,7 +690,17 @@ async function handleDealEvent(
         };
       }
 
-      // Normal close.
+      // Normal close. Compute return_pct from the balance snapshotted at open.
+      const balanceAtOpen =
+        typeof (openTrade as { balance_at_open?: number | null }).balance_at_open === "number"
+          ? (openTrade as { balance_at_open?: number | null }).balance_at_open!
+          : null;
+      const profit = payload.profit ?? null;
+      const returnPct =
+        balanceAtOpen && balanceAtOpen !== 0 && profit != null
+          ? (profit / balanceAtOpen) * 100
+          : null;
+
       const { error: closeErr } = await supabase
         .from("trades")
         .update({
@@ -662,6 +716,7 @@ async function handleDealEvent(
           status:      "closed",
           source:      "ea",
           verified:    true,
+          return_pct:  returnPct,
         })
         .eq("id", openTrade.id)
         .eq("user_id", userId);
@@ -690,6 +745,13 @@ async function handleDealEvent(
       if ("error" in built) {
         return { res: NextResponse.json({ error: "Invalid trade payload" }, { status: 400 }), action: "error", positionId, resultStatus: "closed" };
       }
+      // No prior ENTRY_IN snapshot exists — use the current account balance as
+      // the baseline so return_pct can still be derived.
+      const profit = payload.profit ?? null;
+      const returnPct =
+        acct.balance && acct.balance !== 0 && profit != null
+          ? (profit / acct.balance) * 100
+          : null;
       const closedRow = {
         ...built.row,
         position_id: positionId,
@@ -702,6 +764,10 @@ async function handleDealEvent(
         source:      "ea",
         verified:    true,
         visibility:  "private",
+        balance_at_open:  acct.balance,
+        equity_at_open:   acct.equity,
+        account_currency: acct.currency,
+        return_pct:       returnPct,
       };
       const { data: inserted, error: insertErr } = await supabase
         .from("trades")
@@ -786,6 +852,105 @@ async function handleDealEvent(
     positionId,
     resultStatus,
   };
+}
+
+// ── position_modify event handler ──────────────────────────────────────────────
+
+// A live SL/TP change on an already-open position (EA v2.5.0). Finds the OPEN
+// row by (user_id, position_id) and, only if SL or TP actually changed, writes
+// the canonical + legacy columns and logs a single 'sl_tp_modified' event. A
+// no-op change is silent (no duplicate timeline entry). No matching open row →
+// success with an "ignored" note (never 400/throw).
+async function handlePositionModifyEvent(
+  supabase: SupabaseClient,
+  payload: EaPositionModifyPayload,
+  userId: string,
+): Promise<NextResponse> {
+  const positionId = payload.position_id;
+
+  const { data: openTrade } = await supabase
+    .from("trades")
+    .select("id, stop_loss, take_profit")
+    .eq("user_id", userId)
+    .eq("position_id", positionId)
+    .eq("status", "open")
+    .maybeSingle();
+
+  if (!openTrade?.id) {
+    return NextResponse.json({ success: true, ignored: "no_open_position" }, { status: 200 });
+  }
+
+  const newSl = payload.sl ? payload.sl : null;
+  const newTp = payload.tp ? payload.tp : null;
+  const curSl = typeof (openTrade as { stop_loss?: number | null }).stop_loss === "number"
+    ? (openTrade as { stop_loss?: number | null }).stop_loss! : null;
+  const curTp = typeof (openTrade as { take_profit?: number | null }).take_profit === "number"
+    ? (openTrade as { take_profit?: number | null }).take_profit! : null;
+
+  // No-op guard — avoids timeline spam when MT5 re-emits an unchanged modify.
+  if (newSl === curSl && newTp === curTp) {
+    return NextResponse.json({ success: true, action: "noop", position_id: positionId }, { status: 200 });
+  }
+
+  const { error: updErr } = await supabase
+    .from("trades")
+    .update({ stop_loss: newSl, take_profit: newTp, sl: newSl, tp: newTp })
+    .eq("id", openTrade.id)
+    .eq("user_id", userId);
+
+  if (updErr) {
+    console.error("EA ingest: position_modify update failed", { code: updErr.code, message: updErr.message });
+    return NextResponse.json({ error: "Failed to update SL/TP" }, { status: 500 });
+  }
+
+  await logEvent(supabase, {
+    trade_id:    openTrade.id,
+    user_id:     userId,
+    position_id: positionId,
+    event_type:  "sl_tp_modified",
+    sl:          newSl,
+    tp:          newTp,
+    raw:         { symbol: payload.symbol, magic: payload.magic },
+  });
+
+  return NextResponse.json({ success: true, action: "sl_tp_modified", position_id: positionId }, { status: 200 });
+}
+
+// ── account balance snapshot ────────────────────────────────────────────────────
+
+// Persists the EA's reported balance/equity onto the broker account. Sets
+// starting_balance on first sight (when null) as the growth baseline. Best-
+// effort — never throws into the request path.
+async function updateAccountBalance(
+  supabase: SupabaseClient,
+  accountId: string,
+  userId: string,
+  acct: AccountSnapshot,
+): Promise<void> {
+  try {
+    const patch: Record<string, unknown> = {
+      current_balance: acct.balance,
+      balance_updated_at: new Date().toISOString(),
+    };
+    if (acct.equity != null) patch.current_equity = acct.equity;
+    if (acct.currency) patch.account_currency = acct.currency;
+
+    await supabase
+      .from("broker_accounts")
+      .update(patch)
+      .eq("id", accountId)
+      .eq("user_id", userId);
+
+    // First-seen baseline — only set when not already established.
+    await supabase
+      .from("broker_accounts")
+      .update({ starting_balance: acct.balance })
+      .eq("id", accountId)
+      .eq("user_id", userId)
+      .is("starting_balance", null);
+  } catch (err) {
+    console.error("EA ingest: account balance update failed (non-fatal)", err);
+  }
 }
 
 // ── handler ───────────────────────────────────────────────────────────────────
@@ -897,15 +1062,28 @@ export async function POST(req: NextRequest) {
   }
 
   // 6. Detect event type and validate with the appropriate schema.
-  //    event_type present → order lifecycle event (eaOrderSchema)
-  //    otherwise          → market fill / deal (eaDealSchema)
+  //    event_type 'position_modify' → live SL/TP change (eaPositionModifySchema)
+  //    other event_type present      → order lifecycle event (eaOrderSchema)
+  //    otherwise                     → market fill / deal (eaDealSchema)
   const rawObj = parsedJson as Record<string, unknown>;
-  const isOrderEvent = typeof rawObj.event_type === "string";
+  const isPositionModify = rawObj.event_type === "position_modify";
+  const isOrderEvent = !isPositionModify && typeof rawObj.event_type === "string";
+
+  // EA v2.5.0 unsigned account snapshot — present on every event, signed by none.
+  const acct = readAccountSnapshot(rawObj);
 
   let orderPayload: EaOrderPayload | undefined;
   let dealPayload: EaDealPayload | undefined;
+  let positionModifyPayload: EaPositionModifyPayload | undefined;
 
-  if (isOrderEvent) {
+  if (isPositionModify) {
+    const parsed = eaPositionModifySchema.safeParse(parsedJson);
+    if (!parsed.success) {
+      console.error("EA ingest: invalid position_modify payload", { tokenId, issues: parsed.error.issues });
+      return NextResponse.json({ error: "Invalid position_modify payload", issues: parsed.error.issues }, { status: 400 });
+    }
+    positionModifyPayload = parsed.data;
+  } else if (isOrderEvent) {
     const parsed = eaOrderSchema.safeParse(parsedJson);
     if (!parsed.success) {
       console.error("EA ingest: invalid order payload", { tokenId, issues: parsed.error.issues });
@@ -929,6 +1107,7 @@ export async function POST(req: NextRequest) {
       isOrderEvent,
       orderPayload,
       dealPayload,
+      positionModifyPayload,
       tokenId,
       userId,
       encryptedSecret,
@@ -978,14 +1157,23 @@ export async function POST(req: NextRequest) {
   let finalRes: NextResponse;
   let positionId: string | null = null;
 
-  if (isOrderEvent && orderPayload) {
+  if (isPositionModify && positionModifyPayload) {
+    finalRes = await handlePositionModifyEvent(supabase, positionModifyPayload, userId);
+  } else if (isOrderEvent && orderPayload) {
     finalRes = await handleOrderEvent(supabase, orderPayload, userId, tokenId, brokerAccountId, accountType);
   } else if (dealPayload) {
-    const result = await handleDealEvent(supabase, dealPayload, userId, tokenId, brokerAccountId, accountType);
+    const result = await handleDealEvent(supabase, dealPayload, userId, tokenId, brokerAccountId, accountType, acct);
     finalRes   = result.res;
     positionId = result.positionId;
   } else {
     finalRes = NextResponse.json({ error: "Unrecognised payload" }, { status: 400 });
+  }
+
+  // 10b. Account balance snapshot — on EVERY event that carries a balance and
+  //      resolves to a broker account, refresh current balance/equity + the
+  //      first-seen starting baseline. Best-effort; never fails the ingest.
+  if (brokerAccountId && acct.balance != null) {
+    await updateAccountBalance(supabase, brokerAccountId, userId, acct);
   }
 
   // 11. Update token last_used_at (best-effort)

@@ -125,6 +125,33 @@ export function orderFieldsHash(fields: {
   return createHash("sha256").update(lines, "utf8").digest("hex");
 }
 
+/** SHA-256 hex of the canonical position_modify field bundle.
+ *  Field order MUST match ComputePositionModifyFieldsHash in BigMarkt_EA.mq5
+ *  v2.5.0. Recipe (LF-separated, no trailing newline):
+ *    event_type=position_modify
+ *    position_id=<id>
+ *    symbol=<SYMBOL_UPPER>
+ *    sl=<canonical>
+ *    tp=<canonical>
+ *  position_id is rendered verbatim (integer id); sl/tp via eaCanon(); symbol
+ *  is already uppercased by the schema. The account_balance/equity/currency
+ *  passthrough fields are intentionally NOT part of this hash. */
+export function positionModifyFieldsHash(fields: {
+  position_id: string | number;
+  symbol: string;      // already uppercased
+  sl: number;
+  tp: number;
+}): string {
+  const lines = [
+    `event_type=position_modify`,
+    `position_id=${String(fields.position_id)}`,
+    `symbol=${fields.symbol}`,
+    `sl=${eaCanon(fields.sl)}`,
+    `tp=${eaCanon(fields.tp)}`,
+  ].join("\n");
+  return createHash("sha256").update(lines, "utf8").digest("hex");
+}
+
 // ── canonical signing message ────────────────────────────────────────────────
 // Binds: protocol version, token id (NOT the raw bearer), sent_at, nonce,
 // and the trade-fields hash. The raw bearer token never appears in the
