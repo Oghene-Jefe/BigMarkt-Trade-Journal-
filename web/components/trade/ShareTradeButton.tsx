@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type RefObject } from "react";
-import { toPng } from "html-to-image";
+import { toBlob, toPng } from "html-to-image";
 import { Share2, Download, Loader2 } from "lucide-react";
 
 type Props = {
@@ -10,14 +10,27 @@ type Props = {
   result: "WIN" | "LOSS" | "BE";
 };
 
+// Decode a "data:...;base64,XXXX" URL into a Blob locally — no network. Used
+// only as a fallback when toBlob() returns null. fetch() of a data: URL is
+// blocked by our CSP connect-src, so we must never use it.
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, b64] = dataUrl.split(",", 2);
+  const mime = /data:([^;]+)/.exec(header)?.[1] ?? "image/png";
+  const binary = atob(b64 ?? "");
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
 async function captureCard(node: HTMLDivElement): Promise<Blob> {
-  const dataUrl = await toPng(node, {
-    pixelRatio: 2,
-    backgroundColor: "#0a0a0a",
-    cacheBust: true,
-  });
-  const res = await fetch(dataUrl);
-  return res.blob();
+  const opts = { pixelRatio: 2, backgroundColor: "#0a0a0a", cacheBust: true };
+  // toBlob() returns a Blob directly — no fetch(), so nothing for CSP to block.
+  const blob = await toBlob(node, opts);
+  if (blob) return blob;
+  // Rare fallback: some browsers return null from toBlob — decode the data URL
+  // ourselves (still no network).
+  const dataUrl = await toPng(node, opts);
+  return dataUrlToBlob(dataUrl);
 }
 
 function fileName(pair: string, result: string): string {
