@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signAvatar, signCharts } from "@/lib/storage";
 import { fmtMoney, fmtDate } from "@/lib/format";
+import { ShieldCheck } from "lucide-react";
 import TrustBadge from "@/components/TrustBadge";
 import FollowButton from "@/components/FollowButton";
 import Link from "next/link";
@@ -25,12 +26,21 @@ export default async function UsernameProfilePage({
   const profile = (Array.isArray(profileData) ? profileData[0] : profileData) as PublicProfileFull | null;
   if (!profile) notFound();
 
-  const { data: tradesData } = await sb.rpc("get_public_trades", {
-    profile_id: profile.id,
-    lim: 50,
-  });
+  const [{ data: tradesData }, { data: adherenceData }] = await Promise.all([
+    sb.rpc("get_public_trades", { profile_id: profile.id, lim: 50 }),
+    sb.rpc("get_public_adherence", { profile_id: profile.id }),
+  ]);
 
   const trades = (tradesData ?? []) as PublicTrade[];
+
+  // Public adherence trust signal — only when opted in AND evaluated>0.
+  const adherenceRow = (
+    Array.isArray(adherenceData) ? adherenceData[0] : adherenceData
+  ) as { pct: number | null; evaluated: number; clean: number } | null;
+  const adherence =
+    adherenceRow && adherenceRow.pct != null && adherenceRow.evaluated > 0
+      ? adherenceRow
+      : null;
   const avatarUrl = profile.avatar_path ? await signAvatar(profile.avatar_path) : null;
   const chartPaths = trades.map((t) => t.chart_path).filter((p): p is string => !!p);
   const chartUrls = await signCharts(chartPaths);
@@ -105,6 +115,17 @@ export default async function UsernameProfilePage({
             tone={(profile.win_rate ?? 0) >= 50 ? "win" : "loss"}
           />
         </div>
+
+        {adherence ? (
+          <div className="mt-4 flex items-center gap-2 rounded-md border border-gold/30 bg-gold/5 px-3 py-2 text-xs text-gold">
+            <ShieldCheck size={14} aria-hidden />
+            <span>
+              Follows their own rules{" "}
+              <span className="font-semibold">{adherence.pct}%</span> ·{" "}
+              {adherence.clean}/{adherence.evaluated} trades
+            </span>
+          </div>
+        ) : null}
       </section>
 
       <section className="mt-6 space-y-3">
