@@ -31,6 +31,7 @@ export type TradeRow = {
   trade_visibility: string | null;
   trust_badge: TrustBadge;
   capture_source: CaptureSource;
+  broker_account_id: string | null;
   core_fields_locked: boolean;
   auto_approved: boolean;
   source: string | null;

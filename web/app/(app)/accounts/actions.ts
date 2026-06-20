@@ -108,6 +108,37 @@ export async function deleteBrokerAccountAction(
   revalidatePath("/accounts");
 }
 
+const setActiveSchema = z.object({ accountId: z.string().uuid() });
+
+// Sets the user's active broker account (consumed by the Phase 2 account
+// switcher). Verifies the account belongs to the caller before persisting.
+export async function setActiveAccountAction(
+  accountId: string
+): Promise<{ error: string } | void> {
+  const user = await requireUser();
+  const parsed = setActiveSchema.safeParse({ accountId });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  const sb = await supabaseServer();
+  const { data: account } = await sb
+    .from("broker_accounts")
+    .select("id")
+    .eq("id", parsed.data.accountId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!account) return { error: "Account not found." };
+
+  const { error } = await sb
+    .from("profiles")
+    .update({ active_broker_account_id: parsed.data.accountId })
+    .eq("id", user.id);
+
+  if (error) return { error: safeDbError(error, "Couldn't set active account.", "set_active_account") };
+  revalidatePath("/accounts");
+}
+
 const toggleSchema = z.object({
   id: z.string().uuid(),
   is_active: z.enum(["true", "false"]).transform((v) => v === "true"),

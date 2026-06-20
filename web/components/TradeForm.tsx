@@ -6,11 +6,19 @@ import type { TradeRow } from "@/lib/types";
 import type { TradeActionState } from "@/app/(app)/actions";
 import CompressedFileInput from "./CompressedFileInput";
 
+export type TradeFormAccount = {
+  id: string;
+  label: string;
+  account_type: "live" | "demo" | "prop_firm";
+};
+
 type Props = {
   trade?: TradeRow;
   existingChartUrl?: string | null;
   action: (state: TradeActionState, fd: FormData) => Promise<TradeActionState>;
   submitLabel: string;
+  accounts: TradeFormAccount[];
+  defaultAccountId: string;
 };
 
 // Returns the contract-size multiplier for a given pair symbol.
@@ -25,9 +33,15 @@ function getPnlMultiplier(pair: string): number {
   return 10;
 }
 
-export default function TradeForm({ trade, existingChartUrl, action, submitLabel }: Props) {
+export default function TradeForm({ trade, existingChartUrl, action, submitLabel, accounts, defaultAccountId }: Props) {
   const [state, formAction, pending] = useActionState<TradeActionState, FormData>(action, {});
   const fe = state.fieldErrors ?? {};
+
+  // EA-captured trades have a locked core — the account can't be changed here.
+  const eaLocked = trade?.capture_source === "ea";
+  const [accountId, setAccountId] = useState<string>(
+    trade?.broker_account_id ?? defaultAccountId ?? ""
+  );
 
   // Controlled state for fields that drive live calculations.
   const [pair, setPair] = useState(trade?.pair ?? "");
@@ -73,6 +87,34 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
 
   return (
     <form action={formAction} className="space-y-4 rounded-lg bg-panel p-6" encType="multipart/form-data">
+      <label className="block text-sm">
+        <span className="mb-1 block text-muted">Account <span className="text-loss">*</span></span>
+        <select
+          name="broker_account_id"
+          required
+          value={accountId}
+          disabled={eaLocked}
+          onChange={(e) => setAccountId(e.target.value)}
+          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 disabled:opacity-60"
+        >
+          {accounts.length === 0 ? (
+            <option value="" disabled>No accounts — add one first</option>
+          ) : (
+            accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.label} — {a.account_type}
+              </option>
+            ))
+          )}
+        </select>
+        {/* Disabled selects don't post — carry the locked value for EA trades. */}
+        {eaLocked ? <input type="hidden" name="broker_account_id" value={accountId} /> : null}
+        {eaLocked ? (
+          <span className="mt-1 block text-xs text-muted">Account is locked for EA-captured trades.</span>
+        ) : null}
+        {fe.broker_account_id ? <span className="mt-1 block text-xs text-loss">{fe.broker_account_id}</span> : null}
+      </label>
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <label className="block text-sm">
           <span className="mb-1 block text-muted">Pair <span className="text-loss">*</span></span>

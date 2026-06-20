@@ -1,3 +1,4 @@
+-- SUPERSEDED by 0056_account_model_phase1.sql — do not apply.
 -- 0055_backfill_ea_broker_account_and_demo_badge.sql
 --
 -- Backfill broker_account_id + demo trust_badge on existing EA trades.

@@ -62,6 +62,22 @@ async function requireUser() {
   return { sb, user };
 }
 
+// Validates that the posted broker_account_id is a uuid the user owns.
+// Account membership is app-enforced this phase (no DB NOT NULL constraint).
+async function resolveOwnedAccount(
+  sb: Awaited<ReturnType<typeof supabaseServer>>,
+  userId: string,
+  raw: FormDataEntryValue | null,
+): Promise<{ id: string } | { error: string }> {
+  const parsed = z.string().uuid().safeParse(typeof raw === "string" ? raw : "");
+  if (!parsed.success) return { error: "Select an account for this trade." };
+
+  const { data: account } = await sb.from("broker_accounts")
+    .select("id").eq("id", parsed.data).eq("user_id", userId).maybeSingle();
+  if (!account) return { error: "Selected account not found." };
+  return { id: account.id };
+}
+
 // Returns { path } if a valid file was attached, null if no file, or { error }.
 async function uploadChartIfPresent(
   sb: Awaited<ReturnType<typeof supabaseServer>>,
@@ -93,6 +109,11 @@ export async function createTradeAction(_: TradeActionState, fd: FormData): Prom
 
   const { sb, user } = await requireUser();
 
+  const brokerAccount = await resolveOwnedAccount(sb, user.id, fd.get("broker_account_id"));
+  if ("error" in brokerAccount) {
+    return { error: brokerAccount.error, fieldErrors: { broker_account_id: brokerAccount.error } };
+  }
+
   const { entry_price, exit_price, stop_loss, direction } = parsed.data;
   void direction;
   let rr_ratio: number | null = null;
@@ -102,7 +123,7 @@ export async function createTradeAction(_: TradeActionState, fd: FormData): Prom
     rr_ratio = parseFloat((reward / risk).toFixed(2));
   }
 
-  const insertRow = { ...parsed.data, rr_ratio, user_id: user.id, trade_visibility: parsed.data.visibility, source: 'manual', verified: false };
+  const insertRow = { ...parsed.data, rr_ratio, user_id: user.id, broker_account_id: brokerAccount.id, trade_visibility: parsed.data.visibility, source: 'manual', verified: false };
   const { data: inserted, error } = await sb.from("trades").insert(insertRow).select("id").single();
   if (error || !inserted) return { error: safeDbError(error, "Failed to save trade.", "trade_insert") };
 
@@ -134,12 +155,23 @@ export async function updateTradeAction(id: string, _: TradeActionState, fd: For
 
   const { sb, user } = await requireUser();
   const { data: existingTrade, error: existingTradeError } = await sb.from("trades")
-    .select("core_fields_locked")
+    .select("core_fields_locked, capture_source")
     .eq("id", id)
     .eq("user_id", user.id)
     .maybeSingle();
   if (existingTradeError) return { error: safeDbError(existingTradeError, "Couldn't load trade.", "trade_lookup") };
   if (!existingTrade) return { error: "Trade not found." };
+
+  // Manual trades may move between the user's accounts; EA trades keep theirs
+  // (core is locked — the posted account is ignored).
+  let brokerAccountId: string | undefined;
+  if (existingTrade.capture_source !== "ea") {
+    const brokerAccount = await resolveOwnedAccount(sb, user.id, fd.get("broker_account_id"));
+    if ("error" in brokerAccount) {
+      return { error: brokerAccount.error, fieldErrors: { broker_account_id: brokerAccount.error } };
+    }
+    brokerAccountId = brokerAccount.id;
+  }
 
   const { entry_price, exit_price, stop_loss, direction } = parsed.data;
   void direction;
@@ -163,6 +195,12 @@ export async function updateTradeAction(id: string, _: TradeActionState, fd: For
   const updateRow: Record<string, unknown> = existingTrade.core_fields_locked
     ? editableMetadata
     : { ...parsed.data, rr_ratio, trade_visibility: parsed.data.visibility };
+
+  // Apply the (verified) account only for unlocked manual trades — the locked
+  // path is metadata-only and EA trades skip account resolution entirely.
+  if (brokerAccountId && !existingTrade.core_fields_locked) {
+    updateRow.broker_account_id = brokerAccountId;
+  }
 
   const file = fd.get("chart") as File | null;
   if (file && file.size > 0) {
