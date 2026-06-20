@@ -5,10 +5,11 @@ import type { Route } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
 import { signChart } from "@/lib/storage";
+import { fmtPct } from "@/lib/format";
 import ShareableTradeCard from "@/components/trade/ShareableTradeCard";
 
 const SELECT_FIELDS =
-  "id, pair, direction, lot_size, entry_price, exit_price, stop_loss, take_profit, pnl, rr_ratio, result, session, strategy, setup_grade, emotions, tags, notes, chart_path, created_at, status, open_time, close_time, order_status, source, trust_badge, capture_source, position_id, ticket";
+  "id, pair, direction, lot_size, entry_price, exit_price, stop_loss, take_profit, pnl, rr_ratio, return_pct, result, session, strategy, setup_grade, emotions, tags, notes, chart_path, created_at, status, open_time, close_time, order_status, source, trust_badge, capture_source, position_id, ticket";
 
 // Mirrors the formula in TradeForm.tsx — keep in sync.
 function getPnlMultiplier(pair: string): number {
@@ -34,7 +35,30 @@ function parseTags(raw: unknown): string[] | null {
 
 function fmtPrice(n: number | null): string {
   if (n == null) return "—";
-  return n.toLocaleString(undefined, { maximumFractionDigits: 5 });
+  // Locale PINNED to en-US — an unpinned toLocaleString() renders differently on
+  // server vs client and has caused hydration crashes.
+  return n.toLocaleString("en-US", { maximumFractionDigits: 5 });
+}
+
+// Unified R:R: null (→ "—") when there's no stop loss. Otherwise prefer the
+// stored ratio, else derive from entry vs realized exit (closed) or target TP
+// (open). Mirrors the closed-card logic so the share card and risk strip agree.
+function computeRR(args: {
+  entry: number | null;
+  exit: number | null;
+  stopLoss: number | null;
+  takeProfit: number | null;
+  storedRR: number | null;
+}): string | null {
+  const { entry, exit, stopLoss, takeProfit, storedRR } = args;
+  if (stopLoss == null || stopLoss === 0) return null;
+  if (storedRR != null && storedRR !== 0) return storedRR.toFixed(2);
+  const target = exit != null ? exit : takeProfit;
+  if (entry != null && target != null) {
+    const risk = Math.abs(entry - stopLoss);
+    if (risk > 0) return (Math.abs(target - entry) / risk).toFixed(2);
+  }
+  return null;
 }
 
 function fmtDT(iso: string | null): string {
@@ -75,10 +99,20 @@ export default async function TradeDetailPage({
       .maybeSingle(),
     sb
       .from("trade_events")
-      .select("id, event_type, event_time, price, sl, tp, lots, pnl")
-      .eq("trade_id", id)
-      .order("event_time", { ascending: true }),
+      .select("id, event_type, event_time, created_at, price, sl, tp, lots, pnl")
+      .eq("trade_id", id),
   ]);
+
+  // Strict chronological order. event_time is the broker wall-clock for
+  // fill/close, but sl_tp_modified events log it as null (only created_at is
+  // set), and Postgres sorts NULLS LAST — which pushed modifies AFTER the
+  // close. Sort on (event_time ?? created_at) so modifies land between fill and
+  // close.
+  const sortedEvents = [...((events as Array<Record<string, unknown>>) ?? [])].sort((a, b) => {
+    const ta = Date.parse((a.event_time ?? a.created_at) as string) || 0;
+    const tb = Date.parse((b.event_time ?? b.created_at) as string) || 0;
+    return ta - tb;
+  });
 
   const backLink = (
     <Link
@@ -117,6 +151,12 @@ export default async function TradeDetailPage({
   const stopLoss = typeof t.stop_loss === "number" ? t.stop_loss : null;
   const takeProfit = typeof t.take_profit === "number" ? t.take_profit : null;
   const lotSize = typeof t.lot_size === "number" ? t.lot_size : null;
+
+  // Risk metrics shared by the open + closed cards.
+  const returnPct = typeof t.return_pct === "number" ? t.return_pct : null;
+  const storedRR = typeof t.rr_ratio === "number" ? t.rr_ratio : null;
+  const hasStopLoss = stopLoss != null && stopLoss !== 0;
+  const rrRatio = computeRR({ entry, exit, stopLoss, takeProfit, storedRR });
 
   const { data: profile } = await sb
     .from("profiles")
@@ -173,6 +213,7 @@ export default async function TradeDetailPage({
           stopLoss={stopLoss}
           takeProfit={takeProfit}
           lotSize={lotSize}
+          rrRatio={rrRatio}
           username={username}
           profileUrl={profileUrl}
           createdAt={createdAt}
@@ -189,6 +230,9 @@ export default async function TradeDetailPage({
           isPending={isPending}
         />
       )}
+
+      {/* Risk metrics — return % + R:R / no-stop-loss discipline */}
+      <RiskMetrics returnPct={returnPct} rrRatio={rrRatio} hasStopLoss={hasStopLoss} />
 
       {/* Chart screenshot */}
       {chartUrl ? (
@@ -218,16 +262,21 @@ export default async function TradeDetailPage({
       ) : null}
 
       {/* Lifecycle timeline */}
-      {events && events.length > 0 && (
+      {sortedEvents.length > 0 && (
         <section className="space-y-3">
           <h2 className="font-display text-sm uppercase tracking-widest text-muted">Trade Timeline</h2>
           <div className="rounded-xl border border-white/10 bg-panel px-4 py-3 space-y-0">
-            {(events as Array<Record<string, unknown>>).map((ev, i) => {
-              const label = (typeof ev.event_type === "string" && EVENT_LABELS[ev.event_type]) ?? ev.event_type as string;
+            {sortedEvents.map((ev, i) => {
+              const eventType = typeof ev.event_type === "string" ? ev.event_type : "";
+              const label = EVENT_LABELS[eventType] ?? eventType;
               const price = typeof ev.price === "number" ? ev.price : null;
               const evPnl = typeof ev.pnl === "number" ? ev.pnl : null;
-              const evTime = typeof ev.event_time === "string" ? ev.event_time : null;
-              const isLast = i === events.length - 1;
+              const evSl = typeof ev.sl === "number" ? ev.sl : null;
+              const evTp = typeof ev.tp === "number" ? ev.tp : null;
+              const evTime = (typeof ev.event_time === "string" ? ev.event_time : null)
+                ?? (typeof ev.created_at === "string" ? ev.created_at : null);
+              const isModify = eventType === "sl_tp_modified";
+              const isLast = i === sortedEvents.length - 1;
               return (
                 <div key={ev.id as string} className="relative flex gap-4">
                   {/* Timeline spine */}
@@ -238,9 +287,13 @@ export default async function TradeDetailPage({
                   <div className={`pb-4 ${isLast ? "pb-0" : ""}`}>
                     <p className="text-sm font-medium text-white">{label}</p>
                     <p className="text-xs text-muted">{fmtDT(evTime)}</p>
-                    {price != null && (
+                    {isModify ? (
+                      <p className="text-xs text-white/60">
+                        SL {fmtPrice(evSl)} · TP {fmtPrice(evTp)}
+                      </p>
+                    ) : price != null ? (
                       <p className="text-xs text-white/60">Price: {fmtPrice(price)}</p>
-                    )}
+                    ) : null}
                     {evPnl != null && (
                       <p className={`text-xs font-mono ${evPnl >= 0 ? "text-win" : "text-loss"}`}>
                         {evPnl >= 0 ? "+" : ""}{evPnl.toFixed(2)}
@@ -257,9 +310,48 @@ export default async function TradeDetailPage({
   );
 }
 
+// Risk metrics strip — shown for both open and closed trades. Surfaces the
+// per-trade return % and either the R:R ratio or a "No stop loss" discipline
+// flag (when SL is absent, R:R is meaningless and return % is the risk metric).
+function RiskMetrics({
+  returnPct, rrRatio, hasStopLoss,
+}: {
+  returnPct: number | null;
+  rrRatio: string | null;
+  hasStopLoss: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="rounded-md p-2.5 bg-black/30">
+        <div className="text-[10px] uppercase tracking-widest text-muted">Return %</div>
+        <div
+          className={`mt-0.5 font-mono text-base ${
+            returnPct == null ? "text-muted" : returnPct >= 0 ? "text-win" : "text-loss"
+          }`}
+        >
+          {returnPct == null ? "—" : fmtPct(returnPct, 2)}
+        </div>
+      </div>
+      <div className="rounded-md p-2.5 bg-black/30">
+        <div className="text-[10px] uppercase tracking-widest text-muted">R:R Ratio</div>
+        {hasStopLoss ? (
+          <div className="mt-0.5 font-mono text-base text-gold">{rrRatio ?? "—"}</div>
+        ) : (
+          <div className="mt-0.5 flex items-center gap-2">
+            <span className="font-mono text-base text-muted">—</span>
+            <span className="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-300">
+              No stop loss
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Full shareable card for closed trades
 function ClosedTradeCard({
-  t, pair, direction, entry, exit, stopLoss, takeProfit, lotSize, username, profileUrl, createdAt,
+  t, pair, direction, entry, exit, stopLoss, takeProfit, lotSize, rrRatio, username, profileUrl, createdAt,
 }: {
   t: Record<string, unknown>;
   pair: string;
@@ -269,6 +361,7 @@ function ClosedTradeCard({
   stopLoss: number | null;
   takeProfit: number | null;
   lotSize: number | null;
+  rrRatio: string | null;
   username: string;
   profileUrl: string;
   createdAt: string;
@@ -279,15 +372,6 @@ function ClosedTradeCard({
     const mult = getPnlMultiplier(pair);
     const sign = direction === "BUY" ? 1 : -1;
     pnl = +(sign * (exit - entry) * lotSize * mult).toFixed(2);
-  }
-
-  const storedRR = typeof t.rr_ratio === "number" ? t.rr_ratio : null;
-  let rrRatio: string | null = null;
-  if (storedRR != null && storedRR !== 0) {
-    rrRatio = storedRR.toFixed(2);
-  } else if (entry != null && exit != null && stopLoss != null) {
-    const risk = Math.abs(entry - stopLoss);
-    if (risk > 0) rrRatio = (Math.abs(exit - entry) / risk).toFixed(2);
   }
 
   const resultRaw = typeof t.result === "string" ? t.result.toUpperCase() : null;

@@ -57,17 +57,20 @@ export default async function DashboardPage() {
             (t as TradeRow & { status?: string | null }).status == null
   );
 
-  // Growth divisor: prefer the ACTIVE account's per-account starting balance
-  // (seeded from the EA's first-seen balance snapshot), else the user-level
-  // profile starting balance.
+  // Pull the active account's live balance snapshot (seeded by the EA). Used
+  // for both the balance-based Growth figure and the live-balance subline.
   let acctStartBal: number | null = null;
+  let acctCurrentBal: number | null = null;
+  let acctCurrency: string | null = null;
   if (activeId) {
     const { data: acctRow } = await sb
       .from("broker_accounts")
-      .select("starting_balance")
+      .select("starting_balance, current_balance, current_equity, account_currency")
       .eq("id", activeId)
       .maybeSingle();
     acctStartBal = (acctRow?.starting_balance as number | null) ?? null;
+    acctCurrentBal = (acctRow?.current_balance as number | null) ?? null;
+    acctCurrency = (acctRow?.account_currency as string | null) ?? null;
   }
   const startBal = acctStartBal ?? profileData?.starting_balance ?? null;
   const journalMode = (profileData?.journal_mode ?? null) as
@@ -90,7 +93,19 @@ export default async function DashboardPage() {
   const closed = wins + losses;
   const winRate = closed > 0 ? (wins / closed) * 100 : null;
   const totalPnl = closedTrades.reduce((s, t) => s + (t.pnl ?? 0), 0);
-  const growth = startBal && startBal > 0 ? (totalPnl / startBal) * 100 : null;
+  // Balance-based growth when we have a real live balance + baseline; otherwise
+  // fall back to the P&L proxy (totalPnl / starting balance).
+  const growth =
+    acctCurrentBal != null && acctStartBal != null && acctStartBal !== 0
+      ? ((acctCurrentBal - acctStartBal) / acctStartBal) * 100
+      : startBal && startBal > 0
+        ? (totalPnl / startBal) * 100
+        : null;
+  // Live-balance subline — only when the EA has reported a real balance.
+  const growthSubline =
+    acctCurrentBal != null
+      ? `${fmtMoney(acctCurrentBal, acctCurrency)} · start ${fmtMoney(acctStartBal, acctCurrency)}`
+      : null;
   const recent = closedTrades.slice(0, 5);
 
   const nowForPulse = new Date();
@@ -138,6 +153,7 @@ export default async function DashboardPage() {
         <MetricCard
           label="Growth"
           value={fmtPct(growth)}
+          delta={growthSubline}
           tone={(growth ?? 0) >= 0 ? "win" : "loss"}
         />
       </div>
