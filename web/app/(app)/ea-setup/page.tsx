@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
 import { getEaConnectionLogAction } from "@/lib/actions/ea-tokens";
+import { getActiveAccount } from "@/lib/accounts";
 import { PageHeader } from "@/components/ui";
 import EaTokenManager from "./EaTokenManager";
 import EaSetupWizard from "@/components/ea-setup/EaSetupWizard";
@@ -23,6 +24,7 @@ export type EaTokenRow = {
 export type BrokerAccountOption = {
   id: string;
   label: string;
+  account_type: string;
 };
 
 export type WsStatus = {
@@ -105,12 +107,19 @@ export default async function EaSetupPage() {
 
   const { data: accountsData } = await sb
     .from("broker_accounts")
-    .select("id, label")
+    .select("id, label, account_type")
     .eq("user_id", user.id)
     .eq("is_active", true)
     .order("created_at", { ascending: true });
 
   const brokerAccounts: BrokerAccountOption[] = (accountsData ?? []) as BrokerAccountOption[];
+
+  // The active account (global switcher) seeds the Generate-token select so the
+  // common case is one click. getActiveAccount also self-heals a missing
+  // active id, but Generate stays disabled until the user actually has an account.
+  const { activeId } = await getActiveAccount(sb, user.id);
+  const defaultAccountId =
+    brokerAccounts.find((a) => a.id === activeId)?.id ?? brokerAccounts[0]?.id ?? "";
 
   const wsStatus = await getWsStatus(activeTokens.map((t) => t.id));
   const connectionLog = await getEaConnectionLogAction();
@@ -125,6 +134,7 @@ export default async function EaSetupPage() {
       wsStatus={wsStatus}
       connectionLog={connectionLog}
       brokerAccounts={brokerAccounts}
+      defaultAccountId={defaultAccountId}
     />
   );
 

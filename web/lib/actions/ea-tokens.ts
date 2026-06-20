@@ -35,6 +35,28 @@ export async function generateEaTokenAction(
   const user = await requireUser();
   const supabase = await createClient();
 
+  // Every token MUST bind to a broker account at creation — an unlinked token
+  // captures trades with no account (the footgun this rule removes). Validate
+  // the id shape, require it, and confirm the caller owns the account before
+  // pointing a token at it.
+  const accountId = (broker_account_id ?? "").trim();
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!accountId) {
+    return { error: "Select an account before generating a token." };
+  }
+  if (!uuidRe.test(accountId)) {
+    return { error: "Invalid account." };
+  }
+  const { data: ownedAccount } = await supabase
+    .from("broker_accounts")
+    .select("id")
+    .eq("id", accountId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!ownedAccount) {
+    return { error: "Account not found." };
+  }
+
   // Enforce a max of 5 active tokens per user
   const { count } = await supabase
     .from("ea_tokens")
@@ -86,7 +108,7 @@ export async function generateEaTokenAction(
     signing_secret_iv: string;
     signing_secret_tag: string;
     signing_secret_key_version: number;
-    broker_account_id?: string;
+    broker_account_id: string;
   } = {
     id: tokenId,
     user_id: user.id,
@@ -96,8 +118,8 @@ export async function generateEaTokenAction(
     signing_secret_iv: encrypted.iv,
     signing_secret_tag: encrypted.tag,
     signing_secret_key_version: encrypted.keyVersion,
+    broker_account_id: accountId,
   };
-  if (broker_account_id) insertPayload.broker_account_id = broker_account_id;
 
   const { data, error } = await supabase
     .from("ea_tokens")

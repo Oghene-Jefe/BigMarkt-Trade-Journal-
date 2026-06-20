@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Check, AlertTriangle, Plug, PlugZap } from "lucide-react";
 import {
   generateEaTokenAction,
@@ -12,6 +13,17 @@ import { StatusPill } from "@/components/ui";
 import type { EaTokenRow, WsStatus, BrokerAccountOption } from "./page";
 
 const MAX_TOKENS = 5;
+
+const ACCOUNT_TYPE_LABEL: Record<string, string> = {
+  live: "Live",
+  demo: "Demo",
+  prop_firm: "Prop",
+};
+
+function accountOptionLabel(a: { label: string; account_type?: string }): string {
+  const type = a.account_type ? ACCOUNT_TYPE_LABEL[a.account_type] ?? a.account_type : null;
+  return type ? `${a.label} · ${type}` : a.label;
+}
 
 function formatDate(value: string | null): string {
   if (!value) return "Never";
@@ -152,13 +164,16 @@ export default function EaTokenManager({
   wsStatus = null,
   connectionLog = [],
   brokerAccounts = [],
+  defaultAccountId = "",
 }: {
   tokens: EaTokenRow[];
   wsStatus?: WsStatus | null;
   connectionLog?: EaConnectionLogEntry[];
   brokerAccounts?: BrokerAccountOption[];
+  defaultAccountId?: string;
 }) {
   const [label, setLabel] = useState("");
+  const [accountId, setAccountId] = useState(defaultAccountId);
   const [freshToken, setFreshToken] = useState<string | null>(null);
   const [freshSigningSecret, setFreshSigningSecret] = useState<string | null>(null);
   const [freshTokenId, setFreshTokenId] = useState<string | null>(null);
@@ -167,12 +182,17 @@ export default function EaTokenManager({
   const [pending, startTransition] = useTransition();
 
   const atLimit = tokens.length >= MAX_TOKENS;
+  const hasAccounts = brokerAccounts.length > 0;
 
   function onGenerate() {
+    if (!accountId) {
+      setError("Select an account before generating a token.");
+      return;
+    }
     setError(null);
     setCopied(null);
     startTransition(async () => {
-      const res = await generateEaTokenAction(label || "My EA");
+      const res = await generateEaTokenAction(label || "My EA", accountId);
       if ("error" in res) {
         setError(res.error);
         return;
@@ -319,9 +339,16 @@ export default function EaTokenManager({
           You've hit the {MAX_TOKENS}-token limit. Revoke one below before
           generating another.
         </p>
+      ) : !hasAccounts ? (
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+          <p>Every token must be bound to a broker account.</p>
+          <Link href="/accounts" className="mt-1 inline-block font-medium text-gold underline hover:text-white">
+            Add an account first
+          </Link>
+        </div>
       ) : (
         <div className="flex flex-wrap items-end gap-2">
-          <label className="flex-1 min-w-[200px] text-xs text-muted">
+          <label className="flex-1 min-w-[180px] text-xs text-muted">
             Label
             <input
               type="text"
@@ -332,10 +359,27 @@ export default function EaTokenManager({
               className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
             />
           </label>
+          <label className="min-w-[180px] text-xs text-muted">
+            Account <span className="text-rose-300">*</span>
+            <select
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+            >
+              <option value="" disabled>
+                Select an account…
+              </option>
+              {brokerAccounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {accountOptionLabel(a)}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             type="button"
             onClick={onGenerate}
-            disabled={pending}
+            disabled={pending || !accountId}
             className="inline-flex h-10 items-center rounded-md bg-gold px-4 text-sm font-medium text-black hover:bg-gold/90 disabled:opacity-50"
           >
             {pending ? "Generating…" : "Generate token"}
@@ -396,7 +440,7 @@ export default function EaTokenManager({
                       <option value="">— No account —</option>
                       {brokerAccounts.map((a) => (
                         <option key={a.id} value={a.id}>
-                          {a.label}
+                          {accountOptionLabel(a)}
                         </option>
                       ))}
                     </select>
