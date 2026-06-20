@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
+import type { Route } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
 import { signChart } from "@/lib/storage";
@@ -108,6 +109,8 @@ export default async function TradeDetailPage({
   const isOpen = status === "open";
   const isPending = !isOpen && (t.order_status === "pending" || t.order_status === "modified");
   const isClosed = !isOpen && !isPending;
+  const isEa = t.capture_source === "ea";
+  const editHref = `/journal/${id}/edit` as Route;
 
   const entry = typeof t.entry_price === "number" ? t.entry_price : null;
   const exit = typeof t.exit_price === "number" ? t.exit_price : null;
@@ -137,7 +140,16 @@ export default async function TradeDetailPage({
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 pb-16">
-      {backLink}
+      <div className="flex items-center justify-between gap-3">
+        {backLink}
+        <Link
+          href={editHref}
+          className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-3 py-1.5 text-sm text-muted hover:bg-white/5 hover:text-white"
+        >
+          <Pencil size={14} aria-hidden />
+          <span>{isEa ? "Add context" : "Edit trade"}</span>
+        </Link>
+      </div>
 
       {/* Status badge for open/pending trades */}
       {(isOpen || isPending) && (

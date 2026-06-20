@@ -192,13 +192,18 @@ export async function updateTradeAction(id: string, _: TradeActionState, fd: For
     visibility: parsed.data.visibility,
     trade_visibility: parsed.data.visibility,
   };
-  const updateRow: Record<string, unknown> = existingTrade.core_fields_locked
+  // Context-only when the row is DB-locked OR it's an EA-captured trade. EA
+  // trades are immutable at the core regardless of the core_fields_locked flag
+  // (a pending EA order that merged may still read false), so we never attempt
+  // to write their core fields — the trader can only add context.
+  const contextOnly = existingTrade.core_fields_locked || existingTrade.capture_source === "ea";
+  const updateRow: Record<string, unknown> = contextOnly
     ? editableMetadata
     : { ...parsed.data, rr_ratio, trade_visibility: parsed.data.visibility };
 
   // Apply the (verified) account only for unlocked manual trades — the locked
   // path is metadata-only and EA trades skip account resolution entirely.
-  if (brokerAccountId && !existingTrade.core_fields_locked) {
+  if (brokerAccountId && !contextOnly) {
     updateRow.broker_account_id = brokerAccountId;
   }
 

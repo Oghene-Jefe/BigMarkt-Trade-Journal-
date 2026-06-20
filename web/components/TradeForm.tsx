@@ -37,8 +37,16 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
   const [state, formAction, pending] = useActionState<TradeActionState, FormData>(action, {});
   const fe = state.fieldErrors ?? {};
 
-  // EA-captured trades have a locked core — the account can't be changed here.
+  // EA-captured trades have a locked core — pair/direction/prices/result/etc.
+  // are immutable (the 0047 DB trigger enforces it). The trader can still add
+  // CONTEXT: notes, tags, grade, session, emotions, strategy, chart, visibility.
   const eaLocked = trade?.capture_source === "ea";
+  // readOnly inputs still post their value (so schema validation passes), but
+  // can't be changed by the user. Selects can't be readOnly, so those use
+  // disabled + a hidden input to carry the value.
+  const coreInputCls =
+    "w-full rounded-md border border-white/10 bg-black/40 px-3 py-2" +
+    (eaLocked ? " cursor-not-allowed opacity-60" : "");
   const [accountId, setAccountId] = useState<string>(
     trade?.broker_account_id ?? defaultAccountId ?? ""
   );
@@ -87,6 +95,12 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
 
   return (
     <form action={formAction} className="space-y-4 rounded-lg bg-panel p-6" encType="multipart/form-data">
+      {eaLocked ? (
+        <div className="rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs text-blue-200">
+          Auto-verified EA trade. Core fields (pair, prices, result…) are locked.
+          You can still add notes, tags, grade, session, emotions, strategy &amp; a chart.
+        </div>
+      ) : null}
       <label className="block text-sm">
         <span className="mb-1 block text-muted">Account <span className="text-loss">*</span></span>
         <select
@@ -121,10 +135,11 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
           <input
             name="pair"
             required
+            readOnly={eaLocked}
             placeholder="EURUSD"
             value={pair}
             onChange={(e) => { touch(); setPair(e.target.value); }}
-            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+            className={coreInputCls}
           />
           {fe.pair ? <span className="mt-1 block text-xs text-loss">{fe.pair}</span> : null}
         </label>
@@ -134,12 +149,14 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
           <select
             name="direction"
             value={direction}
+            disabled={eaLocked}
             onChange={(e) => { touch(); setDirection(e.target.value as "BUY" | "SELL"); }}
-            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+            className={coreInputCls}
           >
             <option value="BUY">BUY</option>
             <option value="SELL">SELL</option>
           </select>
+          {eaLocked ? <input type="hidden" name="direction" value={direction} /> : null}
           {fe.direction ? <span className="mt-1 block text-xs text-loss">{fe.direction}</span> : null}
         </label>
 
@@ -148,13 +165,15 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
           <select
             name="result"
             value={result}
+            disabled={eaLocked}
             onChange={(e) => setResult(e.target.value as "WIN" | "LOSS" | "BE")}
-            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+            className={coreInputCls}
           >
             <option value="WIN">WIN</option>
             <option value="LOSS">LOSS</option>
             <option value="BE">BE</option>
           </select>
+          {eaLocked ? <input type="hidden" name="result" value={result} /> : null}
           {fe.result ? <span className="mt-1 block text-xs text-loss">{fe.result}</span> : null}
         </label>
       </div>
@@ -166,13 +185,14 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
             name="pnl"
             type="number"
             step="0.01"
+            readOnly={eaLocked}
             value={pnl}
             onChange={(e) => {
               setPnl(e.target.value);
               const n = parseFloat(e.target.value);
               if (!isNaN(n)) setResult(n > 0 ? "WIN" : n < 0 ? "LOSS" : "BE");
             }}
-            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+            className={coreInputCls}
           />
           {fe.pnl ? <span className="mt-1 block text-xs text-loss">{fe.pnl}</span> : null}
         </label>
@@ -192,9 +212,10 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
             name="lot_size"
             type="number"
             step="any"
+            readOnly={eaLocked}
             value={lotSize}
             onChange={(e) => { touch(); setLotSize(e.target.value); }}
-            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+            className={coreInputCls}
           />
           {fe.lot_size ? <span className="mt-1 block text-xs text-loss">{fe.lot_size}</span> : null}
         </label>
@@ -209,9 +230,10 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
             name="entry_price"
             type="number"
             step="any"
+            readOnly={eaLocked}
             value={entry}
             onChange={(e) => { touch(); setEntry(e.target.value); }}
-            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+            className={coreInputCls}
           />
           {fe.entry_price ? <span className="mt-1 block text-xs text-loss">{fe.entry_price}</span> : null}
         </label>
@@ -222,9 +244,10 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
             name="exit_price"
             type="number"
             step="any"
+            readOnly={eaLocked}
             value={exitP}
             onChange={(e) => { touch(); setExitP(e.target.value); }}
-            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+            className={coreInputCls}
           />
           {fe.exit_price ? <span className="mt-1 block text-xs text-loss">{fe.exit_price}</span> : null}
         </label>
@@ -235,14 +258,15 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
             name="stop_loss"
             type="number"
             step="any"
+            readOnly={eaLocked}
             value={stopLoss}
             onChange={(e) => { touch(); setStopLoss(e.target.value); }}
-            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+            className={coreInputCls}
           />
           {fe.stop_loss ? <span className="mt-1 block text-xs text-loss">{fe.stop_loss}</span> : null}
         </label>
 
-        <Field label="Take profit" name="take_profit" type="number" step="any" defaultValue={trade?.take_profit ?? ""} error={fe.take_profit} />
+        <Field label="Take profit" name="take_profit" type="number" step="any" defaultValue={trade?.take_profit ?? ""} error={fe.take_profit} readOnly={eaLocked} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -318,7 +342,7 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
 function Field(props: {
   label: string; name: string; type?: string; step?: string;
   required?: boolean; placeholder?: string; defaultValue?: string | number | null;
-  error?: string;
+  error?: string; readOnly?: boolean;
 }) {
   return (
     <label className="block text-sm">
@@ -328,9 +352,13 @@ function Field(props: {
         type={props.type ?? "text"}
         step={props.step}
         required={props.required}
+        readOnly={props.readOnly}
         placeholder={props.placeholder}
         defaultValue={props.defaultValue ?? ""}
-        className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+        className={
+          "w-full rounded-md border border-white/10 bg-black/40 px-3 py-2" +
+          (props.readOnly ? " cursor-not-allowed opacity-60" : "")
+        }
       />
       {props.error ? <span className="mt-1 block text-xs text-loss">{props.error}</span> : null}
     </label>

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Share2, Zap, ShieldCheck, Pencil, Lock } from "lucide-react";
+import { Share2, Zap, ShieldCheck, Pencil } from "lucide-react";
 import type { TradeRow } from "@/lib/types";
 import { fmtDate, fmtDateTime, fmtMoney } from "@/lib/format";
 import { deleteTradeAction } from "@/app/(app)/actions";
@@ -200,13 +200,17 @@ export default function JournalTable({
                           <Share2 className="h-4 w-4" />
                         </Link>
                         {t.source === "ea" ? (
-                          <span
-                            title="Auto-verified trade — cannot be edited manually"
-                            className="inline-flex items-center justify-center rounded border border-white/10 p-1.5 text-muted cursor-default"
-                            aria-label="Auto-verified trade — cannot be edited manually"
+                          // EA trades: core fields are locked, but the trader can
+                          // still add context (notes, tags, grade, chart…).
+                          <Link
+                            href={`/journal/${t.id}/edit`}
+                            title="Core fields locked — you can add notes, tags & grade."
+                            aria-label="Add context — notes, tags & grade"
+                            className="inline-flex items-center gap-1 rounded border border-white/20 px-2 py-1 text-xs text-muted hover:bg-white/5 hover:text-white"
                           >
-                            <Lock className="h-4 w-4" />
-                          </span>
+                            <Pencil className="h-3.5 w-3.5" aria-hidden />
+                            Context
+                          </Link>
                         ) : (
                           <>
                             <Link href={`/journal/${t.id}/edit`} className="rounded border border-white/20 px-2 py-1 text-xs hover:bg-white/5">
