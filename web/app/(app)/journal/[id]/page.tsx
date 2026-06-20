@@ -6,6 +6,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
 import { signChart } from "@/lib/storage";
 import { fmtPct } from "@/lib/format";
+import { ruleLabel } from "@/lib/constitution/labels";
 import ShareableTradeCard from "@/components/trade/ShareableTradeCard";
 
 const SELECT_FIELDS =
@@ -103,7 +104,7 @@ export default async function TradeDetailPage({
   const user = await requireUser();
   const sb = await supabaseServer();
 
-  const [{ data: trade, error }, { data: events }] = await Promise.all([
+  const [{ data: trade, error }, { data: events }, { data: violationsData }] = await Promise.all([
     sb
       .from("trades")
       .select(SELECT_FIELDS)
@@ -114,7 +115,19 @@ export default async function TradeDetailPage({
       .from("trade_events")
       .select("id, event_type, event_time, created_at, price, sl, tp, lots, pnl")
       .eq("trade_id", id),
+    sb
+      .from("constitution_violations")
+      .select("rule_key, actual, allowed, detail")
+      .eq("trade_id", id)
+      .eq("user_id", user.id),
   ]);
+
+  const violations = (violationsData ?? []) as Array<{
+    rule_key: string;
+    actual: number | null;
+    allowed: number | null;
+    detail: string | null;
+  }>;
 
   // Strict chronological order. event_time is the broker wall-clock for
   // fill/close, but sl_tp_modified events log it as null (only created_at is
@@ -247,6 +260,9 @@ export default async function TradeDetailPage({
       {/* Risk metrics — return % + R:R / no-stop-loss discipline */}
       <RiskMetrics returnPct={returnPct} rrRatio={rrRatio} hasStopLoss={hasStopLoss} planned={!isClosed} />
 
+      {/* Constitution rule deviations */}
+      {violations.length > 0 ? <RuleDeviations violations={violations} /> : null}
+
       {/* Chart screenshot */}
       {chartUrl ? (
         <section className="space-y-2">
@@ -320,6 +336,59 @@ export default async function TradeDetailPage({
         </section>
       )}
     </div>
+  );
+}
+
+// Per-rule unit + bound word for the compact "actual vs allowed" line.
+const RULE_UNIT: Record<string, string> = {
+  max_risk_pct: "%",
+  max_daily_loss: "%",
+  max_daily_loss_pct: "%",
+  min_rr: "",
+  max_trades_per_day: "",
+};
+const RULE_BOUND: Record<string, "max" | "min"> = {
+  max_risk_pct: "max",
+  max_daily_loss: "max",
+  max_daily_loss_pct: "max",
+  max_trades_per_day: "max",
+  min_rr: "min",
+};
+
+// Constitution rule deviations recorded against this trade. Amber/warning,
+// concise. Renders nothing when there are no violations (caller guards).
+function RuleDeviations({
+  violations,
+}: {
+  violations: Array<{ rule_key: string; actual: number | null; allowed: number | null; detail: string | null }>;
+}) {
+  return (
+    <section className="space-y-2">
+      <h2 className="font-display text-sm uppercase tracking-widest text-amber-300">Rule Deviations</h2>
+      <ul className="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+        {violations.map((v) => {
+          const unit = RULE_UNIT[v.rule_key] ?? "";
+          const bound = RULE_BOUND[v.rule_key] ?? "limit";
+          const hasNums = v.actual != null && v.allowed != null;
+          return (
+            <li key={v.rule_key} className="flex items-start gap-2 text-sm">
+              <span className="mt-0.5 shrink-0 text-amber-300" aria-hidden>⚑</span>
+              <span className="min-w-0">
+                <span className="font-medium text-white">{ruleLabel(v.rule_key)}</span>
+                {hasNums ? (
+                  <span className="text-amber-200/90">
+                    {" — "}{v.actual}{unit} vs {v.allowed}{unit} {bound}
+                  </span>
+                ) : null}
+                {v.detail ? (
+                  <span className="mt-0.5 block text-xs text-muted">{v.detail}</span>
+                ) : null}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

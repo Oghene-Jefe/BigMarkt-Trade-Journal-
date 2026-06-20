@@ -24,9 +24,11 @@ type SourceFilter = "all" | "ea" | "manual";
 export default function JournalTable({
   trades,
   chartUrls,
+  violationCounts = {},
 }: {
   trades: TradeRow[];
   chartUrls: Record<string, string>;
+  violationCounts?: Record<string, number>;
 }) {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const router = useRouter();
@@ -167,7 +169,19 @@ export default function JournalTable({
                         <span className="text-xs text-muted">—</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 font-medium">{t.pair ?? "—"}</td>
+                    <td className="px-3 py-2 font-medium">
+                      <span className="inline-flex items-center gap-1.5">
+                        {t.pair ?? "—"}
+                        {(violationCounts[t.id] ?? 0) > 0 ? (
+                          <span
+                            title={`${violationCounts[t.id]} rule deviation${violationCounts[t.id] === 1 ? "" : "s"}`}
+                            className="inline-flex items-center gap-0.5 rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300"
+                          >
+                            ⚑ {violationCounts[t.id]}
+                          </span>
+                        ) : null}
+                      </span>
+                    </td>
                     <td className="px-3 py-2">
                       <span className={`rounded px-2 py-0.5 text-xs ${t.direction === "BUY" ? "bg-win/20 text-win" : "bg-loss/20 text-loss"}`}>
                         {t.direction ?? "—"}

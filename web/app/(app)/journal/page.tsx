@@ -106,6 +106,17 @@ async function TradesView({
   const paths = trades.map((t) => t.chart_path).filter((p): p is string => !!p);
   const chartUrls = await signCharts(paths);
 
+  // Constitution deviation counts per trade — one query, grouped client-side.
+  // RLS self-select scopes this to the current user's own violations.
+  const violationCounts: Record<string, number> = {};
+  const { data: vios } = await sb
+    .from("constitution_violations")
+    .select("trade_id, rule_key")
+    .eq("user_id", user!.id);
+  for (const v of (vios ?? []) as { trade_id: string }[]) {
+    violationCounts[v.trade_id] = (violationCounts[v.trade_id] ?? 0) + 1;
+  }
+
   if (error) {
     return (
       <div className="rounded-lg border border-loss/30 bg-loss/10 p-8 text-center">
@@ -137,7 +148,7 @@ async function TradesView({
           performance score.
         </p>
       ) : null}
-      <JournalClient trades={trades} chartUrls={chartUrls} />
+      <JournalClient trades={trades} chartUrls={chartUrls} violationCounts={violationCounts} />
     </div>
   );
 }
