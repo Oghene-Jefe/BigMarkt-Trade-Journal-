@@ -112,12 +112,12 @@ function StepDownload() {
         Click to download the compiled EA file. No MetaEditor or coding required.
       </p>
       <a
-        href="/downloads/BigMarkt_EA_v2.1.0.ex5"
+        href="/downloads/BigMarkt_EA_v2.5.1.ex5"
         download
         className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-sm font-medium text-black hover:bg-gold/90"
       >
         <Download size={14} aria-hidden />
-        <span>Download BigMarkt EA v2.1.0</span>
+        <span>Download BigMarkt EA v2.5.1</span>
       </a>
       <p className="text-xs text-muted">
         This file works on any MT5 terminal — demo or live.
@@ -135,7 +135,7 @@ function StepInstall() {
         {[
           <>Open MT5 and click <em>File → Open Data Folder</em></>,
           <>Navigate to <Mono>MQL5 → Experts</Mono></>,
-          <>Drag and drop <Mono>BigMarkt_EA_v2.1.0.ex5</Mono> into that folder</>,
+          <>Drag and drop <Mono>BigMarkt_EA_v2.5.1.ex5</Mono> into that folder</>,
           <>Restart MT5 or press <Mono>F5</Mono> to refresh the Navigator panel</>,
           <>Find <Mono>BigMarkt EA</Mono> under <em>Expert Advisors</em> in the Navigator</>,
         ].map((step, i) => (
