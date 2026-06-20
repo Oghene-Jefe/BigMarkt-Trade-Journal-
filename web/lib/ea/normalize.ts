@@ -133,6 +133,10 @@ export const eaPositionModifySchema = z.object({
   sl: z.number().default(0),
   tp: z.number().default(0),
   magic: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
+  // EA v2.5.1: broker-clock timestamp of the modify (same basis as deal
+  // open_time/close_time). Unsigned passthrough — NOT part of
+  // positionModifyFieldsHash / the signature. Used only to order the timeline.
+  event_time: z.string().max(40).optional(),
   ...accountPassthrough,
 });
 

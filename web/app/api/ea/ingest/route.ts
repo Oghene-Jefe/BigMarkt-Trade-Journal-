@@ -910,6 +910,9 @@ async function handlePositionModifyEvent(
     event_type:  "sl_tp_modified",
     sl:          newSl,
     tp:          newTp,
+    // Broker-clock time (EA v2.5.1) so the timeline orders this between fill
+    // and close. Absent → null (falls back to created_at, as before).
+    event_time:  payload.event_time ?? null,
     raw:         { symbol: payload.symbol, magic: payload.magic },
   });
 
