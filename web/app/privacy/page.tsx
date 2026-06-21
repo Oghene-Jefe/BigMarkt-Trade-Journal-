@@ -2,7 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — BigMarkt",
+  // Bare title; the root layout's `%s — BigMarkt` template adds the brand
+  // suffix for child segments. Including it here would double the suffix.
+  title: "Privacy Policy",
   description:
     "How BigMarkt collects, uses, stores, and protects your personal data, your rights under the GDPR, and how to contact us.",
   alternates: { canonical: "/privacy" },

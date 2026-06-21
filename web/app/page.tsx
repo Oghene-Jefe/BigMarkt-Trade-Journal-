@@ -47,13 +47,13 @@ export default async function Home() {
       <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
         <Link
           href="/signup"
-          className="rounded-md bg-gold px-6 py-3 text-center text-sm font-medium text-black hover:bg-gold/90 sm:w-auto"
+          className="rounded-md bg-gold px-6 py-3 text-center text-sm font-medium text-black hover:bg-gold/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg sm:w-auto"
         >
           Create account
         </Link>
         <Link
           href="/login"
-          className="rounded-md border border-gold px-6 py-3 text-center text-sm font-medium text-gold hover:bg-gold/10 sm:w-auto"
+          className="rounded-md border border-gold px-6 py-3 text-center text-sm font-medium text-gold hover:bg-gold/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg sm:w-auto"
         >
           Log in
         </Link>

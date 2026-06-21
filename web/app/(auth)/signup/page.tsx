@@ -33,7 +33,7 @@ function SignupForm() {
           required
           maxLength={80}
           autoComplete="name"
-          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         />
       </label>
 
@@ -44,7 +44,7 @@ function SignupForm() {
           type="email"
           required
           autoComplete="email"
-          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         />
       </label>
 
@@ -56,7 +56,7 @@ function SignupForm() {
           required
           minLength={12}
           autoComplete="new-password"
-          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         />
         <span className="mt-1 block text-xs text-muted">
           At least 12 characters.
@@ -71,7 +71,7 @@ function SignupForm() {
           maxLength={32}
           autoComplete="off"
           placeholder="Paste a friend's code"
-          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm"
+          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         />
       </label>
 
@@ -96,7 +96,7 @@ function SignupForm() {
 
       <button
         disabled={pending}
-        className="w-full rounded-md bg-gold py-3 text-sm font-medium text-black disabled:opacity-50"
+        className="w-full rounded-md bg-gold py-3 text-sm font-medium text-black disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
       >
         {pending ? "Creating…" : "Sign up"}
       </button>

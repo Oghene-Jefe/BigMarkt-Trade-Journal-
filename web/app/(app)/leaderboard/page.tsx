@@ -10,7 +10,9 @@ import type { ScoreTier } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Trader Leaderboard — BigMarkt",
+  // Bare title; the root layout's `%s — BigMarkt` template adds the brand
+  // suffix for child segments. Including it here would double the suffix.
+  title: "Trader Leaderboard",
   description:
     "See how ranked traders stack up on BigMarkt — sorted by verified scores, win rate, expectancy, and drawdown.",
   alternates: { canonical: "/leaderboard" },

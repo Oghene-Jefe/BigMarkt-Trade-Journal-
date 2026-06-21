@@ -21,19 +21,19 @@ export default function LoginPage() {
         <label className="block text-sm">
           <span className="mb-1 block text-muted">Email</span>
           <input name="email" type="email" required autoComplete="email"
-            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2" />
+            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg" />
         </label>
 
         <label className="block text-sm">
           <span className="mb-1 block text-muted">Password</span>
           <input name="password" type="password" required minLength={6} autoComplete="current-password"
-            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2" />
+            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg" />
         </label>
 
         {state.error ? <p className="text-sm text-loss">{state.error}</p> : null}
 
         <button disabled={pending}
-          className="w-full rounded-md bg-gold py-3 text-sm font-medium text-black disabled:opacity-50">
+          className="w-full rounded-md bg-gold py-3 text-sm font-medium text-black disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
           {pending ? "Signing in…" : "Log in"}
         </button>
 
