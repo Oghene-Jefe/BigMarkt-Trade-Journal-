@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signAvatar, signCharts } from "@/lib/storage";
 import { fmtMoney, fmtDate } from "@/lib/format";
@@ -10,6 +11,34 @@ import type { PublicProfileFull, PublicTrade, Subscription } from "@/lib/types";
 import Logo from "@/components/ui/Logo";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}): Promise<Metadata> {
+  const { username } = await params;
+  const sb = await supabaseServer();
+  const { data: profileData } = await sb.rpc("get_profile_by_username", {
+    slug: username,
+  });
+  const profile = (
+    Array.isArray(profileData) ? profileData[0] : profileData
+  ) as PublicProfileFull | null;
+  if (!profile) return {};
+
+  const title = `${profile.display_name}'s Trading Journal`;
+  const description = `Browse @${profile.username}'s read-only trading journal on BigMarkt — verified trades, win rate, and performance stats.`;
+  const canonical = `/@${profile.username}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical, type: "profile" },
+    twitter: { card: "summary", title, description },
+  };
+}
 
 export default async function UsernameProfilePage({
   params,
@@ -66,8 +95,27 @@ export default async function UsernameProfilePage({
     ? "Auto-verified journal"
     : null;
 
+  const profileJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    mainEntity: {
+      "@type": "Person",
+      name: profile.display_name,
+      alternateName: `@${profile.username}`,
+      url: `https://journal.bigmarkt.co/@${profile.username}`,
+    },
+  };
+
   return (
     <main className="mx-auto max-w-3xl p-6">
+      <script
+        type="application/ld+json"
+        // Built from public profile fields; escape "<" so a crafted
+        // display_name can't break out of the <script> context.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(profileJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <header className="mb-8 flex items-center justify-between">
         <Link href="/">
           <Logo size="md" />

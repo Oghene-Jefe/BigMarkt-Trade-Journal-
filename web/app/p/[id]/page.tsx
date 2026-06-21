@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signAvatar, signCharts } from "@/lib/storage";
@@ -10,6 +11,36 @@ import type { PublicProfileFull, PublicTrade, Subscription } from "@/lib/types";
 import Logo from "@/components/ui/Logo";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const sb = await supabaseServer();
+  const { data: profileData } = await sb.rpc("get_public_profile", {
+    profile_id: id,
+  });
+  const profile = (
+    Array.isArray(profileData) ? profileData[0] : profileData
+  ) as PublicProfileFull | null;
+  if (!profile) return {};
+
+  const title = `${profile.display_name}'s Trading Journal`;
+  const description = `Browse this read-only trading journal on BigMarkt — verified trades, win rate, and performance stats.`;
+  // Prefer the /@username form when the trader has a username; fall back
+  // to the /p/<id> URL otherwise.
+  const canonical = profile.username ? `/@${profile.username}` : `/p/${id}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: { title, description, url: canonical, type: "profile" },
+    twitter: { card: "summary", title, description },
+  };
+}
 
 export default async function PublicProfilePage({
   params,
@@ -66,8 +97,30 @@ export default async function PublicProfilePage({
     ? "Auto-verified journal"
     : null;
 
+  const profileUrl = profile.username
+    ? `https://journal.bigmarkt.co/@${profile.username}`
+    : `https://journal.bigmarkt.co/p/${id}`;
+  const profileJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    mainEntity: {
+      "@type": "Person",
+      name: profile.display_name,
+      ...(profile.username ? { alternateName: `@${profile.username}` } : {}),
+      url: profileUrl,
+    },
+  };
+
   return (
     <main className="mx-auto max-w-3xl p-6">
+      <script
+        type="application/ld+json"
+        // Built from public profile fields; escape "<" so a crafted
+        // display_name can't break out of the <script> context.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(profileJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <header className="mb-8 flex items-center justify-between">
         <Link href="/">
           <Logo size="md" />

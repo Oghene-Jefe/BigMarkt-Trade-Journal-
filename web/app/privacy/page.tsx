@@ -3,7 +3,17 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Privacy Policy — BigMarkt",
-  description: "How BigMarkt collects, uses, and protects your personal data.",
+  description:
+    "How BigMarkt collects, uses, stores, and protects your personal data, your rights under the GDPR, and how to contact us.",
+  alternates: { canonical: "/privacy" },
+  openGraph: {
+    title: "Privacy Policy — BigMarkt",
+    description:
+      "How BigMarkt collects, uses, stores, and protects your personal data, your rights under the GDPR, and how to contact us.",
+    url: "/privacy",
+    type: "website",
+  },
+  robots: { index: true, follow: false },
 };
 
 export default function PrivacyPage() {

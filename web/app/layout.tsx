@@ -3,8 +3,22 @@ import type { Metadata } from "next";
 import Script from "next/script";
 
 export const metadata: Metadata = {
-  title: "BigMarkt Trade Journal",
-  description: "Built for traders, by traders.",
+  metadataBase: new URL("https://journal.bigmarkt.co"),
+  title: {
+    default: "BigMarkt Trade Journal",
+    template: "%s — BigMarkt",
+  },
+  description:
+    "A verified trading journal — log trades, track your stats, and share a read-only journal of your performance.",
+  openGraph: {
+    siteName: "BigMarkt Trade Journal",
+    type: "website",
+    locale: "en_GB",
+  },
+  twitter: {
+    card: "summary",
+    site: "@BigMarkt_Hq",
+  },
   icons: {
     icon: [
       // Browsers pick the variant whose `media` matches the OS/browser

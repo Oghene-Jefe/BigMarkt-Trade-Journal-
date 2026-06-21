@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Route } from "next";
+import type { Metadata } from "next";
 import { ShieldCheck, Info } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signAvatars } from "@/lib/storage";
@@ -7,6 +8,13 @@ import { PageHeader, EmptyState } from "@/components/ui";
 import type { ScoreTier } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Trader Leaderboard — BigMarkt",
+  description:
+    "See how ranked traders stack up on BigMarkt — sorted by verified scores, win rate, expectancy, and drawdown.",
+  alternates: { canonical: "/leaderboard" },
+};
 
 const VALID_TABS = ["all", "pro", "active"] as const;
 type Tab = (typeof VALID_TABS)[number];

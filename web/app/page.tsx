@@ -1,9 +1,32 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import Logo from "@/components/ui/Logo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "BigMarkt Trade Journal — The Verified Trading Journal",
+  description:
+    "Log your trades, track your win rate and stats, and share a verified, read-only journal of your trading performance.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "BigMarkt Trade Journal — The Verified Trading Journal",
+    description:
+      "Log your trades, track your win rate and stats, and share a verified, read-only journal of your trading performance.",
+    url: "/",
+    type: "website",
+  },
+};
+
+const ORGANIZATION_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "BigMarkt Trade Journal",
+  url: "https://journal.bigmarkt.co",
+  sameAs: ["https://x.com/BigMarkt_Hq", "https://bigmarkt.co"],
+};
 
 export default async function Home() {
   const sb = await supabaseServer();
@@ -12,6 +35,11 @@ export default async function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-bg px-4 py-12 text-center text-white">
+      <script
+        type="application/ld+json"
+        // Static, code-controlled object — no user input.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION_JSON_LD) }}
+      />
       <Logo size="xl" />
       <p className="mt-6 text-base text-muted sm:text-lg">
         The verified trading journal.
