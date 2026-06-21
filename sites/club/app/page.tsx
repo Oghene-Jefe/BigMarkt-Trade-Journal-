@@ -35,9 +35,28 @@ const tiers = [
 ];
 
 
+const orgJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "EducationalOrganization",
+  name: "BigMarkt Club",
+  url: "https://club.bigmarkt.co",
+  logo: "https://club.bigmarkt.co/images/bigmarkt-logo.png",
+  sameAs: [
+    "https://x.com/bigmarkt_hq",
+    "https://www.linkedin.com/company/bigmarkt",
+    "https://www.instagram.com/bigmarkt_hq/",
+    "https://t.me/bigmarkt_hq",
+    "https://youtube.com/@bigmarkt_hq",
+  ],
+};
+
 export default function HomePage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+      />
       <section className="relative min-h-[calc(100vh-4rem)] overflow-hidden border-b border-[#1f1f1f]">
         <div className="absolute inset-0 gold-dots opacity-60" aria-hidden />
         <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-7xl flex-col justify-center px-6 py-24">

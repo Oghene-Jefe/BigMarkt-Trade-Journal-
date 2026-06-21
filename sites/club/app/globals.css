@@ -30,6 +30,11 @@ body {
   color: #0a0a0a;
 }
 
+:focus-visible {
+  outline: 2px solid #C9A84C;
+  outline-offset: 2px;
+}
+
 .gold-dots {
   background-image: radial-gradient(rgba(201, 168, 76, 0.12) 1px, transparent 1px);
   background-size: 24px 24px;
@@ -43,4 +48,10 @@ body {
 .ticker-track {
   animation: ticker-scroll 40s linear infinite;
   width: max-content;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
 }

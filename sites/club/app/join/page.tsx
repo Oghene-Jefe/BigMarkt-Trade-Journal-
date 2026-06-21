@@ -4,6 +4,7 @@ import ApplicationForm from "../_components/ApplicationForm";
 export const metadata = {
   title: "Join — BigMarkt Club",
   description: "Free to join. No credit card. No catch. Apply to BigMarkt Club today.",
+  alternates: { canonical: "/join" },
 };
 
 const tiers = [

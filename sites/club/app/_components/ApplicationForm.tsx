@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { submitApplication, type ApplicationState } from "../actions";
 import Turnstile from "./Turnstile";
@@ -9,7 +9,7 @@ import Turnstile from "./Turnstile";
 const initial: ApplicationState = { ok: false };
 
 const fieldClass =
-  "w-full border border-[#1f1f1f] bg-[#111111] px-4 py-3 text-sm text-white placeholder-white/30 focus:border-[#C9A84C] focus:outline-none";
+  "w-full border border-[#1f1f1f] bg-[#111111] px-4 py-3 text-sm text-white placeholder-white/30 focus:border-[#C9A84C] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84C]";
 const labelClass = "block text-xs font-semibold uppercase tracking-widest text-white/60";
 
 const TRACKS = [
@@ -32,11 +32,16 @@ export default function ApplicationForm() {
     ? (requestedType as AppType)
     : "member";
   const [appType, setAppType] = useState<AppType>(initialType);
+  const successHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (state.ok) successHeadingRef.current?.focus();
+  }, [state.ok]);
 
   if (state.ok) {
     return (
       <div className="border border-[#C9A84C] bg-[#111111] p-8">
-        <h3 className="text-2xl font-bold text-[#C9A84C]">Application Received</h3>
+        <h3 ref={successHeadingRef} tabIndex={-1} className="text-2xl font-bold text-[#C9A84C]">Application Received</h3>
         <p className="mt-4 text-white/80">
           Application received. You will hear from us within 7 to 10 days.
         </p>
@@ -100,13 +105,13 @@ export default function ApplicationForm() {
       <div>
         <label htmlFor="why_join" className={labelClass}>Why do you want to join? *</label>
         <textarea id="why_join" name="why_join" required maxLength={800} rows={5} className={`mt-2 ${fieldClass}`} />
-        <p className="mt-1 text-xs text-white/40">Max 800 characters.</p>
+        <p className="mt-1 text-xs text-white/60">Max 800 characters.</p>
       </div>
 
       <Turnstile />
 
       {state.error && (
-        <p className="border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{state.error}</p>
+        <p role="alert" className="border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{state.error}</p>
       )}
 
       <button
@@ -117,7 +122,7 @@ export default function ApplicationForm() {
         {pending ? "Submitting…" : "Submit Application"}
       </button>
 
-      <p className="text-center text-xs text-white/40">
+      <p className="text-center text-xs text-white/60">
         By submitting, you agree to our{" "}
         <Link href="/privacy" className="text-white/60 hover:text-white underline">
           Privacy Policy

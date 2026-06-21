@@ -26,6 +26,14 @@ export const metadata: Metadata = {
       "Learn money. For real this time. Free to join. Built for students.",
     url: "https://club.bigmarkt.co",
     siteName: "BigMarkt Club",
+    images: [{ url: "/images/bigmarkt-logo.png" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BigMarkt Club",
+    description:
+      "Learn money. For real this time. Free to join. Built for students.",
+    images: ["/images/bigmarkt-logo.png"],
   },
 };
 
