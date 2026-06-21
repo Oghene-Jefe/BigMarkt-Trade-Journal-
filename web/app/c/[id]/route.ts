@@ -42,6 +42,11 @@ export async function GET(
     status: 200,
     headers: {
       "Content-Type": upstream.headers.get("content-type") ?? "image/jpeg",
+      // Uploads are magic-byte sniffed to jpeg/png/webp, but nosniff + inline
+      // are cheap defense-in-depth against a future sniffer regression serving
+      // active content same-origin.
+      "X-Content-Type-Options": "nosniff",
+      "Content-Disposition": "inline",
       "Cache-Control": "private, max-age=600",
     },
   });

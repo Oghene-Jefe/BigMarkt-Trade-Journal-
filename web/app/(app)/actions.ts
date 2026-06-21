@@ -273,6 +273,8 @@ export async function updateTradeAction(id: string, _: TradeActionState, fd: For
 
   revalidatePath("/journal");
   revalidatePath("/dashboard");
+  revalidatePath(`/journal/${id}`);
+  revalidatePath(`/journal/${id}/edit`);
   redirect("/journal");
 }
 

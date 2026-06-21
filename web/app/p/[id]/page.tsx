@@ -8,6 +8,7 @@ import { ShieldCheck } from "lucide-react";
 import TrustBadge from "@/components/TrustBadge";
 import FollowButton from "@/components/FollowButton";
 import type { PublicProfileFull, PublicTrade, Subscription } from "@/lib/types";
+import { chartProxyUrl } from "@/lib/chart-url";
 import Logo from "@/components/ui/Logo";
 
 export const dynamic = "force-dynamic";
@@ -195,10 +196,10 @@ export default async function PublicProfilePage({
               >
                 <span className="w-24 text-xs text-muted">{fmtDate(t.created_at)}</span>
                 {t.chart_path ? (
-                  <a href={`/c/${t.id}`} target="_blank" rel="noopener">
+                  <a href={chartProxyUrl(t.id, t.chart_path)} target="_blank" rel="noopener">
                     {/* eslint-disable-next-line @next/next/no-img-element -- same-origin /c/<id> chart proxy */}
                     <img
-                      src={`/c/${t.id}`}
+                      src={chartProxyUrl(t.id, t.chart_path)}
                       alt=""
                       className="h-10 w-14 rounded object-cover"
                       loading="lazy"

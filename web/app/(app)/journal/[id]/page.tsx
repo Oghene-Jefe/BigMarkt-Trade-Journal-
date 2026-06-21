@@ -6,6 +6,8 @@ import { requireUser } from "@/lib/auth/require-user";
 import { fmtPct } from "@/lib/format";
 import { ruleLabel } from "@/lib/constitution/labels";
 import ShareableTradeCard from "@/components/trade/ShareableTradeCard";
+import { chartProxyUrl } from "@/lib/chart-url";
+import { computeRR } from "@/lib/rr";
 import CustomRuleChecks, { type CustomRule } from "./CustomRuleChecks";
 
 const SELECT_FIELDS =
@@ -38,40 +40,6 @@ function fmtPrice(n: number | null): string {
   // Locale PINNED to en-US — an unpinned toLocaleString() renders differently on
   // server vs client and has caused hydration crashes.
   return n.toLocaleString("en-US", { maximumFractionDigits: 5 });
-}
-
-// R:R, null (→ "—") when there's no stop loss or no usable target.
-//   CLOSED: achieved R:R = |exit − entry| / |entry − stop_loss| (prefer stored).
-//   OPEN:   planned  R:R = |take_profit − entry| / |entry − stop_loss|.
-// Open trades never use exit_price (it's 0/null while open — using it produced
-// garbage like 378.03). Every division is guarded against a zero risk leg.
-function computeRR(args: {
-  entry: number | null;
-  exit: number | null;
-  stopLoss: number | null;
-  takeProfit: number | null;
-  storedRR: number | null;
-  isClosed: boolean;
-}): string | null {
-  const { entry, exit, stopLoss, takeProfit, storedRR, isClosed } = args;
-  if (stopLoss == null || stopLoss === 0 || entry == null) return null;
-  const risk = Math.abs(entry - stopLoss);
-  if (risk <= 0) return null;
-
-  if (isClosed) {
-    // Achieved R:R from the realized exit. Prefer the stored ratio.
-    if (storedRR != null && storedRR !== 0) return storedRR.toFixed(2);
-    if (exit != null && exit !== 0) {
-      return (Math.abs(exit - entry) / risk).toFixed(2);
-    }
-    return null;
-  }
-
-  // OPEN: planned R:R from the take-profit target — never the exit.
-  if (takeProfit != null && takeProfit !== 0) {
-    return (Math.abs(takeProfit - entry) / risk).toFixed(2);
-  }
-  return null;
 }
 
 function fmtDT(iso: string | null): string {
@@ -226,7 +194,8 @@ export default async function TradeDetailPage({
 
   const createdAt = typeof t.created_at === "string" ? t.created_at : new Date().toISOString();
 
-  const hasChart = typeof t.chart_path === "string" && t.chart_path.length > 0;
+  const chartPath = typeof t.chart_path === "string" ? t.chart_path : null;
+  const hasChart = chartPath != null && chartPath.length > 0;
 
   const notes = typeof t.notes === "string" && t.notes.trim() ? t.notes : null;
 
@@ -301,7 +270,7 @@ export default async function TradeDetailPage({
           <div className="relative overflow-hidden rounded-xl border border-white/10 bg-panel">
             {/* eslint-disable-next-line @next/next/no-img-element -- same-origin /c/<id> chart proxy */}
             <img
-              src={`/c/${id}`}
+              src={chartProxyUrl(id, chartPath)}
               alt={`${pair} chart`}
               className="h-auto w-full object-contain"
               loading="lazy"

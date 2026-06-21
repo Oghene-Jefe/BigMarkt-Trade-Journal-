@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Share2, Zap, ShieldCheck, Pencil } from "lucide-react";
 import type { TradeRow } from "@/lib/types";
 import { fmtDate, fmtDateTime, fmtMoney } from "@/lib/format";
+import { chartProxyUrl } from "@/lib/chart-url";
+import { computeRR } from "@/lib/rr";
 import { deleteTradeAction } from "@/app/(app)/actions";
 import ConfirmButton from "./ConfirmButton";
 import TrustBadge from "./TrustBadge";
@@ -149,14 +151,14 @@ export default function JournalTable({
                     <td className="px-3 py-2">
                       {t.chart_path ? (
                         <a
-                          href={`/c/${t.id}`}
+                          href={chartProxyUrl(t.id, t.chart_path)}
                           target="_blank"
                           rel="noopener"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element -- same-origin /c/<id> chart proxy */}
                           <img
-                            src={`/c/${t.id}`}
+                            src={chartProxyUrl(t.id, t.chart_path)}
                             alt=""
                             className="h-8 w-12 rounded object-cover"
                             loading="lazy"
@@ -194,7 +196,7 @@ export default function JournalTable({
                       {isClosed ? fmtMoney(t.pnl) : "—"}
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums text-muted">
-                      <RRCell stopLoss={t.stop_loss} rrRatio={t.rr_ratio} />
+                      <RRCell t={t} isClosed={isClosed} />
                     </td>
                     <td className="px-3 py-2 text-xs text-muted">{t.tags ?? "—"}</td>
                     <td className="px-3 py-2 text-xs">
@@ -284,14 +286,19 @@ function ResultCell({
   return <span className="text-xs text-muted">—</span>;
 }
 
-function RRCell({ stopLoss, rrRatio }: { stopLoss: number | null; rrRatio: number | null }) {
-  if (stopLoss != null && rrRatio != null) {
-    return <span>{rrRatio.toFixed(2)}R</span>;
-  }
-  if (stopLoss == null) {
+function RRCell({ t, isClosed }: { t: TradeRow; isClosed: boolean }) {
+  if (t.stop_loss == null) {
     return <span className="text-[10px] text-white/30 italic">no SL</span>;
   }
-  return <span>—</span>;
+  const rr = computeRR({
+    entry: t.entry_price,
+    exit: t.exit_price,
+    stopLoss: t.stop_loss,
+    takeProfit: t.take_profit,
+    storedRR: t.rr_ratio,
+    isClosed,
+  });
+  return <span>{rr != null ? `${rr}R` : "—"}</span>;
 }
 
 function SourceBadge({
