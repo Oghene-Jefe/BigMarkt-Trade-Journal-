@@ -1,6 +1,12 @@
 export const metadata = {
-  title: "Security Policy | BigMarkt",
+  title: "Security Policy",
   description: "Responsible disclosure policy and reporting guidance for BigMarkt.",
+  alternates: { canonical: "/security" },
+  openGraph: {
+    title: "BigMarkt Security Policy",
+    description: "Responsible disclosure policy and reporting guidance for BigMarkt.",
+    url: "https://www.bigmarkt.co/security",
+  },
 };
 
 const inScope = [

@@ -1,4 +1,5 @@
 Contact: mailto:security@bigmarkt.co
+Expires: 2027-06-21T00:00:00.000Z
 Preferred-Languages: en
 Canonical: https://www.bigmarkt.co/.well-known/security.txt
 Policy: https://www.bigmarkt.co/security

@@ -48,8 +48,12 @@ export default function Navbar() {
         <button
           aria-label="Toggle menu"
           aria-expanded={open}
+          aria-controls="mobile-menu"
           className="md:hidden text-white"
           onClick={() => setOpen((v) => !v)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setOpen(false);
+          }}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             {open ? (
@@ -62,7 +66,13 @@ export default function Navbar() {
       </nav>
 
       {open && (
-        <div className="md:hidden border-t border-[#1f1f1f] bg-[#0a0a0a] px-6 py-4">
+        <div
+          id="mobile-menu"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setOpen(false);
+          }}
+          className="md:hidden border-t border-[#1f1f1f] bg-[#0a0a0a] px-6 py-4"
+        >
           <div className="flex flex-col gap-4">
             {links.map((l) => (
               <Link

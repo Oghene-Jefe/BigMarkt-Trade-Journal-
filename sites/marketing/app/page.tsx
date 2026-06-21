@@ -2,6 +2,25 @@ import Link from "next/link";
 import { Suspense } from "react";
 import StatBar from "./_components/StatBar";
 
+export const metadata = {
+  alternates: { canonical: "/" },
+};
+
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "BigMarkt",
+  url: "https://www.bigmarkt.co",
+  logo: "https://www.bigmarkt.co/images/bigmarkt-logo.png",
+  sameAs: [
+    "https://x.com/bigmarkt_hq",
+    "https://www.linkedin.com/company/bigmarkt",
+    "https://www.instagram.com/bigmarkt_hq/",
+    "https://t.me/bigmarkt_hq",
+    "https://youtube.com/@bigmarkt_hq",
+  ],
+};
+
 const features = [
   {
     tag: "AUTO-CAPTURED",
@@ -34,6 +53,11 @@ const ecosystem = [
 export default function Home() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        // Static, hardcoded structured data — no user input.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
       {/* Hero */}
       <section className="relative min-h-[calc(100vh-4rem)] overflow-hidden border-b border-[#1f1f1f]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(201,168,76,0.08),_transparent_60%)]" />

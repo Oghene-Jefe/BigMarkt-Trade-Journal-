@@ -3,9 +3,16 @@ import { Suspense } from "react";
 import StatBar from "../_components/StatBar";
 
 export const metadata = {
-  title: "The BigMarkt Ecosystem",
+  title: "The Ecosystem",
   description:
     "Four properties, one protocol. Journal, Campus Club, Academy, Protocol — and how they feed each other.",
+  alternates: { canonical: "/ecosystem" },
+  openGraph: {
+    title: "The BigMarkt Ecosystem",
+    description:
+      "Four properties, one protocol. Journal, Campus Club, Academy, Protocol — and how they feed each other.",
+    url: "https://www.bigmarkt.co/ecosystem",
+  },
 };
 
 const properties = [
@@ -107,7 +114,7 @@ export default function EcosystemPage() {
           <div className="mt-12 grid gap-px border border-[#1f1f1f] bg-[#1f1f1f] md:grid-cols-2 lg:grid-cols-4">
             {flywheel.map((s) => (
               <div key={`${s.from}-${s.to}`} className="bg-[#0a0a0a] p-6">
-                <div className="font-mono text-xs uppercase tracking-widest text-white/40">
+                <div className="font-mono text-xs uppercase tracking-widest text-white/60">
                   {s.from} <span className="text-[#C9A84C]">→</span> {s.to}
                 </div>
                 <p className="mt-4 text-sm leading-relaxed text-white/75">{s.body}</p>

@@ -1,7 +1,14 @@
 export const metadata = {
-  title: "Architecture — BigMarkt",
+  title: "Architecture",
   description:
     "How BigMarkt verifies trades: a read-only journal as the source of truth, public reputation built on proof, and accountability through the Trading Constitution.",
+  alternates: { canonical: "/protocol" },
+  openGraph: {
+    title: "BigMarkt Architecture",
+    description:
+      "How BigMarkt verifies trades: a read-only journal as the source of truth, public reputation built on proof, and accountability through the Trading Constitution.",
+    url: "https://www.bigmarkt.co/protocol",
+  },
 };
 
 const layers = [
@@ -83,7 +90,7 @@ export default function ProtocolPage() {
               { step: "3", title: "Reputation updates", body: "Public stats, leaderboard rank, and Constitution adherence recompute from that verified record." },
             ].map((s) => (
               <div key={s.step} className="border border-[#1f1f1f] bg-[#111111] p-8">
-                <div className="font-mono text-xs text-white/40">STEP {s.step}</div>
+                <div className="font-mono text-xs text-white/60">STEP {s.step}</div>
                 <h3 className="mt-2 text-lg font-semibold text-[#C9A84C]">{s.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-white/70">{s.body}</p>
               </div>

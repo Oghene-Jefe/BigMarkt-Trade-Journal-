@@ -1,5 +1,3 @@
-"use client"
-
 const socials = [
   {
     name: "X",
@@ -65,15 +63,7 @@ export default function SocialLinks({ className }: SocialLinksProps) {
           target="_blank"
           rel="noopener noreferrer"
           aria-label={s.name}
-          style={{
-            color: "#C9A84C",
-            opacity: 0.8,
-            transition: "opacity 0.2s",
-            display: "flex",
-            alignItems: "center",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.8")}
+          className="flex items-center text-[#C9A84C] opacity-80 transition-opacity hover:opacity-100 focus-visible:opacity-100"
         >
           {s.svg}
         </a>
