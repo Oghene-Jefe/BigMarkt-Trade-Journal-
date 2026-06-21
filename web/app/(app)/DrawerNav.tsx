@@ -128,12 +128,12 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
     <Link
       href="/notifications"
       onClick={onNavigate}
-      className="relative text-muted hover:text-white"
+      className="relative rounded-md text-muted hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
       aria-label="Notifications"
     >
       <Bell size={18} aria-hidden />
       {unreadCount > 0 ? (
-        <span className="absolute -right-2 -top-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+        <span className="absolute -right-2 -top-1 inline-flex min-w-[16px] items-center justify-center rounded-full bg-loss px-1 text-[10px] font-bold text-white">
           {unreadCount > 99 ? "99+" : unreadCount}
         </span>
       ) : null}
@@ -189,7 +189,7 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
               </div>
               <div className="border-t border-white/10 px-3 py-2 text-xs text-muted">{userEmail}</div>
               <form action={logoutAction} className="border-t border-white/10 px-3 py-2">
-                <button className="w-full rounded-md border border-white/20 px-3 py-1.5 text-xs">
+                <button className="w-full rounded-md border border-white/20 px-3 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
                   Log out
                 </button>
               </form>
@@ -209,7 +209,7 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
           aria-expanded={drawerOpen}
           aria-controls="mobile-drawer"
           onClick={() => setDrawerOpen(true)}
-          className="text-white"
+          className="rounded-md text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         >
           <Menu size={22} aria-hidden />
         </button>
@@ -236,7 +236,7 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
                 type="button"
                 aria-label="Close menu"
                 onClick={() => setDrawerOpen(false)}
-                className="text-white"
+                className="rounded-md text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
               >
                 <X size={20} aria-hidden />
               </button>
@@ -302,7 +302,7 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
                 <ThemeToggle variant="stacked" />
               </div>
               <form action={logoutAction}>
-                <button className="w-full rounded-md border border-white/20 px-3 py-2 text-sm">
+                <button className="w-full rounded-md border border-white/20 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
                   Log out
                 </button>
               </form>
@@ -345,7 +345,7 @@ function DesktopMenu({
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-haspopup="menu"
-        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+        className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg ${
           active
             ? "bg-gold/10 text-gold"
             : "text-muted hover:bg-white/5 hover:text-white"

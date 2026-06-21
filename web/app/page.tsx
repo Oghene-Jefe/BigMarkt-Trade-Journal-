@@ -34,7 +34,7 @@ export default async function Home() {
   if (user) redirect("/dashboard");
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-bg px-4 py-12 text-center text-white">
+    <main className="flex min-h-[100dvh] flex-col items-center justify-center bg-bg px-4 py-12 text-center text-white">
       <script
         type="application/ld+json"
         // Static, code-controlled object — no user input.

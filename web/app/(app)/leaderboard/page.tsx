@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import type { Metadata } from "next";
-import { ShieldCheck, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signAvatars } from "@/lib/storage";
 import { PageHeader, EmptyState } from "@/components/ui";
@@ -72,10 +72,10 @@ function fmtRelative(iso: string | null): string {
   return `scored ${weeks}w ago`;
 }
 
-function rankAccentStyle(rank: number): { className: string; style?: React.CSSProperties } {
+function rankAccentStyle(rank: number): { className: string } {
   if (rank === 0) return { className: "border-l-4 border-l-gold" };
-  if (rank === 1) return { className: "border-l-4", style: { borderLeftColor: "#94a3b8" } };
-  if (rank === 2) return { className: "border-l-4", style: { borderLeftColor: "#b45309" } };
+  if (rank === 1) return { className: "border-l-4 border-l-gold/50" };
+  if (rank === 2) return { className: "border-l-4 border-l-gold/25" };
   return { className: "border-l border-l-white/10" };
 }
 
@@ -160,7 +160,6 @@ export default async function LeaderboardPage({
             return (
               <li
                 key={`${r.user_id}-${r.broker_account_id}`}
-                style={accent.style}
                 className={`relative flex flex-col gap-4 rounded-lg border border-white/10 bg-panel p-5 transition-colors hover:border-white/20 ${accent.className}`}
               >
                 {/* Top row: rank + avatar */}
@@ -203,8 +202,8 @@ export default async function LeaderboardPage({
                     <span
                       className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] ${
                         isPro
-                          ? "border-blue-400/30 bg-blue-500/15 text-blue-300"
-                          : "border-green-400/30 bg-green-500/15 text-green-300"
+                          ? "border-gold/40 bg-gold/15 text-gold"
+                          : "border-white/15 bg-white/5 text-muted"
                       }`}
                     >
                       {isPro ? "Verified pro" : "Active trader"}
@@ -234,11 +233,7 @@ export default async function LeaderboardPage({
                 </div>
 
                 {/* Footer */}
-                <div className="mt-auto flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1 rounded-md border border-indigo-500/20 bg-indigo-500/10 px-1.5 py-0.5 text-[10px] text-indigo-400">
-                    <ShieldCheck className="h-3 w-3" aria-hidden />
-                    Verified trades only
-                  </span>
+                <div className="mt-auto flex items-center justify-end">
                   <span className="text-[10px] text-muted">
                     {fmtRelative(r.last_scored_at)}
                   </span>

@@ -173,8 +173,8 @@ export default async function DashboardPage() {
       {hasMonthActivity ? (
         <div className="text-center text-sm text-gold/70 py-2">
           This month: {pulse.winDays} win days · {pulse.lossDays} loss days · best{" "}
-          <span className="text-green-400">+${pulse.bestDay.toFixed(0)}</span> · worst{" "}
-          <span className="text-red-400">-${Math.abs(pulse.worstDay).toFixed(0)}</span>
+          <span className="text-win">+${pulse.bestDay.toFixed(0)}</span> · worst{" "}
+          <span className="text-loss">-${Math.abs(pulse.worstDay).toFixed(0)}</span>
         </div>
       ) : null}
 

@@ -86,9 +86,9 @@ export default function OpenPositionsPanel({ accountId }: Props) {
               <span
                 className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
                   pos.direction === "BUY"
-                    ? "bg-emerald-500/20 text-emerald-300"
+                    ? "bg-win/20 text-win"
                     : pos.direction === "SELL"
-                    ? "bg-red-500/20 text-red-300"
+                    ? "bg-loss/20 text-loss"
                     : "bg-white/10 text-white/50"
                 }`}
               >

@@ -135,7 +135,7 @@ export default async function PublicProfilePage({
           <div className="h-20 w-20 overflow-hidden rounded-full border border-white/10 bg-black/40">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render
-              <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+              <img src={avatarUrl} alt={profile.display_name} className="h-full w-full object-cover" />
             ) : null}
           </div>
           <div className="flex-1 min-w-0">
@@ -146,7 +146,7 @@ export default async function PublicProfilePage({
               {profile.username ? `@${profile.username} · ` : ""}{profile.visibility}
             </p>
             {journalModeLabel ? (
-              <p className="mt-1 text-xs font-mono text-blue-400">{journalModeLabel}</p>
+              <p className="mt-1 text-xs text-gold">{journalModeLabel}</p>
             ) : null}
           </div>
         </div>

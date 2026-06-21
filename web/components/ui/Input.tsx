@@ -1,7 +1,8 @@
+import { forwardRef } from "react";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 const inputClass =
-  "w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm focus:border-gold/50 focus:outline-none";
+  "w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm focus:border-gold/50 focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
 
 type FieldProps = {
   label: string;
@@ -28,9 +29,11 @@ type InputProps = Omit<ComponentPropsWithoutRef<"input">, "className"> & {
   className?: string;
 };
 
-export function Input({ className = "", ...rest }: InputProps) {
-  return <input className={`${inputClass} ${className}`} {...rest} />;
-}
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  function Input({ className = "", ...rest }, ref) {
+    return <input ref={ref} className={`${inputClass} ${className}`} {...rest} />;
+  },
+);
 
 type SelectProps = Omit<ComponentPropsWithoutRef<"select">, "className"> & {
   className?: string;

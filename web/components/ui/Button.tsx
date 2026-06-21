@@ -6,7 +6,7 @@ type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none";
+  "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
 
 const variants: Record<Variant, string> = {
   primary: "bg-gold text-black hover:bg-gold/90",
@@ -19,6 +19,12 @@ const sizes: Record<Size, string> = {
   sm: "h-8 px-3 text-xs",
   md: "h-10 px-4 text-sm",
 };
+
+/** Builds the shared button class string — for the rare case where a real
+ *  <a download> (binary file) is needed and next/link's Link won't do. */
+export function buttonClasses(variant: Variant = "primary", size: Size = "md", className = "") {
+  return `${base} ${variants[variant]} ${sizes[size]} ${className}`;
+}
 
 type CommonProps = {
   variant?: Variant;

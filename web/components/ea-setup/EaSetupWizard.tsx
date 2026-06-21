@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, type ReactNode } from "react";
-import { Download, CheckCircle2, Circle, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { Download, CheckCircle2, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import type { EaTokenRow, BrokerAccountOption, WsStatus } from "@/app/(app)/ea-setup/page";
+import { Button, buttonClasses } from "@/components/ui/Button";
 
 // ─── Step indicator ──────────────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ function StepIndicator({ current, total, completed }: { current: number; total: 
             <div
               className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-medium transition-colors ${
                 done
-                  ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-400"
+                  ? "border-win/50 bg-win/20 text-win"
                   : active
                   ? "border-gold/50 bg-gold/10 text-gold"
                   : "border-white/20 bg-black/20 text-muted"
@@ -29,7 +30,7 @@ function StepIndicator({ current, total, completed }: { current: number; total: 
             {n < total && (
               <div
                 className={`h-px w-6 sm:w-10 transition-colors ${
-                  done ? "bg-emerald-500/40" : "bg-white/10"
+                  done ? "bg-win/40" : "bg-white/10"
                 }`}
               />
             )}
@@ -48,34 +49,31 @@ function NavButtons({
   total,
   onPrev,
   onNext,
+  connected,
 }: {
   step: number;
   total: number;
   onPrev: () => void;
   onNext: () => void;
+  connected: boolean;
 }) {
+  const onFinalStep = step === total;
   return (
     <div className="mt-6 flex items-center justify-between">
-      <button
-        type="button"
-        onClick={onPrev}
-        disabled={step === 1}
-        className="inline-flex items-center gap-1.5 rounded-md border border-white/20 px-4 py-2 text-sm text-muted hover:text-white disabled:pointer-events-none disabled:opacity-30"
-      >
-        <ChevronLeft size={14} aria-hidden />
+      <Button variant="secondary" onClick={onPrev} disabled={step === 1} icon={<ChevronLeft size={14} aria-hidden />}>
         Previous
-      </button>
-      {step < total ? (
-        <button
-          type="button"
-          onClick={onNext}
-          className="inline-flex items-center gap-1.5 rounded-md bg-gold px-4 py-2 text-sm font-medium text-black hover:bg-gold/90"
-        >
+      </Button>
+      {!onFinalStep ? (
+        <Button onClick={onNext} icon={<ChevronRight size={14} aria-hidden />}>
           Next
-          <ChevronRight size={14} aria-hidden />
-        </button>
+        </Button>
+      ) : connected ? (
+        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-win">
+          <CheckCircle2 size={16} aria-hidden />
+          Setup complete
+        </span>
       ) : (
-        <span className="text-sm text-emerald-400 font-medium">Setup complete</span>
+        <span className="text-sm text-muted">Waiting for connection…</span>
       )}
     </div>
   );
@@ -97,7 +95,7 @@ function TipBox({ children }: { children: ReactNode }) {
 
 function WarningBox({ children }: { children: ReactNode }) {
   return (
-    <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
+    <div className="mt-4 rounded-md border border-loss/40 bg-loss/10 px-4 py-3 text-xs text-loss">
       {children}
     </div>
   );
@@ -111,11 +109,7 @@ function StepDownload() {
       <p className="text-sm text-muted">
         Click to download the compiled EA file. No MetaEditor or coding required.
       </p>
-      <a
-        href="/downloads/BigMarkt_EA_v2.5.1.ex5"
-        download
-        className="inline-flex items-center gap-2 rounded-md bg-gold px-4 py-2 text-sm font-medium text-black hover:bg-gold/90"
-      >
+      <a href="/downloads/BigMarkt_EA_v2.5.1.ex5" download className={buttonClasses()}>
         <Download size={14} aria-hidden />
         <span>Download BigMarkt EA v2.5.1</span>
       </a>
@@ -176,73 +170,53 @@ function StepConfigure({
 
 // ─── Step 4: Verify ───────────────────────────────────────────────────────────
 
-type EaStatusResult = { connected: boolean; trade_count: number; last_trade_at: string | null } | null;
-
-function StepVerify() {
-  const [status, setStatus] = useState<EaStatusResult>(null);
-  const [loading, setLoading] = useState(false);
-  const [lastChecked, setLastChecked] = useState<Date | null>(null);
-
-  const checkStatus = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/ea/status");
-      if (res.ok) {
-        const data = await res.json();
-        setStatus(data as EaStatusResult);
-      } else {
-        setStatus(null);
-      }
-    } catch {
-      setStatus(null);
-    } finally {
-      setLoading(false);
-      setLastChecked(new Date());
-    }
-  }, []);
-
-  useEffect(() => {
-    checkStatus();
-    const interval = setInterval(checkStatus, 10_000);
-    return () => clearInterval(interval);
-  }, [checkStatus]);
-
+function StepVerify({
+  connected,
+  loading,
+  lastChecked,
+  onCheck,
+}: {
+  connected: boolean;
+  loading: boolean;
+  lastChecked: Date | null;
+  onCheck: () => void;
+}) {
   return (
     <div className="space-y-4">
       <div
         className={`rounded-md border p-4 ${
-          status?.connected
-            ? "border-emerald-500/40 bg-emerald-500/10"
-            : "border-amber-500/40 bg-amber-500/10"
+          connected
+            ? "border-win/40 bg-win/10"
+            : "border-gold/40 bg-gold/10"
         }`}
       >
         <div className="flex items-center gap-3">
           <div
             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-              status?.connected ? "bg-emerald-500/20" : "bg-amber-500/20"
+              connected ? "bg-win/20" : "bg-gold/20"
             }`}
           >
-            {status?.connected ? (
-              <CheckCircle2 size={18} className="text-emerald-400" aria-hidden />
+            {connected ? (
+              <CheckCircle2 size={18} className="text-win" aria-hidden />
             ) : (
               <div className="relative flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-60" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-400" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold opacity-60" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-gold" />
               </div>
             )}
           </div>
           <div>
-            {status?.connected ? (
-              <p className="text-sm font-medium text-emerald-300">
+            {connected ? (
+              <p className="text-sm font-medium text-win">
                 EA connected — trades are flowing
               </p>
             ) : (
-              <p className="text-sm font-medium text-amber-300">
+              <p className="text-sm font-medium text-gold">
                 Waiting for first trade...
               </p>
             )}
-            {!status?.connected && (
-              <p className="mt-0.5 text-xs text-amber-300/70">
+            {!connected && (
+              <p className="mt-0.5 text-xs text-gold/70">
                 Place a trade on your connected account to verify
               </p>
             )}
@@ -255,15 +229,9 @@ function StepVerify() {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={checkStatus}
-        disabled={loading}
-        className="inline-flex items-center gap-2 rounded-md border border-white/20 px-4 py-2 text-sm text-muted hover:text-white disabled:opacity-50"
-      >
-        <RefreshCw size={14} className={loading ? "animate-spin" : ""} aria-hidden />
+      <Button variant="secondary" onClick={onCheck} disabled={loading} icon={<RefreshCw size={14} className={loading ? "animate-spin" : ""} aria-hidden />}>
         Test connection
-      </button>
+      </Button>
     </div>
   );
 }
@@ -277,6 +245,8 @@ type Props = {
   brokerAccounts: BrokerAccountOption[];
 };
 
+type EaStatusResult = { connected: boolean; trade_count: number; last_trade_at: string | null } | null;
+
 const STEPS = [
   { title: "Download the EA" },
   { title: "Install in MT5" },
@@ -284,9 +254,68 @@ const STEPS = [
   { title: "Confirm connection" },
 ];
 
+const STEP_STORAGE_KEY = "ea-setup-step";
+
 export default function EaSetupWizard({ EaTokenManagerComponent }: Props) {
+  // Persist the current step across refresh via localStorage (simpler than a
+  // URL param: no router plumbing, and the wizard isn't a deep-linked surface).
   const [step, setStep] = useState(1);
   const [completed, setCompleted] = useState<Set<number>>(new Set());
+
+  // ── Real connection status, lifted up so step-4 completion is gated by it ──
+  const [status, setStatus] = useState<EaStatusResult>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const connected = status?.connected === true;
+
+  const checkStatus = useCallback(async () => {
+    setStatusLoading(true);
+    try {
+      const res = await fetch("/api/ea/status");
+      setStatus(res.ok ? ((await res.json()) as EaStatusResult) : null);
+    } catch {
+      setStatus(null);
+    } finally {
+      setStatusLoading(false);
+      setLastChecked(new Date());
+    }
+  }, []);
+
+  // Restore persisted step on mount.
+  useEffect(() => {
+    const saved = Number(localStorage.getItem(STEP_STORAGE_KEY));
+    if (Number.isInteger(saved) && saved >= 1 && saved <= STEPS.length) {
+      setStep(saved);
+    }
+  }, []);
+
+  // Persist step changes.
+  useEffect(() => {
+    localStorage.setItem(STEP_STORAGE_KEY, String(step));
+  }, [step]);
+
+  // Poll connection status while the wizard is mounted so step 4 reflects
+  // reality regardless of which step the user is viewing.
+  useEffect(() => {
+    checkStatus();
+    const interval = setInterval(checkStatus, 10_000);
+    return () => clearInterval(interval);
+  }, [checkStatus]);
+
+  // Step 4 is only "completed" once a real connection is verified — never by
+  // merely clicking Next (which is hidden on the final step anyway).
+  useEffect(() => {
+    if (connected) {
+      setCompleted((prev) => (prev.has(STEPS.length) ? prev : new Set([...prev, STEPS.length])));
+    } else {
+      setCompleted((prev) => {
+        if (!prev.has(STEPS.length)) return prev;
+        const next = new Set(prev);
+        next.delete(STEPS.length);
+        return next;
+      });
+    }
+  }, [connected]);
 
   const goNext = () => {
     setCompleted((prev) => new Set([...prev, step]));
@@ -314,9 +343,16 @@ export default function EaSetupWizard({ EaTokenManagerComponent }: Props) {
         {step === 1 && <StepDownload />}
         {step === 2 && <StepInstall />}
         {step === 3 && <StepConfigure EaTokenManagerComponent={EaTokenManagerComponent} />}
-        {step === 4 && <StepVerify />}
+        {step === 4 && (
+          <StepVerify
+            connected={connected}
+            loading={statusLoading}
+            lastChecked={lastChecked}
+            onCheck={checkStatus}
+          />
+        )}
 
-        <NavButtons step={step} total={STEPS.length} onPrev={goPrev} onNext={goNext} />
+        <NavButtons step={step} total={STEPS.length} onPrev={goPrev} onNext={goNext} connected={connected} />
       </section>
     </div>
   );
