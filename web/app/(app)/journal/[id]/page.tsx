@@ -1,10 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowLeft, Pencil } from "lucide-react";
 import type { Route } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth/require-user";
-import { signChart } from "@/lib/storage";
 import { fmtPct } from "@/lib/format";
 import { ruleLabel } from "@/lib/constitution/labels";
 import ShareableTradeCard from "@/components/trade/ShareableTradeCard";
@@ -228,8 +226,7 @@ export default async function TradeDetailPage({
 
   const createdAt = typeof t.created_at === "string" ? t.created_at : new Date().toISOString();
 
-  const chartPath = typeof t.chart_path === "string" ? t.chart_path : null;
-  const chartUrl = chartPath ? await signChart(chartPath) : null;
+  const hasChart = typeof t.chart_path === "string" && t.chart_path.length > 0;
 
   const notes = typeof t.notes === "string" && t.notes.trim() ? t.notes : null;
 
@@ -297,18 +294,17 @@ export default async function TradeDetailPage({
         <CustomRuleChecks tradeId={id} rules={customRules} initial={selfCheckInitial} />
       ) : null}
 
-      {/* Chart screenshot */}
-      {chartUrl ? (
+      {/* Chart screenshot — served via same-origin /c/<id> proxy */}
+      {hasChart ? (
         <section className="space-y-2">
           <h2 className="font-display text-sm uppercase tracking-widest text-muted">Chart Screenshot</h2>
           <div className="relative overflow-hidden rounded-xl border border-white/10 bg-panel">
-            <Image
-              src={chartUrl}
+            {/* eslint-disable-next-line @next/next/no-img-element -- same-origin /c/<id> chart proxy */}
+            <img
+              src={`/c/${id}`}
               alt={`${pair} chart`}
-              width={1600}
-              height={900}
               className="h-auto w-full object-contain"
-              unoptimized
+              loading="lazy"
             />
           </div>
         </section>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { signAvatar, signCharts } from "@/lib/storage";
+import { signAvatar } from "@/lib/storage";
 import { fmtMoney, fmtDate, fmtPct } from "@/lib/format";
 import { ShieldCheck } from "lucide-react";
 import TrustBadge from "@/components/TrustBadge";
@@ -73,8 +73,6 @@ export default async function PublicProfilePage({
       ? adherenceRow
       : null;
   const avatarUrl = profile.avatar_path ? await signAvatar(profile.avatar_path) : null;
-  const chartPaths = trades.map((t) => t.chart_path).filter((p): p is string => !!p);
-  const chartUrls = await signCharts(chartPaths);
 
   const {
     data: { user },
@@ -196,11 +194,11 @@ export default async function PublicProfilePage({
                 className="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-panel p-3"
               >
                 <span className="w-24 text-xs text-muted">{fmtDate(t.created_at)}</span>
-                {t.chart_path && chartUrls[t.chart_path] ? (
-                  <a href={chartUrls[t.chart_path]} target="_blank" rel="noreferrer">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render */}
+                {t.chart_path ? (
+                  <a href={`/c/${t.id}`} target="_blank" rel="noopener">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- same-origin /c/<id> chart proxy */}
                     <img
-                      src={chartUrls[t.chart_path]}
+                      src={`/c/${t.id}`}
                       alt=""
                       className="h-10 w-14 rounded object-cover"
                       loading="lazy"

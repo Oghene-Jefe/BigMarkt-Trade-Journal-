@@ -18,16 +18,13 @@ type SourceFilter = "all" | "ea" | "manual";
 // structurally prevents the stored-XSS class of bug the old static app was
 // vulnerable to.
 //
-// chartUrls is a path → signed URL lookup minted by the parent page so we
-// only round-trip Storage once for the whole list. URLs expire on the next
-// request, so a cached page can't be replayed forever.
+// Charts load through the same-origin /c/<tradeId> proxy, which hides the
+// Supabase signed URL and gates access server-side (migration 0061).
 export default function JournalTable({
   trades,
-  chartUrls,
   violationCounts = {},
 }: {
   trades: TradeRow[];
-  chartUrls: Record<string, string>;
   violationCounts?: Record<string, number>;
 }) {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
@@ -150,16 +147,16 @@ export default function JournalTable({
                   >
                     <td className="px-3 py-2 text-muted">{fmtDateTime((t as any).open_time ?? t.created_at)}</td>
                     <td className="px-3 py-2">
-                      {t.chart_path && chartUrls[t.chart_path] ? (
+                      {t.chart_path ? (
                         <a
-                          href={chartUrls[t.chart_path]}
+                          href={`/c/${t.id}`}
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noopener"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render */}
+                          {/* eslint-disable-next-line @next/next/no-img-element -- same-origin /c/<id> chart proxy */}
                           <img
-                            src={chartUrls[t.chart_path]}
+                            src={`/c/${t.id}`}
                             alt=""
                             className="h-8 w-12 rounded object-cover"
                             loading="lazy"

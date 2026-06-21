@@ -29,11 +29,9 @@ function formatHuman(date: string): string {
 
 export default function JournalClient({
   trades,
-  chartUrls,
   violationCounts = {},
 }: {
   trades: TradeRow[];
-  chartUrls: Record<string, string>;
   violationCounts?: Record<string, number>;
 }) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -110,7 +108,7 @@ export default function JournalClient({
         </span>
       </div>
 
-      <JournalTable trades={filteredTrades} chartUrls={chartUrls} violationCounts={violationCounts} />
+      <JournalTable trades={filteredTrades} violationCounts={violationCounts} />
     </div>
   );
 }

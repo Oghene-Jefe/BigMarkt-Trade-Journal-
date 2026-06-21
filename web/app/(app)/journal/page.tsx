@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
-import { signCharts } from "@/lib/storage";
 import { getActiveAccount } from "@/lib/accounts";
 import JournalClient from "./JournalClient";
 import NewsFeed from "./NewsFeed";
@@ -103,8 +102,6 @@ async function TradesView({
   const { data, error } = await query.order("created_at", { ascending: false });
 
   const trades = (data ?? []) as TradeRow[];
-  const paths = trades.map((t) => t.chart_path).filter((p): p is string => !!p);
-  const chartUrls = await signCharts(paths);
 
   // Constitution deviation counts per trade — one query, grouped client-side.
   // RLS self-select scopes this to the current user's own violations.
@@ -147,7 +144,7 @@ async function TradesView({
           performance score.
         </p>
       ) : null}
-      <JournalClient trades={trades} chartUrls={chartUrls} violationCounts={violationCounts} />
+      <JournalClient trades={trades} violationCounts={violationCounts} />
     </div>
   );
 }
