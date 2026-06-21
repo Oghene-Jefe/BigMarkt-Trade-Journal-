@@ -4,10 +4,8 @@ import { useState, useTransition } from "react";
 import { setEaTradesVisibility } from "@/lib/actions/ea-visibility";
 
 export default function EaVisibilityToggle({
-  userId,
   initialValue,
 }: {
-  userId: string;
   initialValue: boolean;
 }) {
   const [enabled, setEnabled] = useState(initialValue);
@@ -20,7 +18,6 @@ export default function EaVisibilityToggle({
     setError(null);
     startTransition(async () => {
       const result = await setEaTradesVisibility(
-        userId,
         next ? "community" : "private",
       );
       if (!result.success) {

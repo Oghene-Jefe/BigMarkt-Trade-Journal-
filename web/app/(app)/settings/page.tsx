@@ -31,7 +31,7 @@ export default async function SettingsPage() {
       <section className="rounded-lg border border-white/10 bg-panel p-6 space-y-4">
         <h2 className="text-sm font-semibold text-white">EA Trade Visibility</h2>
 
-        <EaVisibilityToggle userId={user.id} initialValue={eaPublic} />
+        <EaVisibilityToggle initialValue={eaPublic} />
       </section>
     </div>
   );

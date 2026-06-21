@@ -52,7 +52,11 @@ function readAccountSnapshot(raw: Record<string, unknown>): AccountSnapshot {
 
 // ── debug bypass ────────────────────────────────────────────────────────────
 // TODO: Set SKIP_SIG_VERIFY=false after EA v2.2.0 is compiled and confirmed live.
-const SKIP_SIG_VERIFY = process.env.SKIP_SIG_VERIFY === "true";
+// SKIP_SIG_VERIFY bypasses HMAC verification for local/dev testing only. The
+// NODE_ENV guard makes the bypass impossible in production, so even if the flag
+// is ever set there it is ignored and signatures are still verified.
+const SKIP_SIG_VERIFY =
+  process.env.SKIP_SIG_VERIFY === "true" && process.env.NODE_ENV !== "production";
 
 // MIGRATIONS_APPLIED is always true in prod (0021+0022+0052+0054 all applied).
 // Keep the guard for local dev environments that haven't run migrations yet.

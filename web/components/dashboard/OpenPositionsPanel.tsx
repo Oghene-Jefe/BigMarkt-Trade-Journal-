@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { getOpenPositionsAction, type OpenPosition } from "@/lib/actions/open-positions";
 
 type Props = {
-  userId: string;
   accountId: string | null;
 };
 
@@ -25,20 +24,20 @@ function fmtPrice(n: number | null): string {
   return n.toLocaleString(undefined, { maximumFractionDigits: 5 });
 }
 
-export default function OpenPositionsPanel({ userId, accountId }: Props) {
+export default function OpenPositionsPanel({ accountId }: Props) {
   const [positions, setPositions] = useState<OpenPosition[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
-      const data = await getOpenPositionsAction(userId, accountId);
+      const data = await getOpenPositionsAction(accountId);
       setPositions(data);
     } catch {
       // silently fail — panel degrades gracefully
     } finally {
       setLoading(false);
     }
-  }, [userId, accountId]);
+  }, [accountId]);
 
   useEffect(() => {
     refresh();

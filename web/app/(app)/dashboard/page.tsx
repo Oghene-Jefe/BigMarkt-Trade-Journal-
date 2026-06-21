@@ -179,7 +179,7 @@ export default async function DashboardPage() {
       ) : null}
 
       {/* Open Positions Panel */}
-      <OpenPositionsPanel userId={user!.id} accountId={activeId || null} />
+      <OpenPositionsPanel accountId={activeId || null} />
 
       <Section
         title="Recent trades"
