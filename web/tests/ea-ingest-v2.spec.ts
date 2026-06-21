@@ -4,6 +4,7 @@
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
+import { makeDealPayload } from "./fixtures/ea";
 
 // ── env setup ────────────────────────────────────────────────────────────────
 beforeAll(() => {
@@ -178,14 +179,15 @@ const TOKEN_HASH = createHash("sha256").update(RAW_BEARER).digest("hex");
 const TOKEN_ID = "11111111-2222-3333-4444-555555555555";
 const USER_ID = "user-1";
 
-const VALID_TRADE = {
-  ticket: 1234567,
-  symbol: "EURUSD",
-  type: "buy",
-  lots: 0.1,
-  open_price: 1.0876,
-  open_time: "2026-05-17T12:00:00Z",
-};
+// Use the shared fixture so the signed payload carries the same schema
+// defaults (close_price, profit, swap, magic, …) the route hashes after
+// parsing with eaDealSchema. Omitting them makes the test's canonical
+// string diverge from the route's → HMAC mismatch → spurious 401.
+// close_time is overridden to "" (input shape) rather than the fixture's
+// null (output shape): the request body is re-parsed by eaDealSchema, which
+// rejects a null close_time but accepts "" and transforms it to null — and
+// both canonicalize to "" so the signature still matches.
+const VALID_TRADE = makeDealPayload({ close_time: "" });
 
 async function seedTokenWithSigningSecret(): Promise<{ secret: string }> {
   const { encryptSigningSecret, generateSigningSecret } = await import("@/lib/ea/secrets");

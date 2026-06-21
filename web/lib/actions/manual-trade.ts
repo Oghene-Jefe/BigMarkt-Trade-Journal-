@@ -2,7 +2,14 @@
 
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { safeDbError } from "@/lib/db-error";
+import { recomputeViolationsForTrade, type RecomputeTrade } from "@/lib/constitution/recompute";
+
+// Columns the constitution engine reads. Fetched after a manual write so the
+// recompute hook sees the persisted row.
+const CONSTITUTION_TRADE_FIELDS =
+  "id, user_id, broker_account_id, pair, entry_price, stop_loss, take_profit, lot_size, balance_at_open, open_time, close_time, pnl, status";
 
 async function requireUser() {
   const sb = await supabaseServer();
@@ -75,10 +82,27 @@ export async function addManualTradeAction(
     auto_approved: false,
   };
 
-  const { error } = await sb.from("trades").insert(row);
+  const { data: inserted, error } = await sb.from("trades").insert(row).select("id").single();
 
-  if (error) {
+  if (error || !inserted) {
     return { error: safeDbError(error, "Failed to save trade.", "manual_trade_insert") };
+  }
+
+  // Best-effort: recompute this trade's constitution violations. Wrapped so a
+  // failure here can NEVER break the trade-save path. The row is read under the
+  // user session (RLS confirms ownership), but the violations DELETE+INSERT run
+  // through the SERVICE-ROLE client (no user DELETE policy on
+  // constitution_violations by design).
+  try {
+    const { data: persisted } = await sb
+      .from("trades")
+      .select(CONSTITUTION_TRADE_FIELDS)
+      .eq("id", inserted.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (persisted) await recomputeViolationsForTrade(supabaseAdmin(), persisted as RecomputeTrade);
+  } catch (err) {
+    console.error("constitution recompute (manual) failed — swallowed", err);
   }
 
   return { success: true };

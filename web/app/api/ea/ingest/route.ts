@@ -334,12 +334,16 @@ async function handleOrderEvent(
     // UPSERT on (user_id, order_ticket) so a retried order_add is idempotent.
     // idx_trades_user_ticket covers (user_id, ticket) but order_ticket is a
     // TEXT column with only a non-unique index — we do a manual check+insert.
-    const { data: existing } = await supabase
+    const { data: existing, error: lookupErr } = await supabase
       .from("trades")
       .select("id")
       .eq("user_id", userId)
       .eq("order_ticket", order_ticket)
       .maybeSingle();
+    if (lookupErr) {
+      console.error("EA ingest: order_add lookup failed", { tokenId, code: lookupErr.code, message: lookupErr.message, details: lookupErr.details, hint: lookupErr.hint });
+      return NextResponse.json({ error: "Ingest temporarily unavailable" }, { status: 503 });
+    }
 
     const orderRow: Record<string, unknown> = {
       user_id:      userId,
@@ -404,17 +408,21 @@ async function handleOrderEvent(
 
   // ── order_update ───────────────────────────────────────────────────────────
   if (event_type === "order_update") {
-    const { data: existing } = await supabase
+    const { data: existing, error: lookupErr } = await supabase
       .from("trades")
       .select("id")
       .eq("user_id", userId)
       .eq("order_ticket", order_ticket)
       .maybeSingle();
+    if (lookupErr) {
+      console.error("EA ingest: order_update lookup failed", { tokenId, code: lookupErr.code, message: lookupErr.message, details: lookupErr.details, hint: lookupErr.hint });
+      return NextResponse.json({ error: "Ingest temporarily unavailable" }, { status: 503 });
+    }
 
     let tradeId: string | null = existing?.id ?? null;
 
     if (existing?.id) {
-      await supabase
+      const { error: updateErr } = await supabase
         .from("trades")
         .update({
           entry_price:  payload.open_price || null,
@@ -429,6 +437,10 @@ async function handleOrderEvent(
         })
         .eq("id", existing.id)
         .eq("user_id", userId);
+      if (updateErr) {
+        console.error("EA ingest: order_update update failed", { tokenId, code: updateErr.code, message: updateErr.message, details: updateErr.details, hint: updateErr.hint });
+        return NextResponse.json({ error: "Failed to save order" }, { status: 500 });
+      }
     } else {
       // Order update arrived before order_add — create the pending row.
       const orderRow: Record<string, unknown> = {
@@ -475,12 +487,16 @@ async function handleOrderEvent(
 
   // ── order_delete ───────────────────────────────────────────────────────────
   if (event_type === "order_delete") {
-    const { data: existing } = await supabase
+    const { data: existing, error: lookupErr } = await supabase
       .from("trades")
       .select("id, status")
       .eq("user_id", userId)
       .eq("order_ticket", order_ticket)
       .maybeSingle();
+    if (lookupErr) {
+      console.error("EA ingest: order_delete lookup failed", { tokenId, code: lookupErr.code, message: lookupErr.message, details: lookupErr.details, hint: lookupErr.hint });
+      return NextResponse.json({ error: "Ingest temporarily unavailable" }, { status: 503 });
+    }
 
     if (existing?.id) {
       const rowStatus = (existing as { id: string; status?: string | null }).status;
@@ -615,7 +631,11 @@ async function handleDealEvent(
         .maybeSingle();
 
       if (existingPos?.id) {
-        await supabase.from("trades").update(openRow).eq("id", existingPos.id);
+        const { error: updateErr } = await supabase.from("trades").update(openRow).eq("id", existingPos.id);
+        if (updateErr) {
+          console.error("EA ingest: ENTRY_IN re-delivery update failed", { tokenId, code: updateErr.code, message: updateErr.message, details: updateErr.details, hint: updateErr.hint });
+          return { res: NextResponse.json({ error: "Failed to save trade" }, { status: 500 }), action: "error", positionId, resultStatus: "open" };
+        }
         tradeId = existingPos.id;
         action = "updated";
       } else {
@@ -994,6 +1014,13 @@ export async function POST(req: NextRequest) {
     )
     .eq("token_hash", hash)
     .single();
+  // PGRST116 = no matching row → genuinely invalid/unknown token (401). Any
+  // other error is a real DB/server failure and must NOT be reported as an auth
+  // failure — surface 503 so the EA retries instead of treating the token as bad.
+  if (tokenLookup.error && tokenLookup.error.code !== "PGRST116") {
+    console.error("EA ingest: token lookup failed", tokenLookup.error.message);
+    return NextResponse.json({ error: "Ingest temporarily unavailable" }, { status: 503 });
+  }
   const tokenRow = tokenLookup.data as TokenRow | null;
 
   if (!tokenRow || tokenRow.revoked_at) {

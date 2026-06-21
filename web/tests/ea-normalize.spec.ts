@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildEaTradeRow, deriveEaDirection, deriveEaResult, eaTradeSchema } from "@/lib/ea/normalize";
+import { makeDealPayload } from "./fixtures/ea";
 
 describe("EA trade normalization", () => {
   it("maps MT buy/sell types to DB direction enum values", () => {
@@ -21,7 +22,7 @@ describe("EA trade normalization", () => {
     const built = buildEaTradeRow({
       userId: "user-1",
       brokerAccountId: "account-1",
-      payload: {
+      payload: makeDealPayload({
         ticket: 123,
         symbol: "XAUUSD",
         type: "buy",
@@ -32,7 +33,7 @@ describe("EA trade normalization", () => {
         close_time: "2026-05-14T12:05:00.000Z",
         profit: 12.34,
         comment: "test",
-      },
+      }),
     });
 
     expect(built).toHaveProperty("row");
@@ -54,14 +55,14 @@ describe("EA trade normalization", () => {
   // Codex audit H-6a: trust_badge must reflect broker account type so
   // public surfaces don't render prop-firm trades as live retail.
   describe("trust_badge mapping by account type", () => {
-    const basePayload = {
+    const basePayload = makeDealPayload({
       ticket: 1,
       symbol: "EURUSD",
       type: "buy",
       lots: 0.01,
       open_price: 1.1,
       open_time: "2026-05-14T12:00:00.000Z",
-    };
+    });
 
     it("tags demo accounts with trust_badge='demo'", () => {
       const built = buildEaTradeRow({

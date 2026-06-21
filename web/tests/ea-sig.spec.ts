@@ -11,16 +11,17 @@ import {
   verifySig,
 } from "@/lib/ea/sig";
 import type { EaTradePayload } from "@/lib/ea/normalize";
+import { makeDealPayload } from "./fixtures/ea";
 
 // Reusable golden payload + key
-const PAYLOAD: EaTradePayload = {
+const PAYLOAD: EaTradePayload = makeDealPayload({
   ticket: 1234567,
   symbol: "EURUSD",
   type: "buy",
   lots: 0.1,
   open_price: 1.0876,
   open_time: "2026-05-17T12:00:00Z",
-};
+});
 
 const TOKEN_ID = "11111111-2222-3333-4444-555555555555";
 const SECRET = "a".repeat(64); // 32-byte hex
@@ -28,7 +29,7 @@ const SECRET = "a".repeat(64); // 32-byte hex
 describe("tradeFieldsHash — canonicalization", () => {
   it("produces the same hash regardless of JS object key order", () => {
     // Build the same payload in two different key orders.
-    const a: EaTradePayload = {
+    const a: EaTradePayload = makeDealPayload({
       ticket: 99,
       symbol: "XAUUSD",
       type: "sell",
@@ -37,17 +38,26 @@ describe("tradeFieldsHash — canonicalization", () => {
       open_time: "2026-05-17T12:00:00Z",
       comment: "scalp",
       profit: -12.5,
-    };
+    });
+    // Same content, deliberately different JS key insertion order.
     const b: EaTradePayload = {
-      comment: "scalp",
-      profit: -12.5,
-      open_time: "2026-05-17T12:00:00Z",
-      open_price: 2300,
-      lots: 0.5,
-      type: "sell",
-      symbol: "XAUUSD",
-      ticket: 99,
-    } as EaTradePayload;
+      comment: a.comment,
+      profit: a.profit,
+      r_multiple: a.r_multiple,
+      tp: a.tp,
+      sl: a.sl,
+      commission: a.commission,
+      swap: a.swap,
+      close_time: a.close_time,
+      close_price: a.close_price,
+      magic: a.magic,
+      open_time: a.open_time,
+      open_price: a.open_price,
+      lots: a.lots,
+      type: a.type,
+      symbol: a.symbol,
+      ticket: a.ticket,
+    };
     expect(tradeFieldsHash(a)).toBe(tradeFieldsHash(b));
   });
 
@@ -135,10 +145,11 @@ describe("isTimestampFresh", () => {
 });
 
 describe("regex constants", () => {
-  it("NONCE_RE requires exactly 32 hex chars", () => {
+  it("NONCE_RE accepts 32–64 hex chars (EA sends a 64-char nonce)", () => {
     expect(NONCE_RE.test("a".repeat(32))).toBe(true);
+    expect(NONCE_RE.test("a".repeat(64))).toBe(true);
     expect(NONCE_RE.test("a".repeat(31))).toBe(false);
-    expect(NONCE_RE.test("a".repeat(33))).toBe(false);
+    expect(NONCE_RE.test("a".repeat(65))).toBe(false);
     expect(NONCE_RE.test("nothex" + "a".repeat(26))).toBe(false);
   });
   it("SIG_RE requires exactly 64 hex chars", () => {

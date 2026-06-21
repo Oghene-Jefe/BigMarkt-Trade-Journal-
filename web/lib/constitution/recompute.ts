@@ -42,23 +42,27 @@ export async function recomputeViolationsForTrade(
   trade: RecomputeTrade,
 ): Promise<void> {
   // 1. Active constitution (one per user). None / inactive → nothing to do.
-  const { data: con } = await supabase
+  const { data: con, error: conErr } = await supabase
     .from("trading_constitutions")
     .select(
       "is_active, max_risk_pct, require_stop_loss, max_trades_per_day, allowed_instruments, min_rr, max_daily_loss_pct, risk_mode, risk_baseline",
     )
     .eq("user_id", trade.user_id)
     .maybeSingle();
+  // A real fetch error must not be silently treated as "no constitution" — throw
+  // so the caller's try/catch fires instead of leaving the trade falsely clean.
+  if (conErr) throw conErr;
 
   if (!con || con.is_active !== true) return;
   const constitution = con as Constitution;
 
   // 2. Same-day trade context (timezone from the user's profile).
-  const { data: prof } = await supabase
+  const { data: prof, error: profErr } = await supabase
     .from("profiles")
     .select("timezone")
     .eq("id", trade.user_id)
     .maybeSingle();
+  if (profErr) throw profErr;
   const tz = (prof?.timezone as string | null) || "UTC";
   const tradeDay = localDate(trade.open_time, tz);
 
@@ -107,7 +111,13 @@ export async function recomputeViolationsForTrade(
   //    (bypasses RLS), so the DELETE always clears this trade's rows — including
   //    a rule that stopped failing on an edited trade — before the fresh INSERT.
   //    Scoped strictly to this trade.
-  await supabase.from("constitution_violations").delete().eq("trade_id", trade.id);
+  const { error: delErr } = await supabase
+    .from("constitution_violations")
+    .delete()
+    .eq("trade_id", trade.id);
+  // A failed DELETE would leave stale violation rows — throw so the caller's
+  // try/catch fires rather than silently corrupting adherence.
+  if (delErr) throw delErr;
 
   if (violations.length > 0) {
     const rows = violations.map((v) => ({
@@ -118,6 +128,7 @@ export async function recomputeViolationsForTrade(
       allowed: v.allowed,
       detail: v.detail,
     }));
-    await supabase.from("constitution_violations").insert(rows);
+    const { error: insErr } = await supabase.from("constitution_violations").insert(rows);
+    if (insErr) throw insErr;
   }
 }

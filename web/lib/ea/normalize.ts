@@ -7,6 +7,27 @@ const finiteBounded = (max: number) =>
     message: `value must be finite and |value| ≤ ${max}`,
   });
 
+// Broker timestamp: empty/missing → null, otherwise must be an ISO-parseable
+// instant inside the sane window [2020-01-01, now + ~2 years]. Rejects garbage
+// strings and absurd pre-2020 / far-future dates.
+const MIN_TS = Date.parse("2020-01-01T00:00:00Z");
+const eaTimestamp = z
+  .string()
+  .default("")
+  .transform((v) => v || null)
+  .refine(
+    (v) => {
+      if (v === null) return true;
+      const t = Date.parse(v);
+      if (!Number.isFinite(t)) return false;
+      // ~2 years ahead, minus a day of slack so a timestamp computed as exactly
+      // "now + 2y" by a caller is reliably rejected despite clock drift.
+      const maxTs = Date.now() + (2 * 365 - 1) * 24 * 3600 * 1000;
+      return t >= MIN_TS && t <= maxTs;
+    },
+    { message: "timestamp must be ISO and within [2020, now+2y]" },
+  );
+
 // EA v2.5.0 unsigned-passthrough account snapshot. These ride on EVERY payload
 // and are deliberately OUTSIDE every field_hash / signature computation — they
 // are never added to TRADE_FIELD_ORDER or orderFieldsHash. Optional so older
@@ -74,8 +95,8 @@ export const eaDealSchema = z.object({
   lots: finiteBounded(10_000),
   open_price: finiteBounded(1_000_000_000),
   close_price: finiteBounded(1_000_000_000).default(0),
-  open_time:  z.string().default("").transform((v) => v || null),
-  close_time: z.string().default("").transform((v) => v || null),
+  open_time:  eaTimestamp,
+  close_time: eaTimestamp,
   profit: finiteBounded(1_000_000_000).default(0),
   swap:   finiteBounded(1_000_000_000).default(0),
   commission: finiteBounded(1_000_000_000).default(0),
