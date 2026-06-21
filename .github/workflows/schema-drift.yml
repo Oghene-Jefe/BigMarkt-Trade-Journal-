@@ -1,0 +1,57 @@
+name: Schema Drift Check
+
+# Fails if the production database schema has drifted from the tracked
+# supabase/migrations/*.sql — i.e. something was changed directly in the
+# Supabase dashboard/SQL editor instead of via a committed migration.
+#
+# Requires three repo secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN  — a personal access token (supabase.com/dashboard/account/tokens)
+#   SUPABASE_PROJECT_REF   — awvrylniqppybwaiwzse
+#   SUPABASE_DB_PASSWORD   — the database password (Project Settings → Database)
+# Until those are set this workflow no-ops with a clear message.
+
+on:
+  pull_request:
+  schedule:
+    - cron: "0 7 * * *" # daily 07:00 UTC
+  workflow_dispatch:
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Skip if secrets are not configured
+        id: gate
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ] || [ -z "$SUPABASE_PROJECT_REF" ]; then
+            echo "secrets_present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Supabase secrets not set — skipping drift check. Add SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_REF / SUPABASE_DB_PASSWORD to enable."
+          else
+            echo "secrets_present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: supabase/setup-cli@v1
+        if: steps.gate.outputs.secrets_present == 'true'
+        with:
+          version: latest
+
+      - name: Diff linked production schema against migrations
+        if: steps.gate.outputs.secrets_present == 'true'
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF"
+          # db diff --linked emits the DDL needed to make the remote match the
+          # local migrations. Empty output = in sync; any output = drift.
+          DIFF="$(supabase db diff --linked --schema public 2>/dev/null || true)"
+          if [ -n "$(printf '%s' "$DIFF" | tr -d '[:space:]')" ]; then
+            echo "::error::Production schema has drifted from supabase/migrations. Capture it (supabase db pull) and commit."
+            echo "----- drift -----"
+            printf '%s\n' "$DIFF"
+            exit 1
+          fi
+          echo "No drift — production matches committed migrations."
