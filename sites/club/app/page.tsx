@@ -9,6 +9,11 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Ticker from "./_components/Ticker";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 type Track = { icon: LucideIcon; name: string; desc: string };
 

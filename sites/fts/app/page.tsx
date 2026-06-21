@@ -2,6 +2,11 @@ import Link from "next/link";
 import { GraduationCap, Megaphone, Swords } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import ApplicationForm from "./_components/ApplicationForm";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 type Pathway = {
   icon: LucideIcon;
