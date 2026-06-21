@@ -1,23 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { CheckCircle } from "lucide-react";
 import { submitApplication, type ApplicationState } from "../actions";
 import Turnstile from "./Turnstile";
 
 const initial: ApplicationState = { ok: false };
 
 const fieldClass =
-  "w-full border border-[#1f1f1f] bg-[#111111] px-4 py-3 text-sm text-white placeholder-white/30 focus:border-[#C9A84C] focus:outline-none";
+  "w-full border border-[#1f1f1f] bg-[#111111] px-4 py-3 text-sm text-white placeholder-white/50 focus:border-[#C9A84C] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A84C]";
 const labelClass = "block text-xs font-semibold uppercase tracking-widest text-white/60";
 
 export default function ApplicationForm() {
   const [state, formAction, pending] = useActionState(submitApplication, initial);
+  const successRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (state.ok) successRef.current?.focus();
+  }, [state.ok]);
 
   if (state.ok) {
     return (
       <div className="border border-[#C9A84C] bg-[#111111] p-8">
-        <h3 className="text-2xl font-bold text-[#C9A84C]">Application Received ✅</h3>
+        <h3
+          ref={successRef}
+          tabIndex={-1}
+          className="flex items-center gap-2 text-2xl font-bold text-[#C9A84C] outline-none"
+        >
+          <CheckCircle size={24} aria-hidden strokeWidth={1.75} />
+          Application Received
+        </h3>
         <p className="mt-4 text-white/80">
           Welcome to FTS Boot Camp. You are part of the pioneer cohort. We will be in touch with session details.
         </p>
@@ -76,7 +89,7 @@ export default function ApplicationForm() {
           rows={4}
           className={`mt-2 ${fieldClass}`}
         />
-        <p className="mt-1 text-xs text-white/40">Max 500 characters.</p>
+        <p className="mt-1 text-xs text-white/60">Max 500 characters.</p>
       </div>
       <div>
         <label htmlFor="referral_source" className={labelClass}>How did you hear about FTS?</label>
@@ -93,7 +106,7 @@ export default function ApplicationForm() {
       <Turnstile />
 
       {state.error && (
-        <p className="border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{state.error}</p>
+        <p role="alert" aria-live="assertive" className="border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{state.error}</p>
       )}
 
       <button
@@ -104,7 +117,7 @@ export default function ApplicationForm() {
         {pending ? "Submitting…" : "Submit Application"}
       </button>
 
-      <p className="text-center text-xs text-white/40">
+      <p className="text-center text-xs text-white/60">
         By submitting, you agree to our{" "}
         <Link href="/privacy" className="text-white/60 hover:text-white underline">
           Privacy Policy

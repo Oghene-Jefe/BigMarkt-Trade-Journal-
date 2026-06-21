@@ -48,9 +48,28 @@ const pathways: Pathway[] = [
   },
 ];
 
+const orgJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "EducationalOrganization",
+  name: "FTS — Free Trading Academy",
+  url: "https://fts.bigmarkt.co",
+  logo: "https://fts.bigmarkt.co/images/bigmarkt-logo.png",
+  sameAs: [
+    "https://x.com/bigmarkt_hq",
+    "https://www.linkedin.com/company/bigmarkt",
+    "https://www.instagram.com/bigmarkt_hq/",
+    "https://t.me/bigmarkt_hq",
+    "https://youtube.com/@bigmarkt_hq",
+  ],
+};
+
 export default function Home() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+      />
       {/* Hero */}
       <section className="relative min-h-[calc(100vh-4rem)] overflow-hidden border-b border-[#1f1f1f]">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(201,168,76,0.08),_transparent_60%)]" />
@@ -60,7 +79,7 @@ export default function Home() {
             FTS — Free Trading Academy
           </div>
           <h1 className="font-bold leading-[1.05] tracking-tight text-4xl md:text-6xl lg:text-7xl">
-            <span className="block text-[#C9A84C]">Free Trading Academy</span>
+            <span className="block text-[#C9A84C]">Free Forex Trading Academy</span>
           </h1>
           <p className="mt-8 max-w-2xl text-base text-white/70 md:text-lg">
             Learn to trade properly. No hype. No expensive courses. A growing community of traders building real skills.

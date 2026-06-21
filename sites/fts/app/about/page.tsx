@@ -1,6 +1,7 @@
 export const metadata = {
   title: "About — FTS Free Trading Academy",
   description: "The education arm of the BigMarkt ecosystem.",
+  alternates: { canonical: "/about" },
 };
 
 const values = [

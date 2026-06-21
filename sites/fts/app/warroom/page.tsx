@@ -1,6 +1,7 @@
 export const metadata = {
   title: "The War Room — FTS Free Trading Academy",
   description: "Live trading sessions for serious traders. Real markets. Real decisions.",
+  alternates: { canonical: "/warroom" },
 };
 
 const happenings = [

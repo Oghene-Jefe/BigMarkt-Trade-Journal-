@@ -26,6 +26,10 @@ export const metadata: Metadata = {
       "Learn the craft. Build the record. Free forex education from BigMarkt.",
     url: "https://fts.bigmarkt.co",
     siteName: "FTS — Free Trading Academy",
+    images: ["/images/bigmarkt-logo.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
   },
 };
 

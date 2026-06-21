@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 export const metadata = {
   title: "Boot Camp — FTS Free Trading Academy",
   description: "A structured 13-module forex education programme for beginners to intermediate traders.",
+  alternates: { canonical: "/bootcamp" },
 };
 
 type Step = { icon: LucideIcon; title: string; body: string };

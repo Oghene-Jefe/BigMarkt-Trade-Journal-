@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Logo from "./Logo";
 
 const links = [
@@ -13,6 +13,15 @@ const links = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#1f1f1f] bg-[#0a0a0a]/90 backdrop-blur">
@@ -45,6 +54,7 @@ export default function Navbar() {
         <button
           aria-label="Toggle menu"
           aria-expanded={open}
+          aria-controls="mobile-menu"
           className="md:hidden text-white"
           onClick={() => setOpen((v) => !v)}
         >
@@ -55,7 +65,7 @@ export default function Navbar() {
       </nav>
 
       {open && (
-        <div className="md:hidden border-t border-[#1f1f1f] bg-[#0a0a0a] px-6 py-4">
+        <div id="mobile-menu" className="md:hidden border-t border-[#1f1f1f] bg-[#0a0a0a] px-6 py-4">
           <div className="flex flex-col gap-4">
             {links.map((l) => (
               <Link

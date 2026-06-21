@@ -26,27 +26,35 @@ export function capStr(raw: FormDataEntryValue | null | undefined, max: number):
 /** Best-effort IP from request headers. May be null behind opaque proxies. */
 export async function callerIp(): Promise<string | null> {
   const h = await headers();
-  const xff = h.get("x-forwarded-for") ?? "";
-  // x-forwarded-for is comma-separated; the left-most is the original client.
-  const first = xff.split(",")[0]?.trim();
-  if (first) return first;
-  return h.get("x-real-ip") ?? null;
+  // Derive the client IP from a trusted platform hop only. The left-most
+  // x-forwarded-for entry is client-supplied and trivially spoofable, so we
+  // prefer headers set by the platform: Vercel's x-vercel-forwarded-for, then
+  // x-real-ip, then the RIGHT-MOST x-forwarded-for entry (the hop closest to
+  // us). Fall back to the left-most only if nothing else is present.
+  const vercel = h.get("x-vercel-forwarded-for")?.trim();
+  if (vercel) return vercel;
+  const real = h.get("x-real-ip")?.trim();
+  if (real) return real;
+  const parts = (h.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length) return parts[parts.length - 1];
+  return null;
 }
 
 // ── turnstile ────────────────────────────────────────────────────────────────
 
 /**
- * Verify a Cloudflare Turnstile token. Returns true if the token is valid
- * OR if Turnstile is not configured (env var unset) — the latter so local
- * dev keeps working. In production set TURNSTILE_SECRET_KEY in the
- * marketing-site Vercel project to enforce.
+ * Verify a Cloudflare Turnstile token. Returns true if the token is valid.
+ * When TURNSTILE_SECRET_KEY is unset, the bot check is bypassed ONLY if the
+ * explicit ALLOW_INSECURE_NO_TURNSTILE=1 opt-in flag is set (for local dev).
+ * Otherwise it fails CLOSED, so preview or misconfigured deploys never
+ * silently disable bot protection just because of the inferred environment.
  */
 export async function verifyTurnstile(token: string | null | undefined, ip: string | null): Promise<boolean> {
   const secret = process.env.TURNSTILE_SECRET_KEY;
-  // Fail-CLOSED in production: a misconfigured prod env (missing secret)
-  // must not silently disable the bot check. In dev/test we still
-  // fail-open so local work doesn't require Cloudflare creds.
-  if (!secret) return process.env.NODE_ENV !== "production";
+  if (!secret) return process.env.ALLOW_INSECURE_NO_TURNSTILE === "1";
   if (!token) return false;
   try {
     const body = new URLSearchParams({ secret, response: token });

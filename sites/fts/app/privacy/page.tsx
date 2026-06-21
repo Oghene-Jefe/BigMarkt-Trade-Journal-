@@ -1,8 +1,9 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Privacy Policy — BigMarkt",
+  title: "Privacy Policy — FTS Free Trading Academy",
   description: "How BigMarkt collects, uses, and protects your personal data.",
+  alternates: { canonical: "/privacy" },
 };
 
 export default function PrivacyPage() {
@@ -12,7 +13,7 @@ export default function PrivacyPage() {
         <div className="mx-auto max-w-3xl">
           <div className="font-mono text-xs uppercase tracking-widest text-[#C9A84C]">/ Legal</div>
           <h1 className="mt-4 text-4xl font-bold tracking-tight md:text-6xl">Privacy Policy</h1>
-          <p className="mt-4 text-sm text-white/40">Last updated: 8 June 2026</p>
+          <p className="mt-4 text-sm text-white/60">Last updated: 8 June 2026</p>
         </div>
       </section>
 
@@ -208,7 +209,7 @@ export default function PrivacyPage() {
         </div>
 
         <div className="mx-auto mt-16 max-w-3xl">
-          <Link href="/" className="text-sm text-white/40 hover:text-[#C9A84C]">
+          <Link href="/" className="text-sm text-white/60 hover:text-[#C9A84C]">
             ← Back to home
           </Link>
         </div>
