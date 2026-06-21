@@ -32,6 +32,9 @@ export async function computeAdherence(
     .select("id")
     .eq("user_id", userId)
     .gte("created_at", since)
+    // visibility = 'exclude' drops a trade from stats (per-trade visibility
+    // spec); 'private' still counts. visibility is NOT NULL default 'private'.
+    .neq("visibility", "exclude")
     .or("status.eq.closed,result.not.is.null");
 
   const evaluatedIds = new Set(((tradeRows ?? []) as { id: string }[]).map((t) => t.id));

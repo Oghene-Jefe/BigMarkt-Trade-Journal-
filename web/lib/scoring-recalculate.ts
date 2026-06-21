@@ -78,6 +78,9 @@ export async function recalculateAccountScoreWithClient(
     // Only verified EA trades count toward leaderboard scores.
     .eq("source", "ea")
     .eq("verified", true)
+    // visibility = 'exclude' drops a trade from the leaderboard score (per-trade
+    // visibility spec). visibility is NOT NULL default 'private'.
+    .neq("visibility", "exclude")
     // Only count completed trades; open positions are excluded from scoring.
     // Rows without a status column (legacy / manual) are included via the IS NULL arm.
     .or("status.eq.closed,status.is.null");
