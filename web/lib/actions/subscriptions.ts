@@ -167,11 +167,16 @@ export async function getMyBrokerAccountsAction(): Promise<
   const user = await requireUser();
   const sb = await supabaseServer();
 
+  // Follow is journal-only (see followLeaderAction): any active broker account
+  // the user owns satisfies the subscription's broker_account_id FK. Do NOT
+  // filter by flow_direction === "follower" — that's a copy-trading/execution
+  // requirement (its gate is commented out in followLeaderAction) and normal
+  // journaling accounts aren't "follower" direction, so the filter wrongly
+  // returned [] and blocked Follow with "Connect a broker account first".
   const { data, error } = await sb
     .from("broker_accounts")
     .select("id, label, broker_slug")
     .eq("user_id", user.id)
-    .eq("flow_direction", "follower")
     .eq("is_active", true)
     .order("created_at", { ascending: false });
 
