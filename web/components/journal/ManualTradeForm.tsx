@@ -61,7 +61,6 @@ export default function ManualTradeForm({ brokerAccountId, onSuccess, onCancel }
     }
 
     setSuccessMsg("Trade added to your journal");
-    // Reset form
     setSymbol(""); setType("Buy"); setLots(""); setOpenPrice(""); setClosePrice("");
     setOpenTime(""); setCloseTime(""); setSl(""); setTp(""); setProfit("");
     setNotes(""); setTags("");
@@ -88,7 +87,6 @@ export default function ManualTradeForm({ brokerAccountId, onSuccess, onCancel }
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* Symbol */}
         <label className="block">
           <span className={labelCls}>Symbol {required}</span>
           <input
@@ -101,7 +99,6 @@ export default function ManualTradeForm({ brokerAccountId, onSuccess, onCancel }
           />
         </label>
 
-        {/* Type */}
         <label className="block">
           <span className={labelCls}>Type {required}</span>
           <select
@@ -114,7 +111,6 @@ export default function ManualTradeForm({ brokerAccountId, onSuccess, onCancel }
           </select>
         </label>
 
-        {/* Lots */}
         <label className="block">
           <span className={labelCls}>Lots {required}</span>
           <input
@@ -129,7 +125,6 @@ export default function ManualTradeForm({ brokerAccountId, onSuccess, onCancel }
           />
         </label>
 
-        {/* Open Price */}
         <label className="block">
           <span className={labelCls}>Open Price {required}</span>
           <input
@@ -143,7 +138,6 @@ export default function ManualTradeForm({ brokerAccountId, onSuccess, onCancel }
           />
         </label>
 
-        {/* Close Price */}
         <label className="block">
           <span className={labelCls}>Close Price {required}</span>
           <input
@@ -157,7 +151,6 @@ export default function ManualTradeForm({ brokerAccountId, onSuccess, onCancel }
           />
         </label>
 
-        {/* Profit */}
         <label className="block">
           <span className={labelCls}>Profit {required}</span>
           <input
@@ -171,7 +164,6 @@ export default function ManualTradeForm({ brokerAccountId, onSuccess, onCancel }
           />
         </label>
 
-        {/* Open Time */}
         <label className="block">
           <span className={labelCls}>Open Time {required}</span>
           <input
@@ -183,7 +175,6 @@ export default function ManualTradeForm({ brokerAccountId, onSuccess, onCancel }
           />
         </label>
 
-        {/* Close Time */}
         <label className="block">
           <span className={labelCls}>Close Time {required}</span>
           <input
@@ -195,7 +186,6 @@ export default function ManualTradeForm({ brokerAccountId, onSuccess, onCancel }
           />
         </label>
 
-        {/* SL (optional) */}
         <label className="block">
           <span className={labelCls}>Stop Loss <span className="text-muted/60">(optional)</span></span>
           <input
@@ -208,7 +198,6 @@ export default function ManualTradeForm({ brokerAccountId, onSuccess, onCancel }
           />
         </label>
 
-        {/* TP (optional) */}
         <label className="block">
           <span className={labelCls}>Take Profit <span className="text-muted/60">(optional)</span></span>
           <input
@@ -222,7 +211,6 @@ export default function ManualTradeForm({ brokerAccountId, onSuccess, onCancel }
         </label>
       </div>
 
-      {/* Tags */}
       <label className="block">
         <span className={labelCls}>Tags <span className="text-muted/60">(optional, comma-separated)</span></span>
         <input
@@ -234,7 +222,6 @@ export default function ManualTradeForm({ brokerAccountId, onSuccess, onCancel }
         />
       </label>
 
-      {/* Notes */}
       <label className="block">
         <span className={labelCls}>Notes <span className="text-muted/60">(optional)</span></span>
         <textarea
@@ -246,7 +233,6 @@ export default function ManualTradeForm({ brokerAccountId, onSuccess, onCancel }
         />
       </label>
 
-      {/* Actions */}
       <div className="flex items-center justify-between gap-3 pt-1">
         <p className="text-xs text-muted">
           Manual trades are for personal journaling only and do not count toward leaderboard rankings.

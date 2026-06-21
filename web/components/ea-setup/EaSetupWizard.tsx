@@ -75,7 +75,7 @@ function NavButtons({
           <ChevronRight size={14} aria-hidden />
         </button>
       ) : (
-        <span className="text-sm text-emerald-400 font-medium">Setup complete!</span>
+        <span className="text-sm text-emerald-400 font-medium">Setup complete</span>
       )}
     </div>
   );
@@ -301,10 +301,8 @@ export default function EaSetupWizard({ EaTokenManagerComponent }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Step indicator */}
       <StepIndicator current={step} total={STEPS.length} completed={completed} />
 
-      {/* Step content card */}
       <section className="rounded-lg border border-white/10 bg-panel p-5">
         <header className="flex items-center gap-3 mb-6">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-xs font-medium text-gold">

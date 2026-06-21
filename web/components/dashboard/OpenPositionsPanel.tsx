@@ -65,7 +65,7 @@ export default function OpenPositionsPanel({ accountId }: Props) {
       {positions.length === 0 ? (
         <div className="mt-4 text-center py-6">
           <p className="text-sm font-medium text-white/70">No open positions</p>
-          <p className="mt-1 text-xs text-muted">Your active trades will appear here automatically</p>
+          <p className="mt-1 text-xs text-muted">Your active trades will appear here</p>
         </div>
       ) : (
         <ul className="mt-4 space-y-2">
@@ -74,18 +74,15 @@ export default function OpenPositionsPanel({ accountId }: Props) {
               key={pos.id}
               className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-white/10 bg-black/20 px-3 py-2.5 text-sm"
             >
-              {/* Pulse dot */}
               <span className="relative flex h-2 w-2 shrink-0">
                 <span className="absolute inline-flex h-full w-full animate-pulse rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
               </span>
 
-              {/* Symbol */}
               <span className="font-semibold text-white min-w-[60px]">
                 {pos.pair ?? "—"}
               </span>
 
-              {/* Direction */}
               <span
                 className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
                   pos.direction === "BUY"
@@ -98,22 +95,18 @@ export default function OpenPositionsPanel({ accountId }: Props) {
                 {pos.direction ?? "—"}
               </span>
 
-              {/* Lot size */}
               <span className="text-muted">
                 <span className="text-white/40 text-xs">Lots </span>
                 {pos.lot_size ?? "—"}
               </span>
 
-              {/* Open price */}
               <span className="text-muted">
                 <span className="text-white/40 text-xs">@ </span>
                 <span className="font-mono text-white/80">{fmtPrice(pos.entry_price)}</span>
               </span>
 
-              {/* Open time */}
               <span className="text-xs text-muted">{fmtTime(pos.open_time ?? pos.created_at)}</span>
 
-              {/* SL / TP */}
               {pos.sl != null && pos.sl !== 0 && (
                 <span className="text-xs text-red-400/70">
                   SL {fmtPrice(pos.sl)}
