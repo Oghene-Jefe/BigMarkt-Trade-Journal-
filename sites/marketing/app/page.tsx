@@ -100,13 +100,13 @@ export default function Home() {
         <div className="mx-auto max-w-7xl">
           <div className="flex items-end justify-between flex-wrap gap-4">
             <h2 className="text-3xl font-bold tracking-tight md:text-5xl">
-              Five layers. <span className="text-[#C9A84C]">One protocol.</span>
+              Four layers. <span className="text-[#C9A84C]">One protocol.</span>
             </h2>
             <Link href="/protocol" className="text-sm text-[#C9A84C] hover:underline">
               Read the architecture →
             </Link>
           </div>
-          <div className="mt-16 grid gap-px border border-[#1f1f1f] bg-[#1f1f1f] md:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-16 grid gap-px border border-[#1f1f1f] bg-[#1f1f1f] md:grid-cols-2 lg:grid-cols-4">
             {layers.map((l) => (
               <div key={l.n} className="bg-[#0a0a0a] p-8">
                 <div className="font-mono text-xs text-white/40">{l.n}</div>
