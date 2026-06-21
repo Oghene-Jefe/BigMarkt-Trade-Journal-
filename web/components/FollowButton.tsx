@@ -160,7 +160,7 @@ export default function FollowButton({
         return;
       }
       if (accountsRes.length === 0) {
-        setError("Connect a broker account first to follow leaders.");
+        setError("Connect a broker account first to follow traders.");
         return;
       }
       const res = await followLeaderAction(

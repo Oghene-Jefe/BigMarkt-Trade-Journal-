@@ -45,7 +45,7 @@ export default function DisputeForm({ leaderId }: { leaderId: string }) {
   if (!leaderId) {
     return (
       <p className="text-sm text-loss">
-        Missing leader ID. Open this page from a subscription.
+        Missing trader ID. Open this page from a subscription.
       </p>
     );
   }

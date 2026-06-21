@@ -133,7 +133,7 @@ async function TradesView({
       <div className="flex flex-col items-center justify-center rounded-lg border border-white/10 bg-panel py-20 text-center">
         <p className="text-base font-semibold text-white">Signals are coming soon</p>
         <p className="mt-3 max-w-sm text-sm text-muted">
-          When you follow a leader, their verified trades will appear here. We&apos;re
+          When you follow a trader, their verified trades will appear here. We&apos;re
           building this now.
         </p>
       </div>
@@ -144,7 +144,7 @@ async function TradesView({
     <div className="space-y-3">
       {view === "signals" && trades.length > 0 ? (
         <p className="rounded-md border border-white/10 bg-panel p-3 text-xs text-muted">
-          Trades from leaders you follow. These are excluded from your personal
+          Trades from traders you follow. These are excluded from your personal
           performance score.
         </p>
       ) : null}

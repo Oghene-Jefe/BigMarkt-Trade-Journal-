@@ -40,7 +40,7 @@ export default async function SubscriptionsPage() {
       {!isError && subs.length === 0 ? (
         <EmptyState
           title="No subscriptions yet"
-          description="You are not following any leaders yet. Visit the leaderboard to find leaders."
+          description="You are not following any traders yet. Visit the leaderboard to find traders."
           action={
             <LinkButton href="/leaderboard" variant="secondary">
               Browse leaderboard
@@ -101,7 +101,7 @@ export default async function SubscriptionsPage() {
                 {s.leader_also_follows ? (
                   <p className="flex items-center gap-2 rounded-md border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
                     <AlertTriangle size={14} aria-hidden />
-                    <span>This leader also follows others.</span>
+                    <span>This trader also follows others.</span>
                   </p>
                 ) : null}
 
@@ -120,7 +120,7 @@ export default async function SubscriptionsPage() {
                   <form action={unfollowFromFormAction}>
                     <input type="hidden" name="id" value={s.id} />
                     <ConfirmButton
-                      message={`Unfollow ${s.leader_display_name ?? "this leader"}? You'll stop receiving this leader's signals.`}
+                      message={`Unfollow ${s.leader_display_name ?? "this leader"}? You'll stop seeing this trader's verified trades.`}
                       confirmLabel="Yes, unfollow"
                       className="rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs text-rose-300 hover:bg-rose-500/20"
                     >

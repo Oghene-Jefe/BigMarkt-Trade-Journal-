@@ -47,7 +47,7 @@ export default async function AccountsPage() {
 
       {hasPropFirm && (
         <div className="mb-6 rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-300">
-          Prop firm accounts are locked to Manual (Journal Only) mode. Copy execution is permanently disabled on these accounts.
+          Prop firm accounts are locked to Manual (Journal Only) mode. The EA only reads and logs your trades — it never executes on your account.
         </div>
       )}
 

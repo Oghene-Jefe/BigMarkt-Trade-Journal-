@@ -28,7 +28,7 @@ export default async function StatBar() {
   const items = [
     { label: "Traders", value: fmt(stats?.total_traders) },
     { label: "Auto-Verified Trades", value: fmt(stats?.auto_verified_trades) },
-    { label: "Public Leaders", value: fmt(stats?.public_leaders) },
+    { label: "Public Traders", value: fmt(stats?.public_leaders) },
   ];
 
   return (

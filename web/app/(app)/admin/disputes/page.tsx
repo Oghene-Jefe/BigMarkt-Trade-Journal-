@@ -31,7 +31,7 @@ export default async function AdminDisputesPage() {
       <header>
         <h1 className="text-xl font-semibold text-white">Disputes</h1>
         <p className="mt-1 text-sm text-muted">
-          Review and resolve disputes raised against leaders.
+          Review and resolve disputes raised against traders.
         </p>
       </header>
 

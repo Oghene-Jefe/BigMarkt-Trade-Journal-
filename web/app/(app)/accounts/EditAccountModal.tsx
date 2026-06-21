@@ -98,7 +98,7 @@ export default function EditAccountModal({ account }: { account: BrokerAccount }
                 <label className="mb-1 block text-sm text-white/80">Journal Mode</label>
                 {propFirmLocked ? (
                   <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
-                    Manual only — prop firm accounts cannot run automated mode. Copy execution is disabled.
+                    Manual only — prop firm accounts run in journal-only mode. The EA reads your trades; it never executes.
                   </div>
                 ) : (
                   <select

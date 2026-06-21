@@ -69,7 +69,7 @@ export default async function Home() {
         </h1>
         <p className="mt-6 max-w-2xl text-base text-muted sm:text-lg">
           Auto-capture every trade from your broker. Build a public record you can
-          point to. Follow leaders ranked on real, broker-reported performance.
+          point to. Follow traders ranked on real, broker-reported performance.
         </p>
         <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
@@ -90,7 +90,7 @@ export default async function Home() {
           <span className="mx-2 text-muted/50">•</span>
           <span className="text-white">{fmtCount(stats.auto_verified_trades)}</span> auto-captured trades
           <span className="mx-2 text-muted/50">•</span>
-          <span className="text-white">{fmtCount(stats.public_leaders)}</span> public leaders
+          <span className="text-white">{fmtCount(stats.public_leaders)}</span> public traders
         </p>
       </section>
 
@@ -114,7 +114,7 @@ export default async function Home() {
             <FeatureCard
               icon={<Bell size={28} aria-hidden />}
               title="Follow top traders"
-              body="Subscribe to leaders. Signals are delivered to your journal as data."
+              body="Follow verified traders. Their verified trades appear in your journal."
             />
           </div>
         </div>

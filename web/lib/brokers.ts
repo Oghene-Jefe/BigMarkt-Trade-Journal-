@@ -362,7 +362,7 @@ export const BROKERS: Broker[] = [
     platform: ["MT4", "MT5"],
     prop_firm: true,
     notes:
-      "FTMO permits read-only EAs that only read trade history. Journal-only — copy execution is permanently disabled.",
+      "FTMO permits read-only EAs that only read trade history. Journal-only — the EA reads your trades and never executes.",
     website: "https://ftmo.com",
     eaDownload: true,
   },
@@ -374,7 +374,7 @@ export const BROKERS: Broker[] = [
     platform: ["MT4", "MT5"],
     prop_firm: true,
     notes:
-      "Read-only EA is allowed under their rules. Journal-only — copy execution stays off for prop accounts.",
+      "Read-only EA is allowed under their rules. Journal-only — the EA reads your trades and never executes.",
     website: "https://myforexfunds.com",
     eaDownload: true,
   },
@@ -434,7 +434,7 @@ export const BROKERS: Broker[] = [
     platform: ["MT4", "MT5"],
     prop_firm: true,
     notes:
-      "MT4/MT5 read-only EA accepted. Journal-only — copy execution disabled by policy.",
+      "MT4/MT5 read-only EA accepted. Journal-only — the EA reads your trades and never executes.",
     website: "https://alphacapitalgroup.uk",
     eaDownload: true,
   },
@@ -458,7 +458,7 @@ export const BROKERS: Broker[] = [
     platform: ["MT5"],
     prop_firm: true,
     notes:
-      "MT5 EA captures all trades. Journal-only — copy execution off for prop accounts.",
+      "MT5 EA captures all trades. Journal-only — the EA reads your trades and never executes.",
     website: "https://goatfundedtrader.com",
     eaDownload: true,
   },
@@ -506,7 +506,7 @@ export const BROKERS: Broker[] = [
     platform: ["MT4", "MT5"],
     prop_firm: true,
     notes:
-      "MT4/MT5 EA captures fills. Journal-only — copy execution disabled for prop accounts.",
+      "MT4/MT5 EA captures fills. Journal-only — the EA reads your trades and never executes.",
     website: "https://fundingpips.com",
     eaDownload: true,
   },

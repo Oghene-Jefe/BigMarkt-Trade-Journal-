@@ -82,7 +82,7 @@ export default async function NotificationsPage() {
       {!isError && notifications.length === 0 ? (
         <EmptyState
           title="No notifications yet"
-          description="Follow leaders to receive updates."
+          description="Follow traders to receive updates."
         />
       ) : null}
 
