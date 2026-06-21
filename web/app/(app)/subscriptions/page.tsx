@@ -29,7 +29,7 @@ export default async function SubscriptionsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="My subscriptions" />
+      <PageHeader title="Following" />
 
       {isError ? (
         <p className="text-sm text-loss">
@@ -39,7 +39,7 @@ export default async function SubscriptionsPage() {
 
       {!isError && subs.length === 0 ? (
         <EmptyState
-          title="No subscriptions yet"
+          title="Not following anyone yet"
           description="You are not following any traders yet. Visit the leaderboard to find traders."
           action={
             <LinkButton href="/leaderboard" variant="secondary">

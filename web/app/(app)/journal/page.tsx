@@ -21,7 +21,7 @@ function parseView(v: string | string[] | undefined): View {
 const TABS: { key: View; label: string }[] = [
   { key: "all", label: "All" },
   { key: "my_trades", label: "My trades" },
-  { key: "signals", label: "Signals" },
+  { key: "signals", label: "Following" },
   { key: "news", label: "News" },
 ];
 

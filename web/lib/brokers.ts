@@ -386,7 +386,7 @@ export const BROKERS: Broker[] = [
     platform: ["MT4", "MT5"],
     prop_firm: true,
     notes:
-      "MT4/MT5 EA captures fills. Journal-only — copying disabled per prop firm policy.",
+      "MT4/MT5 EA captures fills. Journal-only — the EA reads your trades and never executes.",
     website: "https://e8funding.com",
     eaDownload: true,
   },
@@ -410,7 +410,7 @@ export const BROKERS: Broker[] = [
     platform: ["MT4", "MT5"],
     prop_firm: true,
     notes:
-      "MT4/MT5 EA supported across all FundedNext models. Journal-only — copying is permanently off.",
+      "MT4/MT5 EA supported across all FundedNext models. Journal-only — the EA reads your trades and never executes.",
     website: "https://fundednext.com",
     eaDownload: true,
   },

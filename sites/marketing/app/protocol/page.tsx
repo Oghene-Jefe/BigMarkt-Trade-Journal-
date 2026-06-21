@@ -1,8 +1,7 @@
-
 export const metadata = {
-  title: "The Protocol Architecture — BigMarkt",
+  title: "Architecture — BigMarkt",
   description:
-    "Five layers explained: proof, coordination, signal, settlement, protocol. The journal-to-journal architecture.",
+    "How BigMarkt verifies trades: a read-only journal as the source of truth, public reputation built on proof, and accountability through the Trading Constitution.",
 };
 
 const layers = [
@@ -11,35 +10,28 @@ const layers = [
     name: "Proof Layer",
     summary: "Server-captured trade history.",
     detail:
-      "The MT4/MT5 Expert Advisor reads every fill from the trader's broker terminal and ships it to the journal in real time. Trades arrive timestamped server-side, with no manual edit path, no screenshot upload, and no after-the-fact rewrite. The journal entry is what the broker confirmed.",
+      "A read-only Expert Advisor for MetaTrader 4 and 5 reads every fill from the trader's broker terminal and ships it to the journal in real time. Trades arrive timestamped server-side, with no manual edit path, no screenshot upload, and no after-the-fact rewrite. The journal entry is what the broker confirmed — nothing else.",
   },
   {
     n: "02",
     name: "Coordination Layer",
     summary: "Public leaderboards and verified rank.",
     detail:
-      "Sanitized aggregate stats (win rate, expectancy, drawdown, R-multiple) are published per profile. Anonymous visitors get a rank-ordered view of who is actually performing, with no email leakage and no self-reported numbers. Rank is downstream of proof.",
+      "Sanitized aggregate stats — win rate, expectancy, drawdown, R-multiple — are published per profile. Anyone can see a rank-ordered view of who is actually performing, with no email leakage and no self-reported numbers. Rank is downstream of proof.",
   },
   {
     n: "03",
-    name: "Signal Layer",
-    summary: "Journal-to-journal information flow.",
+    name: "Accountability Layer",
+    summary: "The Trading Constitution.",
     detail:
-      "Followers subscribe to verified leaders. When a leader's EA writes a trade to their journal, a sanitized signal record is delivered to each follower's journal as an information event — pair, direction, entry, stop, target, timestamp. The follower's terminal does not auto-execute; the signal is data, not a command.",
+      "Each trader writes their own rules — risk caps, stop-loss discipline, instrument limits, minimum R:R. The journal checks every verified trade against those rules and publishes an adherence score. Reputation here isn't only how much you made; it's whether you followed the rules you set for yourself.",
   },
   {
     n: "04",
-    name: "Settlement Layer",
-    summary: "$BMT-routed payment rail (planned).",
+    name: "Community Layer",
+    summary: "A community-owned reputation network (planned).",
     detail:
-      "Planned for a later phase. Subscriptions, leader payouts, copy-vault performance fees, and dispute stakes will settle through $BMT on Solana. Users will top up in USDT, with the protocol routing USDT → $BMT → USDT under the hood so leaders and followers never need to think about token mechanics.",
-  },
-  {
-    n: "05",
-    name: "Protocol Layer",
-    summary: "On-chain reputation and governance (planned).",
-    detail:
-      "Planned for a later phase. A trader's verified history becomes portable and cryptographically attestable. Disputes are resolved by staked arbiters. Protocol parameters — fee splits, slashing thresholds, leader tier gates — are governed by $BMT holders.",
+      "Where this is headed: a verified track record that's portable and owned by the trader, not locked inside one broker or platform. This is a long-term direction, not a shipped feature — built only on verified history, and only once the foundation beneath it is proven.",
   },
 ];
 
@@ -50,10 +42,10 @@ export default function ProtocolPage() {
         <div className="mx-auto max-w-5xl">
           <div className="font-mono text-xs uppercase tracking-widest text-[#C9A84C]">/ Architecture</div>
           <h1 className="mt-4 text-4xl font-bold tracking-tight md:text-6xl">
-            The Protocol <span className="text-[#C9A84C]">Architecture</span>
+            The BigMarkt <span className="text-[#C9A84C]">Architecture</span>
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/70 md:text-lg">
-            BigMarkt is five layers stacked. Each layer is independently verifiable, and each is downstream of the one beneath it.
+            BigMarkt is built in layers. Each layer is independently verifiable, and each is downstream of the one beneath it.
           </p>
         </div>
       </section>
@@ -78,17 +70,17 @@ export default function ProtocolPage() {
       <section className="border-b border-[#1f1f1f] px-6 py-24">
         <div className="mx-auto max-w-5xl">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-            Journal-to-journal <span className="text-[#C9A84C]">architecture</span>
+            How verification <span className="text-[#C9A84C]">works</span>
           </h2>
           <p className="mt-6 max-w-3xl text-base leading-relaxed text-white/75">
-            A signal does not flow from one broker to another. It flows from one journal to another.
+            The journal is the source of truth. Every entry traces back to a broker fill — not a screenshot, not a claim.
           </p>
 
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             {[
-              { step: "1", title: "Leader trades", body: "Leader's EA captures the fill and writes it to their journal." },
-              { step: "2", title: "Journal emits signal", body: "The journal publishes a sanitized signal record to each subscribed follower's journal." },
-              { step: "3", title: "Follower receives", body: "The signal appears in the follower's journal as an information event. Execution remains the follower's choice." },
+              { step: "1", title: "Broker fills the trade", body: "The trader's read-only EA captures the fill the moment it happens on their terminal." },
+              { step: "2", title: "Journal records it", body: "The fill is written to the journal server-side — timestamped, core fields locked, with no manual edit path." },
+              { step: "3", title: "Reputation updates", body: "Public stats, leaderboard rank, and Constitution adherence recompute from that verified record." },
             ].map((s) => (
               <div key={s.step} className="border border-[#1f1f1f] bg-[#111111] p-8">
                 <div className="font-mono text-xs text-white/40">STEP {s.step}</div>
@@ -99,7 +91,7 @@ export default function ProtocolPage() {
           </div>
 
           <p className="mt-12 max-w-3xl text-sm leading-relaxed text-white/60">
-            This architecture means the protocol never holds broker credentials, never routes orders, and never sits between a trader and their counterparty. Information moves; orders don&apos;t.
+            BigMarkt never holds broker credentials, never routes orders, and never places trades. It reads what the broker confirms and records it. Information moves; orders don&apos;t.
           </p>
         </div>
       </section>
@@ -126,18 +118,18 @@ export default function ProtocolPage() {
       <section className="border-b border-[#1f1f1f] px-6 py-24">
         <div className="mx-auto max-w-5xl">
           <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-            Legal <span className="text-[#C9A84C]">architecture</span>
+            What BigMarkt <span className="text-[#C9A84C]">is</span>
           </h2>
           <div className="mt-8 border-l-2 border-[#C9A84C] bg-[#111111] p-8">
             <p className="text-lg italic leading-relaxed text-white/90">
-              &ldquo;The journal entry is information, not a command.&rdquo;
+              &ldquo;The journal entry is a record of what happened — verified, not self-reported.&rdquo;
             </p>
           </div>
           <p className="mt-8 max-w-3xl text-base leading-relaxed text-white/75">
-            BigMarkt does not advise, manage funds, or place orders. Every signal that flows from a leader&apos;s journal to a follower&apos;s journal is a record of what happened — a published fact. Whether and how a follower acts on that fact is the follower&apos;s decision, executed by the follower, on the follower&apos;s own account.
+            BigMarkt is a journaling and verification tool. The EA is read-only: it reads your trade history and never places, modifies, or closes a position. Nothing here is investment advice, and BigMarkt does not advise, manage funds, or trade on anyone&apos;s behalf.
           </p>
           <p className="mt-4 max-w-3xl text-base leading-relaxed text-white/75">
-            This separation is intentional. It keeps the protocol a transparency tool, not a portfolio manager — which is what regulators distinguish, and what we are building toward as Phase 3 copy execution arrives.
+            That boundary is deliberate. BigMarkt&apos;s job is to make a trading record impossible to fake — and to leave every trading decision with the trader.
           </p>
         </div>
       </section>
