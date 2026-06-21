@@ -6,7 +6,6 @@ import Logo from "./Logo";
 
 const links = [
   { href: "/protocol", label: "Protocol" },
-  { href: "/token", label: "Token" },
   { href: "/ecosystem", label: "Ecosystem" },
   { href: "https://journal.bigmarkt.co", label: "Journal", external: true },
 ];

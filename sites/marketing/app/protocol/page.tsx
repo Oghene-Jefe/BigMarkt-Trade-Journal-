@@ -1,4 +1,3 @@
-import Link from "next/link";
 
 export const metadata = {
   title: "The Protocol Architecture — BigMarkt",
@@ -140,17 +139,6 @@ export default function ProtocolPage() {
           <p className="mt-4 max-w-3xl text-base leading-relaxed text-white/75">
             This separation is intentional. It keeps the protocol a transparency tool, not a portfolio manager — which is what regulators distinguish, and what we are building toward as Phase 3 copy execution arrives.
           </p>
-        </div>
-      </section>
-
-      <section className="px-6 py-24">
-        <div className="mx-auto max-w-5xl text-center">
-          <Link
-            href="/token"
-            className="inline-block border border-[#C9A84C] px-8 py-4 text-sm font-semibold uppercase tracking-wider text-[#C9A84C] transition hover:bg-[#C9A84C]/10"
-          >
-            Next: $BMT, the settlement rail →
-          </Link>
         </div>
       </section>
     </>

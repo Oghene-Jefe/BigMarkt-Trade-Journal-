@@ -25,7 +25,6 @@ export default function Footer() {
             <h4 className="text-xs font-semibold uppercase tracking-widest text-white/40">Protocol</h4>
             <ul className="mt-4 space-y-2 text-sm text-white/70">
               <li><Link href="/protocol" className="hover:text-[#C9A84C]">Architecture</Link></li>
-              <li><Link href="/token" className="hover:text-[#C9A84C]">$BMT Token</Link></li>
               <li><Link href="/ecosystem" className="hover:text-[#C9A84C]">Ecosystem</Link></li>
             </ul>
           </div>

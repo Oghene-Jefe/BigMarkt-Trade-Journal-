@@ -114,7 +114,7 @@ export default async function Home() {
             <FeatureCard
               icon={<Bell size={28} aria-hidden />}
               title="Follow top traders"
-              body="Subscribe to leaders. Signals are delivered to your journal as data. Copy execution is on the roadmap."
+              body="Subscribe to leaders. Signals are delivered to your journal as data."
             />
           </div>
         </div>

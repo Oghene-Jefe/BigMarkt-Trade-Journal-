@@ -13,7 +13,7 @@ const features = [
   },
   {
     tag: "FOLLOW TOP TRADERS",
-    body: "Subscribe to leaders. Signals are delivered to your journal as data. Copy execution is on the roadmap.",
+    body: "Subscribe to leaders. Signals are delivered to your journal as data.",
   },
 ];
 
@@ -21,8 +21,7 @@ const layers = [
   { n: "01", name: "Proof Layer", desc: "Server-side trade capture from broker to journal.", phase: "Phase 1 · Live" },
   { n: "02", name: "Coordination Layer", desc: "Leaderboards, profiles, and rank discovery.", phase: "Phase 1 · Live" },
   { n: "03", name: "Signal Layer", desc: "Journal-to-journal signal flow between leaders and followers.", phase: "Phase 2 · Building" },
-  { n: "04", name: "Settlement Layer", desc: "$BMT-routed payment rail for subscriptions and performance.", phase: "Phase 3 · Planned" },
-  { n: "05", name: "Protocol Layer", desc: "On-chain reputation, governance, and dispute resolution.", phase: "Phase 4 · Planned" },
+  { n: "04", name: "Protocol Layer", desc: "On-chain reputation, governance, and dispute resolution.", phase: "Phase 4 · Planned" },
 ];
 
 const ecosystem = [

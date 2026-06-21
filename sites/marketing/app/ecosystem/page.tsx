@@ -33,8 +33,8 @@ const properties = [
   {
     domain: "bigmarkt.co",
     title: "The Protocol",
-    desc: "Where it all connects. Architecture, $BMT token, ecosystem coordination, and governance.",
-    does: ["Architecture docs", "$BMT settlement", "Ecosystem coordination", "Governance"],
+    desc: "Where it all connects. Architecture, ecosystem coordination, and governance.",
+    does: ["Architecture docs", "Roadmap", "Ecosystem coordination", "Governance"],
     href: "/",
   },
 ];
@@ -42,8 +42,8 @@ const properties = [
 const flywheel = [
   { from: "Academy", to: "Club", body: "Graduates enter cohorts to apply training with peers." },
   { from: "Club", to: "Journal", body: "Cohort members journal real trades and climb the leaderboard." },
-  { from: "Journal", to: "Protocol", body: "Verified leaders build a reputation from their verified record. Planned for future phases: $BMT staking and signal publishing." },
-  { from: "Protocol", to: "Academy", body: "Settlement and reputation pull new learners back into the funnel." },
+  { from: "Journal", to: "Protocol", body: "Verified leaders build a reputation from their verified record. Planned for future phases: signal publishing." },
+  { from: "Protocol", to: "Academy", body: "Reputation pulls new learners back into the funnel." },
 ];
 
 export default function EcosystemPage() {

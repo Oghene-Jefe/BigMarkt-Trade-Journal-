@@ -25,7 +25,7 @@ const priorityAreas = [
   "Broker or exchange ingestion integrity issues",
   "Webhook signature validation issues",
   "Admin privilege escalation",
-  "Payment, subscription, or token settlement logic flaws",
+  "RLS or data-access policy flaws",
 ];
 
 export default function SecurityPage() {
