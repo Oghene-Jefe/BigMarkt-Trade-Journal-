@@ -58,15 +58,26 @@ export async function followLeaderAction(
 
   const leaderAlsoFollows = (leaderSubs ?? []).length > 0;
 
-  const { error: insertErr } = await sb.from("subscriptions").insert({
-    follower_id: user.id,
-    leader_id: leaderId,
-    broker_account_id: brokerAccountId,
-    mode: safeMode,
-    status: "active",
-    min_signal_grade: "any",
-    leader_also_follows: leaderAlsoFollows,
-  });
+  // Upsert on the (broker_account_id, mode) unique key rather than a blind
+  // insert: unfollow soft-cancels the row (status='cancelled') but leaves it in
+  // place, so that key stays occupied and a plain re-follow INSERT would hit a
+  // unique violation ("Couldn't subscribe."). Upsert reactivates the existing
+  // row — repointing it at the (re)followed leader and flipping it back to
+  // active — which also covers re-using an account to follow a different leader.
+  const { error: insertErr } = await sb
+    .from("subscriptions")
+    .upsert(
+      {
+        follower_id: user.id,
+        leader_id: leaderId,
+        broker_account_id: brokerAccountId,
+        mode: safeMode,
+        status: "active",
+        min_signal_grade: "any",
+        leader_also_follows: leaderAlsoFollows,
+      },
+      { onConflict: "broker_account_id,mode" },
+    );
 
   if (insertErr) return { error: safeDbError(insertErr, "Couldn't subscribe.", "follow_insert") };
 
