@@ -7,6 +7,7 @@ import { fmtMoney, fmtDate, fmtPct } from "@/lib/format";
 import { ShieldCheck } from "lucide-react";
 import TrustBadge from "@/components/TrustBadge";
 import FollowButton from "@/components/FollowButton";
+import { FollowStats } from "@/components/FollowListModal";
 import type { PublicProfileFull, PublicTrade, Subscription } from "@/lib/types";
 import { chartProxyUrl } from "@/lib/chart-url";
 import Logo from "@/components/ui/Logo";
@@ -74,6 +75,13 @@ export default async function PublicProfilePage({
       ? adherenceRow
       : null;
   const avatarUrl = profile.avatar_path ? await signAvatar(profile.avatar_path) : null;
+
+  const { data: followCounts } = await sb.rpc("get_follow_counts", {
+    profile_id: profile.id,
+  });
+  const fc = (followCounts as { followers?: number; following?: number }) ?? {};
+  const followers = fc.followers ?? 0;
+  const following = fc.following ?? 0;
 
   const {
     data: { user },
@@ -148,6 +156,10 @@ export default async function PublicProfilePage({
               <p className="mt-1 text-xs text-gold">{journalModeLabel}</p>
             ) : null}
           </div>
+        </div>
+
+        <div className="mt-4">
+          <FollowStats profileId={profile.id} followers={followers} following={following} />
         </div>
 
         <div className="mt-5">

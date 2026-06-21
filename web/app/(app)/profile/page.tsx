@@ -6,6 +6,7 @@ import ProfileForm from "./ProfileForm";
 import BalanceResetForm from "./BalanceResetForm";
 import Referrals from "./Referrals";
 import ShareableLink from "@/components/ShareableLink";
+import { FollowStats } from "@/components/FollowListModal";
 import { fmtMoney, fmtDate } from "@/lib/format";
 
 function refCodeFromId(id: string): string {
@@ -18,11 +19,14 @@ export default async function ProfilePage() {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
   const refCode = refCodeFromId(user!.id);
-  const [{ data: profileData }, { data: resetsData }, refStats] = await Promise.all([
+  const [{ data: profileData }, { data: resetsData }, refStats, { data: followCounts }] = await Promise.all([
     sb.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
     sb.from("balance_resets").select("*").order("created_at", { ascending: false }).limit(20),
     sb.rpc("get_referral_stats", { ref_code: refCode }),
+    sb.rpc("get_follow_counts", { profile_id: user!.id }),
   ]);
+
+  const fc = (followCounts as { followers?: number; following?: number }) ?? {};
 
   const profile = (profileData ?? null) as ProfileRow | null;
   const resets = (resetsData ?? []) as BalanceResetRow[];
@@ -47,6 +51,12 @@ export default async function ProfilePage() {
           </Link>
         ) : null}
       </div>
+
+      <FollowStats
+        profileId={user!.id}
+        followers={fc.followers ?? 0}
+        following={fc.following ?? 0}
+      />
 
       <ProfileForm profile={profile} avatarUrl={avatarUrl} email={user!.email ?? ""} />
 
