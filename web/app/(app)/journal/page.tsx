@@ -131,10 +131,9 @@ async function TradesView({
   if (view === "signals" && trades.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-white/10 bg-panel py-20 text-center">
-        <p className="text-base font-semibold text-white">Signals are coming soon</p>
+        <p className="text-base font-semibold text-white">Follow verified traders and their trades appear here.</p>
         <p className="mt-3 max-w-sm text-sm text-muted">
-          When you follow a trader, their verified trades will appear here. We&apos;re
-          building this now.
+          When you follow a trader, their verified trades show up in this tab.
         </p>
       </div>
     );
