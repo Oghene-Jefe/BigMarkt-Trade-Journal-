@@ -142,20 +142,29 @@ async function logEvent(
   },
 ) {
   try {
-    await supabase.from("trade_events").insert({
-      trade_id:     event.trade_id ?? null,
-      user_id:      event.user_id,
-      position_id:  event.position_id ?? null,
-      order_ticket: event.order_ticket ?? null,
-      event_type:   event.event_type,
-      price:        event.price ?? null,
-      sl:           event.sl ?? null,
-      tp:           event.tp ?? null,
-      lots:         event.lots ?? null,
-      pnl:          event.pnl ?? null,
-      event_time:   event.event_time ?? null,
-      raw:          event.raw ?? null,
-    });
+    // Idempotent on re-send/backfill: the EA replays closed deals, order
+    // events, and position_modify on startup, so the same logical event can
+    // arrive more than once. ON CONFLICT DO NOTHING against the
+    // (user_id, event_type, position_id, order_ticket, event_time) unique index
+    // (migration 0067, NULLS NOT DISTINCT) drops the duplicate instead of
+    // spamming the timeline.
+    await supabase.from("trade_events").upsert(
+      {
+        trade_id:     event.trade_id ?? null,
+        user_id:      event.user_id,
+        position_id:  event.position_id ?? null,
+        order_ticket: event.order_ticket ?? null,
+        event_type:   event.event_type,
+        price:        event.price ?? null,
+        sl:           event.sl ?? null,
+        tp:           event.tp ?? null,
+        lots:         event.lots ?? null,
+        pnl:          event.pnl ?? null,
+        event_time:   event.event_time ?? null,
+        raw:          event.raw ?? null,
+      },
+      { onConflict: "user_id,event_type,position_id,order_ticket,event_time", ignoreDuplicates: true },
+    );
   } catch (err) {
     console.error("EA ingest: trade_events log failed (non-fatal)", { event_type: event.event_type, err });
   }
@@ -546,6 +555,14 @@ async function handleDealEvent(
   const dealEntry  = payload.deal_entry;
   const positionId = payload.position_id ?? null;
 
+  // Backfilled deals carry a CURRENT account snapshot, not the point-in-time
+  // balance for that historical trade — so never stamp it as the per-trade
+  // balance_at_open/equity_at_open (or derive return_pct from it). Per-trade
+  // P&L still records normally; the growth curve is derived from P&L + the
+  // baseline. Live deals stamp as before.
+  const balAtOpen = payload.backfill ? null : acct.balance;
+  const eqAtOpen  = payload.backfill ? null : acct.equity;
+
   let action: "inserted" | "updated" = "inserted";
   let resultStatus: "open" | "closed" = "closed";
 
@@ -587,9 +604,10 @@ async function handleDealEvent(
             order_status: "filled",
             status:       "open",
             result:       null,
-            // Account snapshot at fill (EA v2.5.0 passthrough).
-            balance_at_open:  acct.balance,
-            equity_at_open:   acct.equity,
+            // Account snapshot at fill (EA v2.5.0 passthrough). Null for
+            // backfilled deals — see balAtOpen/eqAtOpen above.
+            balance_at_open:  balAtOpen,
+            equity_at_open:   eqAtOpen,
             account_currency: acct.currency,
           })
           .eq("id", pendingRow.id)
@@ -621,9 +639,10 @@ async function handleDealEvent(
         source:      "ea",
         verified:    true,
         visibility:  "private",
-        // Account snapshot at fill (EA v2.5.0 passthrough).
-        balance_at_open:  acct.balance,
-        equity_at_open:   acct.equity,
+        // Account snapshot at fill (EA v2.5.0 passthrough). Null for
+        // backfilled deals — see balAtOpen/eqAtOpen above.
+        balance_at_open:  balAtOpen,
+        equity_at_open:   eqAtOpen,
         account_currency: acct.currency,
       };
 
@@ -775,11 +794,13 @@ async function handleDealEvent(
         return { res: NextResponse.json({ error: "Invalid trade payload" }, { status: 400 }), action: "error", positionId, resultStatus: "closed" };
       }
       // No prior ENTRY_IN snapshot exists — use the current account balance as
-      // the baseline so return_pct can still be derived.
+      // the baseline so return_pct can still be derived. For backfilled deals
+      // balAtOpen is null (current snapshot ≠ point-in-time), so return_pct is
+      // left null rather than computed against a misleading baseline.
       const profit = payload.profit ?? null;
       const returnPct =
-        acct.balance && acct.balance !== 0 && profit != null
-          ? (profit / acct.balance) * 100
+        balAtOpen && balAtOpen !== 0 && profit != null
+          ? (profit / balAtOpen) * 100
           : null;
       const closedRow = {
         ...built.row,
@@ -793,8 +814,8 @@ async function handleDealEvent(
         source:      "ea",
         verified:    true,
         visibility:  "private",
-        balance_at_open:  acct.balance,
-        equity_at_open:   acct.equity,
+        balance_at_open:  balAtOpen,
+        equity_at_open:   eqAtOpen,
         account_currency: acct.currency,
         return_pct:       returnPct,
       };

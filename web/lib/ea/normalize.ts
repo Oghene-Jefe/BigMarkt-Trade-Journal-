@@ -36,6 +36,12 @@ const accountPassthrough = {
   account_balance:  z.number().optional(),
   account_equity:   z.number().optional(),
   account_currency: z.string().max(16).optional(),
+  // Set when the EA replays historical/closed deals on startup. Their
+  // account_balance/account_equity are a CURRENT snapshot, NOT the
+  // point-in-time balance for the historical trade — so the route must not
+  // stamp them as a per-trade balance_at_open/equity_at_open. Unsigned
+  // passthrough, deliberately OUTSIDE every field_hash.
+  backfill: z.boolean().optional(),
 };
 
 // ── eaOrderSchema ─────────────────────────────────────────────────────────────
@@ -53,7 +59,7 @@ export const eaOrderSchema = z.object({
     .string()
     .min(1)
     .max(32)
-    .regex(/^[A-Za-z0-9._/\-]+$/, "symbol contains invalid characters")
+    .regex(/^[A-Za-z0-9$.#_-]{1,32}$/, "symbol contains invalid characters")
     .transform((s) => s.toUpperCase()),
   type: z
     .string()
@@ -85,7 +91,7 @@ export const eaDealSchema = z.object({
     .string()
     .min(1)
     .max(32)
-    .regex(/^[A-Za-z0-9._/\-]+$/, "symbol contains invalid characters")
+    .regex(/^[A-Za-z0-9$.#_-]{1,32}$/, "symbol contains invalid characters")
     .transform((s) => s.toUpperCase()),
   type: z
     .string()
@@ -149,7 +155,7 @@ export const eaPositionModifySchema = z.object({
     .string()
     .min(1)
     .max(32)
-    .regex(/^[A-Za-z0-9._/\-]+$/, "symbol contains invalid characters")
+    .regex(/^[A-Za-z0-9$.#_-]{1,32}$/, "symbol contains invalid characters")
     .transform((s) => s.toUpperCase()),
   sl: z.number().default(0),
   tp: z.number().default(0),
