@@ -1,5 +1,9 @@
 // Dual-tier performance scoring engine. Pure TS, no side effects.
 
+// === LAUNCH PREVIEW GATES — TEMPORARY. Restore to 30/30 after review. ===
+const ACTIVE_MIN_TRADES = 7;
+const ACTIVE_MIN_DAYS = 3;
+
 export type ScoringTrade = {
   pnl: number;
   rr_ratio: number | null;
@@ -250,8 +254,8 @@ export function calculateScore(
   const sortino_ratio = calcSortino(trades);
   const weekly_trade_cv = calcWeeklyRegularity(trades, 90);
 
-  const gate_min_trades_active = trade_count >= 30;
-  const gate_min_days_active = account_history_days >= 30;
+  const gate_min_trades_active = trade_count >= ACTIVE_MIN_TRADES;
+  const gate_min_days_active = account_history_days >= ACTIVE_MIN_DAYS;
   const gate_positive_expectancy = expectancy_pct > 0;
   const gate_automated_mode = isAutomated;
   const gate_live_account = isLive;
