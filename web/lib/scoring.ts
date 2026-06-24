@@ -1,8 +1,8 @@
 // Dual-tier performance scoring engine. Pure TS, no side effects.
 
-// === LAUNCH PREVIEW GATES — TEMPORARY. Restore to 30/30 after review. ===
-const ACTIVE_MIN_TRADES = 7;
-const ACTIVE_MIN_DAYS = 3;
+// === ACTIVE-TIER ELIGIBILITY GATES — core principle: 30 verified trades / 30 days. ===
+const ACTIVE_MIN_TRADES = 30;
+const ACTIVE_MIN_DAYS = 30;
 
 export type ScoringTrade = {
   pnl: number;
