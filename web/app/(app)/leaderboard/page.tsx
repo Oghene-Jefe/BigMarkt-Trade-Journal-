@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { Info } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signAvatars } from "@/lib/storage";
-import { PageHeader, EmptyState } from "@/components/ui";
+import { PageHeader, EmptyState, Avatar } from "@/components/ui";
 import type { ScoreTier, Subscription } from "@/lib/types";
 import FollowButton from "@/components/FollowButton";
 
@@ -50,12 +50,6 @@ const TAB_DESCRIPTIONS: Record<Tab, string> = {
   pro: "Verified Pro leaders — Sortino, Expectancy, Drawdown + Duration",
   active: "Active leaders — Expectancy, Win Rate, Drawdown, Regularity",
 };
-
-function initials(name: string | null): string {
-  if (!name) return "?";
-  const parts = name.trim().split(/\s+/).slice(0, 2);
-  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
-}
 
 function fmtNum(n: number | null | undefined, digits = 1): string {
   if (n == null || !Number.isFinite(n)) return "—";
@@ -194,20 +188,12 @@ export default async function LeaderboardPage({
                     </span>
                   </div>
 
-                  <div
-                    className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-black/60 ${
-                      isTop3 ? "border-gold/60" : "border-white/15"
-                    }`}
-                  >
-                    {avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render
-                      <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="font-display text-sm tracking-wider text-gold">
-                        {initials(r.display_name)}
-                      </span>
-                    )}
-                  </div>
+                  <Avatar
+                    url={avatarUrl}
+                    name={r.display_name}
+                    size="card"
+                    ringClass={`border-2 ${isTop3 ? "border-gold/60" : "border-white/15"}`}
+                  />
                 </div>
 
                 {/* Name + tier */}

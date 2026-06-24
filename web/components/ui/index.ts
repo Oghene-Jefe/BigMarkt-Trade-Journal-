@@ -1,3 +1,4 @@
+export { default as Avatar } from "./Avatar";
 export { Button, LinkButton } from "./Button";
 export { Field, Input, Select } from "./Input";
 export { StatusPill } from "./StatusPill";

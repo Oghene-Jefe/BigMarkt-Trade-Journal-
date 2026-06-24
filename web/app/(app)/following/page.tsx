@@ -2,19 +2,13 @@ import Link from "next/link";
 import type { Route } from "next";
 import { signAvatars } from "@/lib/storage";
 import ConfirmButton from "@/components/ConfirmButton";
-import { PageHeader, EmptyState, LinkButton } from "@/components/ui";
+import { PageHeader, EmptyState, LinkButton, Avatar } from "@/components/ui";
 import {
   getMySubscriptionsAction,
   unfollowFromFormAction,
 } from "@/lib/actions/subscriptions";
 
 export const dynamic = "force-dynamic";
-
-function initials(name: string | null): string {
-  if (!name) return "?";
-  const parts = name.trim().split(/\s+/).slice(0, 2);
-  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
-}
 
 export default async function FollowingPage() {
   const result = await getMySubscriptionsAction();
@@ -61,16 +55,12 @@ export default async function FollowingPage() {
                 className="flex flex-col gap-4 rounded-lg border border-white/10 bg-panel p-5"
               >
                 <div className="flex items-start gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/15 bg-black/60">
-                    {avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render
-                      <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="text-sm font-medium text-gold">
-                        {initials(s.leader_display_name)}
-                      </span>
-                    )}
-                  </div>
+                  <Avatar
+                    url={avatarUrl}
+                    name={s.leader_display_name}
+                    size="card"
+                    ringClass="border-2 border-white/15"
+                  />
                   <div className="min-w-0 flex-1">
                     <Link
                       href={href}

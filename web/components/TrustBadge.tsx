@@ -1,4 +1,4 @@
-type Badge = "manual" | "auto_verified" | "draft" | "edited" | "prop_firm" | "demo";
+export type Badge = "manual" | "auto_verified" | "draft" | "edited" | "prop_firm" | "demo";
 
 const BADGE_CONFIG: Record<Badge, { label: string; colour: string; dotClass: string }> = {
   auto_verified: { label: "Auto-verified", colour: "text-blue-400", dotClass: "bg-blue-400" },

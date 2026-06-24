@@ -11,6 +11,7 @@ import Link from "next/link";
 import type { PublicProfileFull, PublicTrade, Subscription } from "@/lib/types";
 import { chartProxyUrl } from "@/lib/chart-url";
 import Logo from "@/components/ui/Logo";
+import Avatar from "@/components/ui/Avatar";
 
 export const dynamic = "force-dynamic";
 
@@ -134,12 +135,7 @@ export default async function UsernameProfilePage({
 
       <section className="rounded-lg border border-white/10 bg-panel p-6">
         <div className="flex items-center gap-5">
-          <div className="h-20 w-20 overflow-hidden rounded-full border border-white/10 bg-black/40">
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render
-              <img src={avatarUrl} alt={profile.display_name} className="h-full w-full object-cover" />
-            ) : null}
-          </div>
+          <Avatar url={avatarUrl} name={profile.display_name} size="lg" />
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-semibold text-white truncate">
               {profile.display_name}

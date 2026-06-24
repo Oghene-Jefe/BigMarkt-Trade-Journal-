@@ -8,16 +8,12 @@ import {
   getFollowListAction,
   type FollowListUser,
 } from "@/lib/actions/follow-graph";
+import Avatar from "@/components/ui/Avatar";
 
 type Direction = "followers" | "following";
 
 function profileHref(u: FollowListUser): Route {
   return (u.username ? `/@${u.username}` : `/p/${u.id}`) as Route;
-}
-
-function initialOf(u: FollowListUser): string {
-  const source = u.display_name || u.username || "T";
-  return source.charAt(0).toUpperCase();
 }
 
 export function FollowStats({
@@ -151,20 +147,7 @@ function FollowListModal({
                     onClick={onClose}
                     className="flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
                   >
-                    <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/10 bg-black/40">
-                      {u.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- signed Supabase URL, re-issued per render
-                        <img
-                          src={u.avatar_url}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span className="flex h-full w-full items-center justify-center bg-gold/20 text-sm font-semibold text-gold">
-                          {initialOf(u)}
-                        </span>
-                      )}
-                    </span>
+                    <Avatar url={u.avatar_url} name={u.display_name ?? u.username} size="sm" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm text-white">
                         {u.display_name || (u.username ? `@${u.username}` : "Trader")}
