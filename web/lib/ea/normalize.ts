@@ -169,6 +169,34 @@ export const eaPositionModifySchema = z.object({
 
 export type EaPositionModifyPayload = z.infer<typeof eaPositionModifySchema>;
 
+// ── eaOpenSnapshotSchema ────────────────────────────────────────────────────────
+// EA v2.7.0 "open_snapshot" reconcile event. The EA sends the FULL set of
+// position_ids it currently sees open on the terminal; the server force-closes
+// any trades row still marked status='open' for the account whose position_id is
+// NOT in this set (orphans whose close deal was never received).
+//
+// open_position_ids: array of MT5 position identifiers — digits only, but JSON
+// may send them as numbers or strings, so each is coerced to string and matched
+// against the same digits-only rule used for position_id elsewhere. An EMPTY
+// array is valid (an account can legitimately have zero open positions).
+//
+// Field_hash recipe (LF-separated, no trailing newline):
+//   event_type=open_snapshot
+//   open_position_ids=<csv>
+// where <csv> is the ids joined by "," in ASCENDING NUMERIC order, no spaces
+// ("" when none). See openSnapshotFieldsHash() in lib/ea/sig.ts.
+const eaSnapshotPositionId = z.coerce
+  .string()
+  .regex(/^\d+$/, "position_id must be digits only");
+
+export const eaOpenSnapshotSchema = z.object({
+  event_type: z.literal("open_snapshot"),
+  open_position_ids: z.array(eaSnapshotPositionId).max(5000),
+  ...accountPassthrough,
+});
+
+export type EaOpenSnapshotPayload = z.infer<typeof eaOpenSnapshotSchema>;
+
 // Unified payload type used inside the route after the branch.
 export type EaTradePayload = EaDealPayload;
 

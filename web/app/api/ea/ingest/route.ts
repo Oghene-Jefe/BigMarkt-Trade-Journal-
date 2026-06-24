@@ -15,9 +15,11 @@ import {
   eaDealSchema,
   eaOrderSchema,
   eaPositionModifySchema,
+  eaOpenSnapshotSchema,
   type EaDealPayload,
   type EaOrderPayload,
   type EaPositionModifyPayload,
+  type EaOpenSnapshotPayload,
 } from "@/lib/ea/normalize";
 import { decryptSigningSecret } from "@/lib/ea/secrets";
 import {
@@ -26,6 +28,7 @@ import {
   NONCE_RE,
   orderFieldsHash,
   positionModifyFieldsHash,
+  openSnapshotFieldsHash,
   PROTOCOL_VERSION,
   SIG_RE,
   tradeFieldsHash,
@@ -193,6 +196,7 @@ async function validateV2Envelope(args: {
   orderPayload?: EaOrderPayload;
   dealPayload?: EaDealPayload;
   positionModifyPayload?: EaPositionModifyPayload;
+  openSnapshotPayload?: EaOpenSnapshotPayload;
   tokenId: string;
   userId: string;
   encryptedSecret: {
@@ -230,6 +234,10 @@ async function validateV2Envelope(args: {
       symbol:      args.positionModifyPayload.symbol,
       sl:          args.positionModifyPayload.sl,
       tp:          args.positionModifyPayload.tp,
+    });
+  } else if (args.openSnapshotPayload) {
+    serverHash = openSnapshotFieldsHash({
+      open_position_ids: args.openSnapshotPayload.open_position_ids,
     });
   } else if (args.isOrderEvent && args.orderPayload) {
     serverHash = orderFieldsHash({
@@ -969,6 +977,119 @@ async function handlePositionModifyEvent(
   return NextResponse.json({ success: true, action: "sl_tp_modified", position_id: positionId }, { status: 200 });
 }
 
+// ── open_snapshot reconcile handler ────────────────────────────────────────────
+
+// EA v2.7.0 "open_snapshot": the EA sends the FULL set of position_ids it
+// currently sees open on the terminal. We force-close any trades row still
+// marked status='open' for THIS account whose position_id is not in that set —
+// these are orphans whose DEAL_ENTRY_OUT close was never received.
+//
+// Guards:
+//   • Only rows with status='open' are ever touched. Rows with status
+//     'pending' / 'cancelled' / 'closed' are never matched — pending limit
+//     orders are left intact.
+//   • Scoped strictly to (user_id, broker_account_id). If the token has not
+//     resolved a broker account we CANNOT scope to a single terminal's open
+//     set, so we close nothing (closing across all of a user's accounts would
+//     wrongly close opens belonging to other terminals).
+//   • An EMPTY open_position_ids array is honoured (close every open row for
+//     the account). This is safe ONLY because the EA guards the send with
+//     TERMINAL_CONNECTED — it never emits an empty snapshot while the terminal
+//     is disconnected, so an empty array genuinely means "zero open positions"
+//     rather than "the EA couldn't read the terminal".
+async function handleOpenSnapshot(
+  supabase: SupabaseClient,
+  payload: EaOpenSnapshotPayload,
+  userId: string,
+  brokerAccountId: string | null,
+): Promise<NextResponse> {
+  // position_id is TEXT in the DB; the schema already coerced every id to a
+  // digits-only string. De-dupe so the IN / count lists are minimal.
+  const incoming = Array.from(new Set(payload.open_position_ids));
+
+  // Safety: without a resolved account we cannot scope to one terminal's open
+  // set — never reconcile across all of a user's accounts.
+  if (!brokerAccountId) {
+    return NextResponse.json(
+      { success: true, reconciled_closed: 0, kept_open: 0, ignored: "no_broker_account" },
+      { status: 200 },
+    );
+  }
+
+  // Find the open rows for this account that are NOT in the broker's open set —
+  // these are the orphans to close. Rows with a NULL position_id are not
+  // matched by the negated IN filter (NULL NOT IN (...) is NULL), so manual
+  // open rows without a position_id are left untouched.
+  let staleQuery = supabase
+    .from("trades")
+    .select("id, position_id")
+    .eq("user_id", userId)
+    .eq("broker_account_id", brokerAccountId)
+    .eq("status", "open");
+  if (incoming.length > 0) {
+    // PostgREST IN list — ids are digits-only, so quoting is unnecessary, but
+    // wrap each in double quotes since position_id is a TEXT column.
+    staleQuery = staleQuery.not(
+      "position_id",
+      "in",
+      `(${incoming.map((id) => `"${id}"`).join(",")})`,
+    );
+  }
+
+  const { data: staleRows, error: staleErr } = await staleQuery;
+  if (staleErr) {
+    console.error("EA ingest: open_snapshot stale lookup failed", { code: staleErr.code, message: staleErr.message });
+    return NextResponse.json({ error: "Reconcile failed" }, { status: 500 });
+  }
+
+  const staleIds = (staleRows ?? []).map((r) => (r as { id: string }).id);
+
+  if (staleIds.length > 0) {
+    // Close strictly by the ids we just selected, re-asserting the guards in
+    // the WHERE so a concurrent write can never widen the set: same user,
+    // same account, still status='open'.
+    const { error: closeErr } = await supabase
+      .from("trades")
+      .update({ status: "closed" })
+      .in("id", staleIds)
+      .eq("user_id", userId)
+      .eq("broker_account_id", brokerAccountId)
+      .eq("status", "open");
+    if (closeErr) {
+      console.error("EA ingest: open_snapshot close failed", { code: closeErr.code, message: closeErr.message });
+      return NextResponse.json({ error: "Reconcile failed" }, { status: 500 });
+    }
+
+    // Log each reconcile-close to the lifecycle timeline. A distinct
+    // 'reconcile_closed' event_type keeps these out of the 0067 idempotent
+    // unique index's collision space with the normal 'closed' events. We have
+    // no deal data here (no price/pnl/close_time), so those stay null.
+    for (const row of (staleRows ?? [])) {
+      const r = row as { id: string; position_id: string | null };
+      await logEvent(supabase, {
+        trade_id:    r.id,
+        user_id:     userId,
+        position_id: r.position_id ?? null,
+        event_type:  "reconcile_closed",
+        raw:         { reason: "open_snapshot", source: "ea" },
+      });
+    }
+  }
+
+  // kept_open = open rows that remain open because they matched the broker set.
+  const { count: keptOpen } = await supabase
+    .from("trades")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("broker_account_id", brokerAccountId)
+    .eq("status", "open");
+
+  return NextResponse.json(
+    { success: true, reconciled_closed: staleIds.length, kept_open: keptOpen ?? 0 },
+    { status: 200 },
+  );
+}
+
 // ── account balance snapshot ────────────────────────────────────────────────────
 
 // Persists the EA's reported balance/equity onto the broker account. Sets
@@ -1127,7 +1248,9 @@ export async function POST(req: NextRequest) {
   //    otherwise                     → market fill / deal (eaDealSchema)
   const rawObj = parsedJson as Record<string, unknown>;
   const isPositionModify = rawObj.event_type === "position_modify";
-  const isOrderEvent = !isPositionModify && typeof rawObj.event_type === "string";
+  const isOpenSnapshot = rawObj.event_type === "open_snapshot";
+  const isOrderEvent =
+    !isPositionModify && !isOpenSnapshot && typeof rawObj.event_type === "string";
 
   // EA v2.5.0 unsigned account snapshot — present on every event, signed by none.
   const acct = readAccountSnapshot(rawObj);
@@ -1135,6 +1258,7 @@ export async function POST(req: NextRequest) {
   let orderPayload: EaOrderPayload | undefined;
   let dealPayload: EaDealPayload | undefined;
   let positionModifyPayload: EaPositionModifyPayload | undefined;
+  let openSnapshotPayload: EaOpenSnapshotPayload | undefined;
 
   if (isPositionModify) {
     const parsed = eaPositionModifySchema.safeParse(parsedJson);
@@ -1143,6 +1267,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid position_modify payload", issues: parsed.error.issues }, { status: 400 });
     }
     positionModifyPayload = parsed.data;
+  } else if (isOpenSnapshot) {
+    const parsed = eaOpenSnapshotSchema.safeParse(parsedJson);
+    if (!parsed.success) {
+      console.error("EA ingest: invalid open_snapshot payload", { tokenId, issues: parsed.error.issues });
+      return NextResponse.json({ error: "Invalid open_snapshot payload", issues: parsed.error.issues }, { status: 400 });
+    }
+    openSnapshotPayload = parsed.data;
   } else if (isOrderEvent) {
     const parsed = eaOrderSchema.safeParse(parsedJson);
     if (!parsed.success) {
@@ -1168,6 +1299,7 @@ export async function POST(req: NextRequest) {
       orderPayload,
       dealPayload,
       positionModifyPayload,
+      openSnapshotPayload,
       tokenId,
       userId,
       encryptedSecret,
@@ -1220,6 +1352,8 @@ export async function POST(req: NextRequest) {
 
   if (isPositionModify && positionModifyPayload) {
     finalRes = await handlePositionModifyEvent(supabase, positionModifyPayload, userId);
+  } else if (isOpenSnapshot && openSnapshotPayload) {
+    finalRes = await handleOpenSnapshot(supabase, openSnapshotPayload, userId, brokerAccountId);
   } else if (isOrderEvent && orderPayload) {
     finalRes = await handleOrderEvent(supabase, orderPayload, userId, tokenId, brokerAccountId, accountType);
   } else if (dealPayload) {

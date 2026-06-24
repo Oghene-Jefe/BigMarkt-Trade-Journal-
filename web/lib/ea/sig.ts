@@ -152,6 +152,30 @@ export function positionModifyFieldsHash(fields: {
   return createHash("sha256").update(lines, "utf8").digest("hex");
 }
 
+/** SHA-256 hex of the canonical open_snapshot field bundle.
+ *  Field order MUST match ComputeOpenSnapshotFieldsHash in BigMarkt_EA.mq5
+ *  v2.7.0. Recipe (LF-separated, no trailing newline):
+ *    event_type=open_snapshot
+ *    open_position_ids=<csv>
+ *  <csv> = the position_ids joined by "," in ASCENDING NUMERIC order, with no
+ *  spaces ("" when the set is empty). The EA sorts numerically before joining,
+ *  so the server sorts numerically too. ids can exceed 2^53, so they are
+ *  compared as BigInt (string sort would mis-order ids of different lengths).
+ *  The account_balance/equity/currency/backfill passthrough fields are
+ *  intentionally NOT part of this hash. */
+export function openSnapshotFieldsHash(fields: {
+  open_position_ids: string[];
+}): string {
+  const csv = [...fields.open_position_ids]
+    .sort((a, b) => (BigInt(a) < BigInt(b) ? -1 : BigInt(a) > BigInt(b) ? 1 : 0))
+    .join(",");
+  const lines = [
+    `event_type=open_snapshot`,
+    `open_position_ids=${csv}`,
+  ].join("\n");
+  return createHash("sha256").update(lines, "utf8").digest("hex");
+}
+
 // ── canonical signing message ────────────────────────────────────────────────
 // Binds: protocol version, token id (NOT the raw bearer), sent_at, nonce,
 // and the trade-fields hash. The raw bearer token never appears in the
