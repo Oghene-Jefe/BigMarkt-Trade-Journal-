@@ -15,11 +15,11 @@ export default async function NewDisputePage({
   return (
     <div className="space-y-4">
       <Link
-        href="/subscriptions"
+        href="/following"
         className="inline-flex items-center gap-1 text-xs text-muted hover:text-white"
       >
         <ArrowLeft size={12} aria-hidden />
-        <span>Back to subscriptions</span>
+        <span>Back to following</span>
       </Link>
       <PageHeader
         title="Raise a dispute"

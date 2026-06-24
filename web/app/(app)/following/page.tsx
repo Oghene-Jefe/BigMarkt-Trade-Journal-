@@ -1,13 +1,11 @@
 import Link from "next/link";
 import type { Route } from "next";
-import { AlertTriangle } from "lucide-react";
 import { signAvatars } from "@/lib/storage";
 import ConfirmButton from "@/components/ConfirmButton";
-import { PageHeader, EmptyState, LinkButton, StatusPill, Button } from "@/components/ui";
+import { PageHeader, EmptyState, LinkButton } from "@/components/ui";
 import {
   getMySubscriptionsAction,
   unfollowFromFormAction,
-  toggleSubscriptionStatusFormAction,
 } from "@/lib/actions/subscriptions";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +16,7 @@ function initials(name: string | null): string {
   return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
 }
 
-export default async function SubscriptionsPage() {
+export default async function FollowingPage() {
   const result = await getMySubscriptionsAction();
   const isError = !Array.isArray(result);
   const subs = Array.isArray(result) ? result : [];
@@ -33,7 +31,7 @@ export default async function SubscriptionsPage() {
 
       {isError ? (
         <p className="text-sm text-loss">
-          Couldn't load subscriptions: {(result as { error: string }).error}
+          Couldn't load your following list: {(result as { error: string }).error}
         </p>
       ) : null}
 
@@ -56,13 +54,6 @@ export default async function SubscriptionsPage() {
               ? `/@${s.leader_username}`
               : `/p/${s.leader_id}`) as Route;
             const avatarUrl = s.leader_avatar_path ? avatars[s.leader_avatar_path] : null;
-            // Execution disabled pre-authorisation — always display as Journal only.
-            const isActive = s.status === "active";
-            const isPaused = s.status === "paused";
-            const minGradeLabel =
-              s.min_signal_grade === "any"
-                ? "Any grade"
-                : `Min grade: ${s.min_signal_grade}`;
 
             return (
               <li
@@ -87,36 +78,10 @@ export default async function SubscriptionsPage() {
                     >
                       {s.leader_display_name ?? "Anonymous"}
                     </Link>
-                    <p className="text-xs text-muted">{minGradeLabel}</p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <StatusPill tone="neutral">Journal only</StatusPill>
-                  <StatusPill tone={isActive ? "ok" : isPaused ? "warn" : "neutral"}>
-                    {isActive ? "Active" : isPaused ? "Paused" : s.status}
-                  </StatusPill>
-                </div>
-
-                {s.leader_also_follows ? (
-                  <p className="flex items-center gap-2 rounded-md border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
-                    <AlertTriangle size={14} aria-hidden />
-                    <span>This trader also follows others.</span>
-                  </p>
-                ) : null}
-
-                <div className="mt-auto flex flex-wrap items-center gap-2">
-                  <form action={toggleSubscriptionStatusFormAction}>
-                    <input type="hidden" name="id" value={s.id} />
-                    <input
-                      type="hidden"
-                      name="next"
-                      value={isActive ? "paused" : "active"}
-                    />
-                    <Button type="submit" variant="secondary" size="sm">
-                      {isActive ? "Pause" : "Resume"}
-                    </Button>
-                  </form>
+                <div className="mt-auto flex items-center gap-2">
                   <form action={unfollowFromFormAction}>
                     <input type="hidden" name="id" value={s.id} />
                     <ConfirmButton
@@ -127,12 +92,6 @@ export default async function SubscriptionsPage() {
                       Unfollow
                     </ConfirmButton>
                   </form>
-                  <Link
-                    href={`/disputes/new?leaderId=${s.leader_id}` as Route}
-                    className="ml-auto text-xs text-muted underline-offset-2 hover:text-white hover:underline"
-                  >
-                    Raise dispute
-                  </Link>
                 </div>
               </li>
             );
