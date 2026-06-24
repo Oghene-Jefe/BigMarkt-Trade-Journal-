@@ -152,26 +152,56 @@ export function positionModifyFieldsHash(fields: {
   return createHash("sha256").update(lines, "utf8").digest("hex");
 }
 
+// Ascending-numeric comparator for digit-only id strings. ids can exceed 2^53,
+// so compare as BigInt (string sort would mis-order ids of different lengths).
+function byNumericIdAsc(a: string, b: string): number {
+  const ba = BigInt(a);
+  const bb = BigInt(b);
+  return ba < bb ? -1 : ba > bb ? 1 : 0;
+}
+
 /** SHA-256 hex of the canonical open_snapshot field bundle.
  *  Field order MUST match ComputeOpenSnapshotFieldsHash in BigMarkt_EA.mq5
- *  v2.7.0. Recipe (LF-separated, no trailing newline):
+ *  v2.7.1. Recipe (LF-separated, NO trailing newline):
  *    event_type=open_snapshot
- *    open_position_ids=<csv>
- *  <csv> = the position_ids joined by "," in ASCENDING NUMERIC order, with no
- *  spaces ("" when the set is empty). The EA sorts numerically before joining,
- *  so the server sorts numerically too. ids can exceed 2^53, so they are
- *  compared as BigInt (string sort would mis-order ids of different lengths).
+ *    position=<id>|<SYM>|<dir>|<lots>|<open>|<sl>|<tp>|<openTimeISO>   (one per position)
+ *    pending=<ticket csv>
+ *  • <SYM> is the UPPERCASED symbol (the value the schema's .toUpperCase()
+ *    produces). <dir> is "buy"/"sell".
+ *  • lots/open/sl/tp use eaCanon() — the SAME canonical number renderer as the
+ *    other event hashes (integer if whole, else trimmed decimals, never
+ *    exponential). open_time is hashed verbatim (raw ISO string, no Date()).
+ *  • Positions are re-sorted ascending by numeric position_id (matches the
+ *    order the EA already sends), one `position=` line each.
+ *  • pending CSV is ascending numeric, comma-joined, no spaces, "" if empty.
  *  The account_balance/equity/currency/backfill passthrough fields are
  *  intentionally NOT part of this hash. */
 export function openSnapshotFieldsHash(fields: {
-  open_position_ids: string[];
+  positions: Array<{
+    position_id: string;
+    symbol: string;      // already uppercased
+    type: "buy" | "sell";
+    lots: number;
+    open_price: number;
+    sl: number;
+    tp: number;
+    open_time: string;   // raw ISO string ("" allowed)
+  }>;
+  pending_tickets: string[];
 }): string {
-  const csv = [...fields.open_position_ids]
-    .sort((a, b) => (BigInt(a) < BigInt(b) ? -1 : BigInt(a) > BigInt(b) ? 1 : 0))
-    .join(",");
+  const positionLines = [...fields.positions]
+    .sort((a, b) => byNumericIdAsc(a.position_id, b.position_id))
+    .map((p) =>
+      `position=${p.position_id}|${p.symbol}|${p.type}|${eaCanon(p.lots)}|` +
+      `${eaCanon(p.open_price)}|${eaCanon(p.sl)}|${eaCanon(p.tp)}|${p.open_time}`,
+    );
+
+  const pendingCsv = [...fields.pending_tickets].sort(byNumericIdAsc).join(",");
+
   const lines = [
     `event_type=open_snapshot`,
-    `open_position_ids=${csv}`,
+    ...positionLines,
+    `pending=${pendingCsv}`,
   ].join("\n");
   return createHash("sha256").update(lines, "utf8").digest("hex");
 }

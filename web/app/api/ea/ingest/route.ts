@@ -237,7 +237,8 @@ async function validateV2Envelope(args: {
     });
   } else if (args.openSnapshotPayload) {
     serverHash = openSnapshotFieldsHash({
-      open_position_ids: args.openSnapshotPayload.open_position_ids,
+      positions: args.openSnapshotPayload.positions,
+      pending_tickets: args.openSnapshotPayload.pending_tickets ?? [],
     });
   } else if (args.isOrderEvent && args.orderPayload) {
     serverHash = orderFieldsHash({
@@ -977,95 +978,290 @@ async function handlePositionModifyEvent(
   return NextResponse.json({ success: true, action: "sl_tp_modified", position_id: positionId }, { status: 200 });
 }
 
-// ── open_snapshot reconcile handler ────────────────────────────────────────────
+// ── open_snapshot full-mirror handler ───────────────────────────────────────────
 
-// EA v2.7.0 "open_snapshot": the EA sends the FULL set of position_ids it
-// currently sees open on the terminal. We force-close any trades row still
-// marked status='open' for THIS account whose position_id is not in that set —
-// these are orphans whose DEAL_ENTRY_OUT close was never received.
+// EA v2.7.1 "open_snapshot": the EA sends the COMPLETE set of currently-open
+// positions WITH detail plus the live pending ORDER tickets. We make the
+// journal's live state match the broker exactly, in this strict order:
+//   A) OPEN MISSING   — insert (or reopen a wrongly-closed) row for every open
+//                       position not currently mirrored as status='open'.
+//   B) REPAIR DRIFT   — for already-open rows, correct lot_size / SL / TP.
+//   C) CLOSE ORPHANS  — close any status='open' row whose position_id is not in
+//                       the broker's open set.
+//   D) CANCEL PENDING — cancel any status='pending' row whose order_ticket is
+//                       not in the broker's live pending set.
 //
 // Guards:
-//   • Only rows with status='open' are ever touched. Rows with status
-//     'pending' / 'cancelled' / 'closed' are never matched — pending limit
-//     orders are left intact.
-//   • Scoped strictly to (user_id, broker_account_id). If the token has not
-//     resolved a broker account we CANNOT scope to a single terminal's open
-//     set, so we close nothing (closing across all of a user's accounts would
-//     wrongly close opens belonging to other terminals).
-//   • An EMPTY open_position_ids array is honoured (close every open row for
-//     the account). This is safe ONLY because the EA guards the send with
-//     TERMINAL_CONNECTED — it never emits an empty snapshot while the terminal
-//     is disconnected, so an empty array genuinely means "zero open positions"
-//     rather than "the EA couldn't read the terminal".
+//   • Every query is scoped strictly to (user_id, broker_account_id). Without a
+//     resolved account we cannot scope to one terminal, so we no-op.
+//   • Each step only ever touches rows of the status it targets.
+//   • Reconstructed opens carry NO real deal/account snapshot, so stats columns
+//     (balance_at_open, equity_at_open, return_pct, pnl, swap, commission, and
+//     all close-only fields) are left NULL — mirroring the backfill guard.
+//   • The pending reconcile (D) runs ONLY when pending_tickets was provided; a
+//     missing field means "skip", never "cancel all".
+//   • An EMPTY positions[] is honoured (close every open row). Safe only because
+//     the EA guards the send with TERMINAL_CONNECTED.
 async function handleOpenSnapshot(
   supabase: SupabaseClient,
   payload: EaOpenSnapshotPayload,
   userId: string,
   brokerAccountId: string | null,
+  accountType: string | null,
 ): Promise<NextResponse> {
-  // position_id is TEXT in the DB; the schema already coerced every id to a
-  // digits-only string. De-dupe so the IN / count lists are minimal.
-  const incoming = Array.from(new Set(payload.open_position_ids));
-
-  // Safety: without a resolved account we cannot scope to one terminal's open
-  // set — never reconcile across all of a user's accounts.
+  // Safety: without a resolved account we cannot scope to one terminal's state —
+  // never reconcile across all of a user's accounts.
   if (!brokerAccountId) {
     return NextResponse.json(
-      { success: true, reconciled_closed: 0, kept_open: 0, ignored: "no_broker_account" },
+      {
+        success: true, opened: 0, repaired: 0,
+        reconciled_closed: 0, reconciled_cancelled: 0, kept_open: 0,
+        ignored: "no_broker_account",
+      },
       { status: 200 },
     );
   }
 
-  // Find the open rows for this account that are NOT in the broker's open set —
-  // these are the orphans to close. Rows with a NULL position_id are not
-  // matched by the negated IN filter (NULL NOT IN (...) is NULL), so manual
-  // open rows without a position_id are left untouched.
-  let staleQuery = supabase
+  // De-dupe positions by position_id (partial unique index guarantees ≤1 row
+  // per (user, position_id), so duplicates in the payload are noise).
+  const detailByPos = new Map<string, typeof payload.positions[number]>();
+  for (const p of payload.positions) {
+    if (!detailByPos.has(p.position_id)) detailByPos.set(p.position_id, p);
+  }
+  const incomingOpen = new Set(detailByPos.keys());
+  const incomingIds = [...incomingOpen];
+
+  const trustBadge =
+    accountType === "prop_firm" ? "prop_firm"
+    : accountType === "demo"    ? "demo"
+    : "auto_verified";
+
+  // sl/tp of 0 from MT5 means "unset" → store NULL.
+  const nz = (n: number): number | null => (n ? n : null);
+
+  let opened = 0;
+  let repaired = 0;
+  let reconciledClosed = 0;
+  let reconciledCancelled = 0;
+
+  // Current open rows for this account (drives B repair, C orphan-close).
+  const { data: openRowsData, error: openErr } = await supabase
     .from("trades")
-    .select("id, position_id")
+    .select("id, position_id, lot_size, stop_loss, take_profit")
     .eq("user_id", userId)
     .eq("broker_account_id", brokerAccountId)
     .eq("status", "open");
-  if (incoming.length > 0) {
-    // PostgREST IN list — ids are digits-only, so quoting is unnecessary, but
-    // wrap each in double quotes since position_id is a TEXT column.
-    staleQuery = staleQuery.not(
-      "position_id",
-      "in",
-      `(${incoming.map((id) => `"${id}"`).join(",")})`,
-    );
-  }
-
-  const { data: staleRows, error: staleErr } = await staleQuery;
-  if (staleErr) {
-    console.error("EA ingest: open_snapshot stale lookup failed", { code: staleErr.code, message: staleErr.message });
+  if (openErr) {
+    console.error("EA ingest: open_snapshot open lookup failed", { code: openErr.code, message: openErr.message });
     return NextResponse.json({ error: "Reconcile failed" }, { status: 500 });
   }
+  const openRows = (openRowsData ?? []) as Array<{
+    id: string; position_id: string | null;
+    lot_size: number | null; stop_loss: number | null; take_profit: number | null;
+  }>;
+  const openByPos = new Map<string, typeof openRows[number]>();
+  for (const r of openRows) if (r.position_id) openByPos.set(r.position_id, r);
 
-  const staleIds = (staleRows ?? []).map((r) => (r as { id: string }).id);
+  // Existing rows (ANY status) for the incoming position_ids — lets step A tell
+  // "reopen a wrongly-closed row" apart from "insert a brand-new row".
+  const existingByPos = new Map<string, { id: string; status: string | null }>();
+  if (incomingIds.length > 0) {
+    const { data: existingData, error: existErr } = await supabase
+      .from("trades")
+      .select("id, position_id, status")
+      .eq("user_id", userId)
+      .eq("broker_account_id", brokerAccountId)
+      .in("position_id", incomingIds);
+    if (existErr) {
+      console.error("EA ingest: open_snapshot existing lookup failed", { code: existErr.code, message: existErr.message });
+      return NextResponse.json({ error: "Reconcile failed" }, { status: 500 });
+    }
+    for (const r of (existingData ?? []) as Array<{ id: string; position_id: string | null; status: string | null }>) {
+      if (r.position_id) existingByPos.set(r.position_id, { id: r.id, status: r.status });
+    }
+  }
 
-  if (staleIds.length > 0) {
-    // Close strictly by the ids we just selected, re-asserting the guards in
-    // the WHERE so a concurrent write can never widen the set: same user,
-    // same account, still status='open'.
+  // ── A) OPEN MISSING ──────────────────────────────────────────────────────
+  for (const id of incomingIds) {
+    if (openByPos.has(id)) continue; // already open → handled by B
+    const p = detailByPos.get(id)!;
+    const direction = deriveEaDirection(p.type);
+    const existing = existingByPos.get(id);
+
+    if (existing) {
+      // Row exists but is not open (e.g. wrongly closed) → reopen it and clear
+      // every close-only field so stale exit data can't leak.
+      const { error: reopenErr } = await supabase
+        .from("trades")
+        .update({
+          status:      "open",
+          deal_entry:  "in",
+          order_status: "filled",
+          source:      "ea",
+          capture_source: "ea",
+          verified:    true,
+          lot_size:    p.lots,
+          entry_price: p.open_price,
+          open_time:   p.open_time || null,
+          direction:   direction ?? undefined,
+          pair:        p.symbol,
+          stop_loss:   nz(p.sl),
+          take_profit: nz(p.tp),
+          sl:          nz(p.sl),
+          tp:          nz(p.tp),
+          // clear close-only fields
+          exit_price:  null,
+          close_time:  null,
+          pnl:         null,
+          result:      null,
+          r_multiple:  null,
+          rr_ratio:    null,
+          return_pct:  null,
+        })
+        .eq("id", existing.id)
+        .eq("user_id", userId)
+        .eq("broker_account_id", brokerAccountId);
+      if (reopenErr) {
+        console.error("EA ingest: open_snapshot reopen failed", { code: reopenErr.code, message: reopenErr.message });
+        continue;
+      }
+      opened++;
+      await logEvent(supabase, {
+        trade_id:    existing.id,
+        user_id:     userId,
+        position_id: id,
+        event_type:  "snapshot_opened",
+        sl:          nz(p.sl),
+        tp:          nz(p.tp),
+        lots:        p.lots,
+        price:       p.open_price,
+        event_time:  p.open_time || null,
+        raw:         { reason: "open_snapshot", note: "reopened", source: "ea" },
+      });
+    } else {
+      // No row at all → insert a reconstructed open row. Stats columns LEFT
+      // NULL because there is no real deal/account snapshot behind it.
+      const row: Record<string, unknown> = {
+        user_id:           userId,
+        broker_account_id: brokerAccountId,
+        position_id:       id,
+        pair:              p.symbol,
+        direction:         direction ?? undefined,
+        lot_size:          p.lots,
+        entry_price:       p.open_price,
+        open_time:         p.open_time || null,
+        stop_loss:         nz(p.sl),
+        take_profit:       nz(p.tp),
+        sl:                nz(p.sl),
+        tp:                nz(p.tp),
+        status:            "open",
+        deal_entry:        "in",
+        order_status:      "filled",
+        source:            "ea",
+        capture_source:    "ea",
+        verified:          true,
+        auto_approved:     true,
+        core_fields_locked: true,
+        trust_badge:       trustBadge,
+        visibility:        "private",
+        result:            null,
+        // stats hygiene — reconstructed, no real deal: leave NULL
+        balance_at_open:   null,
+        equity_at_open:    null,
+        return_pct:        null,
+        pnl:               null,
+        swap:              null,
+        commission:        null,
+        exit_price:        null,
+        close_time:        null,
+        r_multiple:        null,
+        rr_ratio:          null,
+      };
+      const { data: inserted, error: insErr } = await supabase
+        .from("trades")
+        .insert(row)
+        .select("id")
+        .single();
+      if (insErr) {
+        console.error("EA ingest: open_snapshot insert failed", { code: insErr.code, message: insErr.message });
+        continue;
+      }
+      opened++;
+      await logEvent(supabase, {
+        trade_id:    inserted?.id ?? null,
+        user_id:     userId,
+        position_id: id,
+        event_type:  "snapshot_opened",
+        sl:          nz(p.sl),
+        tp:          nz(p.tp),
+        lots:        p.lots,
+        price:       p.open_price,
+        event_time:  p.open_time || null,
+        raw:         { reason: "open_snapshot", note: "inserted", source: "ea" },
+      });
+    }
+  }
+
+  // ── B) REPAIR DRIFT ──────────────────────────────────────────────────────
+  for (const id of incomingIds) {
+    const cur = openByPos.get(id);
+    if (!cur) continue; // not already-open → was handled by A
+    const p = detailByPos.get(id)!;
+    const wantSl = nz(p.sl);
+    const wantTp = nz(p.tp);
+    const lotsDrift = cur.lot_size !== p.lots;
+    const slDrift   = (cur.stop_loss ?? null)   !== wantSl;
+    const tpDrift   = (cur.take_profit ?? null) !== wantTp;
+    if (!lotsDrift && !slDrift && !tpDrift) continue; // no-op guard
+
+    const { error: repairErr } = await supabase
+      .from("trades")
+      .update({
+        lot_size:    p.lots,
+        stop_loss:   wantSl,
+        take_profit: wantTp,
+        sl:          wantSl,
+        tp:          wantTp,
+      })
+      .eq("id", cur.id)
+      .eq("user_id", userId)
+      .eq("broker_account_id", brokerAccountId)
+      .eq("status", "open");
+    if (repairErr) {
+      console.error("EA ingest: open_snapshot repair failed", { code: repairErr.code, message: repairErr.message });
+      continue;
+    }
+    repaired++;
+    await logEvent(supabase, {
+      trade_id:    cur.id,
+      user_id:     userId,
+      position_id: id,
+      event_type:  "snapshot_repaired",
+      sl:          wantSl,
+      tp:          wantTp,
+      lots:        p.lots,
+      raw:         { reason: "open_snapshot", lotsDrift, slDrift, tpDrift, source: "ea" },
+    });
+  }
+
+  // ── C) CLOSE ORPHANS ─────────────────────────────────────────────────────
+  // Any currently-open row whose position_id is NOT in the broker's open set.
+  const orphanRows = openRows.filter((r) => !r.position_id || !incomingOpen.has(r.position_id));
+  const orphanIds = orphanRows.map((r) => r.id);
+  if (orphanIds.length > 0) {
     const { error: closeErr } = await supabase
       .from("trades")
       .update({ status: "closed" })
-      .in("id", staleIds)
+      .in("id", orphanIds)
       .eq("user_id", userId)
       .eq("broker_account_id", brokerAccountId)
       .eq("status", "open");
     if (closeErr) {
-      console.error("EA ingest: open_snapshot close failed", { code: closeErr.code, message: closeErr.message });
+      console.error("EA ingest: open_snapshot orphan close failed", { code: closeErr.code, message: closeErr.message });
       return NextResponse.json({ error: "Reconcile failed" }, { status: 500 });
     }
-
-    // Log each reconcile-close to the lifecycle timeline. A distinct
-    // 'reconcile_closed' event_type keeps these out of the 0067 idempotent
-    // unique index's collision space with the normal 'closed' events. We have
-    // no deal data here (no price/pnl/close_time), so those stay null.
-    for (const row of (staleRows ?? [])) {
-      const r = row as { id: string; position_id: string | null };
+    reconciledClosed = orphanIds.length;
+    for (const r of orphanRows) {
       await logEvent(supabase, {
         trade_id:    r.id,
         user_id:     userId,
@@ -1076,7 +1272,54 @@ async function handleOpenSnapshot(
     }
   }
 
-  // kept_open = open rows that remain open because they matched the broker set.
+  // ── D) CANCEL STUCK PENDING ──────────────────────────────────────────────
+  // Only when pending_tickets was actually provided. Missing → skip entirely
+  // (never "cancel all"). Re-query pending rows now (after A reopens) so a row
+  // A just turned open is not mistaken for a stuck pending order.
+  if (payload.pending_tickets !== undefined) {
+    const incomingPending = new Set(payload.pending_tickets);
+    const { data: pendingData, error: pendErr } = await supabase
+      .from("trades")
+      .select("id, order_ticket, position_id")
+      .eq("user_id", userId)
+      .eq("broker_account_id", brokerAccountId)
+      .eq("status", "pending")
+      .not("order_ticket", "is", null);
+    if (pendErr) {
+      console.error("EA ingest: open_snapshot pending lookup failed", { code: pendErr.code, message: pendErr.message });
+      return NextResponse.json({ error: "Reconcile failed" }, { status: 500 });
+    }
+    const stalePending = (pendingData ?? []).filter(
+      (r) => !incomingPending.has((r as { order_ticket: string }).order_ticket),
+    ) as Array<{ id: string; order_ticket: string; position_id: string | null }>;
+    const stalePendingIds = stalePending.map((r) => r.id);
+    if (stalePendingIds.length > 0) {
+      const { error: cancelErr } = await supabase
+        .from("trades")
+        .update({ status: "cancelled", order_status: "cancelled" })
+        .in("id", stalePendingIds)
+        .eq("user_id", userId)
+        .eq("broker_account_id", brokerAccountId)
+        .eq("status", "pending");
+      if (cancelErr) {
+        console.error("EA ingest: open_snapshot pending cancel failed", { code: cancelErr.code, message: cancelErr.message });
+        return NextResponse.json({ error: "Reconcile failed" }, { status: 500 });
+      }
+      reconciledCancelled = stalePendingIds.length;
+      for (const r of stalePending) {
+        await logEvent(supabase, {
+          trade_id:     r.id,
+          user_id:      userId,
+          position_id:  r.position_id ?? null,
+          order_ticket: r.order_ticket,
+          event_type:   "reconcile_cancelled",
+          raw:          { reason: "open_snapshot", source: "ea" },
+        });
+      }
+    }
+  }
+
+  // kept_open = open rows remaining for this account after the mirror.
   const { count: keptOpen } = await supabase
     .from("trades")
     .select("id", { count: "exact", head: true })
@@ -1085,7 +1328,14 @@ async function handleOpenSnapshot(
     .eq("status", "open");
 
   return NextResponse.json(
-    { success: true, reconciled_closed: staleIds.length, kept_open: keptOpen ?? 0 },
+    {
+      success: true,
+      opened,
+      repaired,
+      reconciled_closed: reconciledClosed,
+      reconciled_cancelled: reconciledCancelled,
+      kept_open: keptOpen ?? 0,
+    },
     { status: 200 },
   );
 }
@@ -1353,7 +1603,7 @@ export async function POST(req: NextRequest) {
   if (isPositionModify && positionModifyPayload) {
     finalRes = await handlePositionModifyEvent(supabase, positionModifyPayload, userId);
   } else if (isOpenSnapshot && openSnapshotPayload) {
-    finalRes = await handleOpenSnapshot(supabase, openSnapshotPayload, userId, brokerAccountId);
+    finalRes = await handleOpenSnapshot(supabase, openSnapshotPayload, userId, brokerAccountId, accountType);
   } else if (isOrderEvent && orderPayload) {
     finalRes = await handleOrderEvent(supabase, orderPayload, userId, tokenId, brokerAccountId, accountType);
   } else if (dealPayload) {

@@ -170,28 +170,46 @@ export const eaPositionModifySchema = z.object({
 export type EaPositionModifyPayload = z.infer<typeof eaPositionModifySchema>;
 
 // ── eaOpenSnapshotSchema ────────────────────────────────────────────────────────
-// EA v2.7.0 "open_snapshot" reconcile event. The EA sends the FULL set of
-// position_ids it currently sees open on the terminal; the server force-closes
-// any trades row still marked status='open' for the account whose position_id is
-// NOT in this set (orphans whose close deal was never received).
+// EA v2.7.1 "open_snapshot" full-mirror event. The EA sends the COMPLETE set of
+// positions it currently sees open on the terminal WITH detail, plus the live
+// pending ORDER tickets. The server makes the journal's live state match the
+// broker exactly: OPEN missing positions, REPAIR drifted lots/SL/TP, CLOSE
+// orphans, and CANCEL stuck pending rows. An EMPTY positions[] is valid (an
+// account can legitimately have zero open positions — the EA only sends while
+// TERMINAL_CONNECTED).
 //
-// open_position_ids: array of MT5 position identifiers — digits only, but JSON
-// may send them as numbers or strings, so each is coerced to string and matched
-// against the same digits-only rule used for position_id elsewhere. An EMPTY
-// array is valid (an account can legitimately have zero open positions).
-//
-// Field_hash recipe (LF-separated, no trailing newline):
+// Field_hash recipe (LF-separated, no trailing newline) — see
+// openSnapshotFieldsHash() in lib/ea/sig.ts:
 //   event_type=open_snapshot
-//   open_position_ids=<csv>
-// where <csv> is the ids joined by "," in ASCENDING NUMERIC order, no spaces
-// ("" when none). See openSnapshotFieldsHash() in lib/ea/sig.ts.
+//   position=<id>|<SYM>|<dir>|<lots>|<open>|<sl>|<tp>|<openTimeISO>   (one per position)
+//   pending=<ticket csv>
 const eaSnapshotPositionId = z.coerce
   .string()
   .regex(/^\d+$/, "position_id must be digits only");
 
+const eaSnapshotPosition = z.object({
+  position_id: eaSnapshotPositionId,
+  symbol: z
+    .string()
+    .min(1)
+    .max(32)
+    .regex(/^[A-Za-z0-9$.#_-]{1,32}$/, "symbol contains invalid characters")
+    .transform((s) => s.toUpperCase()),
+  type: z.enum(["buy", "sell"]),
+  lots:       z.coerce.number(),
+  open_price: z.coerce.number(),
+  sl:         z.coerce.number(),
+  tp:         z.coerce.number(),
+  // ISO8601 broker-clock open time; empty allowed. Hashed verbatim.
+  open_time:  z.string().max(40).default(""),
+});
+
 export const eaOpenSnapshotSchema = z.object({
   event_type: z.literal("open_snapshot"),
-  open_position_ids: z.array(eaSnapshotPositionId).max(5000),
+  positions: z.array(eaSnapshotPosition).max(5000),
+  // Optional so a missing field means "skip the pending reconcile" (never
+  // "cancel all"); v2.7.1 always sends it (possibly an empty array).
+  pending_tickets: z.array(eaSnapshotPositionId).max(5000).optional(),
   ...accountPassthrough,
 });
 
