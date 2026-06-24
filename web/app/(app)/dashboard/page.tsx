@@ -11,6 +11,8 @@ import { buildActivationSummary } from "@/lib/activation";
 import Banners from "./Banners";
 import ActivationPanel from "./ActivationPanel";
 import OpenPositionsPanel from "@/components/dashboard/OpenPositionsPanel";
+import LiveFollowingStrip from "@/components/dashboard/LiveFollowingStrip";
+import { getFollowingOpenPositionsAction } from "@/lib/actions/feed";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +33,7 @@ export default async function DashboardPage() {
     { data: profileData },
     { count: brokerAccountCountRaw },
     { count: eaTokenCountRaw },
+    followingOpenPositions,
   ] = await Promise.all([
     sb.from("trades").select("*").order("created_at", { ascending: false }),
     sb.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
@@ -43,6 +46,7 @@ export default async function DashboardPage() {
       .select("id", { count: "exact", head: true })
       .eq("user_id", user!.id)
       .is("revoked_at", null),
+    getFollowingOpenPositionsAction(),
   ]);
 
   const brokerAccountCount = brokerAccountCountRaw ?? 0;
@@ -180,6 +184,9 @@ export default async function DashboardPage() {
 
       {/* Open Positions Panel */}
       <OpenPositionsPanel accountId={activeId || null} />
+
+      {/* Live open positions from followed traders */}
+      <LiveFollowingStrip initial={followingOpenPositions} />
 
       <Section
         title="Recent trades"

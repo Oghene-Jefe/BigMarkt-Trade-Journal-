@@ -57,3 +57,43 @@ export async function getFollowingFeedAction(
     leader_avatar_url: leader_avatar_path ? signed[leader_avatar_path] ?? null : null,
   }));
 }
+
+export type OpenPosition = {
+  trade_id: string;
+  user_id: string;
+  pair: string | null;
+  direction: string | null;
+  pnl: number | null;
+  trust_badge: string | null;
+  opened_at: string;
+  leader_display_name: string | null;
+  leader_username: string | null;
+  leader_avatar_url: string | null;
+};
+
+type OpenPositionRow = Omit<OpenPosition, "leader_avatar_url"> & {
+  leader_avatar_path: string | null;
+};
+
+export async function getFollowingOpenPositionsAction(): Promise<OpenPosition[]> {
+  await requireUser();
+
+  const sb = await supabaseServer();
+  const { data, error } = await sb.rpc("get_following_open_positions");
+
+  if (error) {
+    console.error("get_following_open_positions failed", error);
+    return [];
+  }
+
+  const rows = (data ?? []) as OpenPositionRow[];
+  const paths = rows
+    .map((r) => r.leader_avatar_path)
+    .filter((p): p is string => Boolean(p));
+  const signed = await signAvatars(paths);
+
+  return rows.map(({ leader_avatar_path, ...row }) => ({
+    ...row,
+    leader_avatar_url: leader_avatar_path ? signed[leader_avatar_path] ?? null : null,
+  }));
+}
