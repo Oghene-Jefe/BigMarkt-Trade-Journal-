@@ -8,6 +8,7 @@ import Referrals from "./Referrals";
 import ShareableLink from "@/components/ShareableLink";
 import { FollowStats } from "@/components/FollowListModal";
 import { fmtMoney, fmtDate } from "@/lib/format";
+import BackfillButton from "./BackfillButton";
 
 function refCodeFromId(id: string): string {
   return Buffer.from(id, "utf8").toString("base64").replace(/=/g, "").substring(0, 12);
@@ -19,11 +20,19 @@ export default async function ProfilePage() {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
   const refCode = refCodeFromId(user!.id);
-  const [{ data: profileData }, { data: resetsData }, refStats, { data: followCounts }] = await Promise.all([
+  const [{ data: profileData }, { data: resetsData }, refStats, { data: followCounts }, { count: privateVerifiedCount }] = await Promise.all([
     sb.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
     sb.from("balance_resets").select("*").order("created_at", { ascending: false }).limit(20),
     sb.rpc("get_referral_stats", { ref_code: refCode }),
     sb.rpc("get_follow_counts", { profile_id: user!.id }),
+    sb.from("trades")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user!.id)
+      .eq("source", "ea")
+      .eq("verified", true)
+      .eq("trust_badge", "auto_verified")
+      .eq("status", "closed")
+      .eq("visibility", "private"),
   ]);
 
   const fc = (followCounts as { followers?: number; following?: number }) ?? {};
@@ -59,6 +68,10 @@ export default async function ProfilePage() {
       />
 
       <ProfileForm profile={profile} avatarUrl={avatarUrl} email={user!.email ?? ""} />
+
+      {profile?.auto_share_verified && (privateVerifiedCount ?? 0) > 0 ? (
+        <BackfillButton count={privateVerifiedCount ?? 0} />
+      ) : null}
 
       {profile ? (
         <ShareableLink username={profile.username ?? null} profileId={profile.id} />

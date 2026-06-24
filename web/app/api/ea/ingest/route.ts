@@ -560,6 +560,7 @@ async function handleDealEvent(
   brokerAccountId: string | null,
   accountType: string | null,
   acct: AccountSnapshot,
+  autoShareVerified: boolean,
 ): Promise<{ res: NextResponse; action: string; positionId: string | null; resultStatus: "open" | "closed" }> {
   const dealEntry  = payload.deal_entry;
   const positionId = payload.position_id ?? null;
@@ -638,6 +639,12 @@ async function handleDealEvent(
       if ("error" in built) {
         return { res: NextResponse.json({ error: "Invalid trade payload" }, { status: 400 }), action: "error", positionId, resultStatus: "open" };
       }
+      // Live, non-demo/prop trades from users who opted in are shared with followers.
+      const isLiveAccount = accountType !== "demo" && accountType !== "prop_firm";
+      const openVisibility =
+        !payload.backfill && isLiveAccount && autoShareVerified
+          ? "followers_only"
+          : "private";
       const openRow = {
         ...built.row,
         position_id: positionId,
@@ -647,7 +654,7 @@ async function handleDealEvent(
         status:      "open",
         source:      "ea",
         verified:    true,
-        visibility:  "private",
+        visibility:  openVisibility,
         // Account snapshot at fill (EA v2.5.0 passthrough). Null for
         // backfilled deals — see balAtOpen/eqAtOpen above.
         balance_at_open:  balAtOpen,
@@ -1595,6 +1602,19 @@ export async function POST(req: NextRequest) {
     if (!nonceRes.ok) return nonceRes.res;
   }
 
+  // 9b. Profile flag — only needed for deal ENTRY_IN on live accounts.
+  //     Lightweight single-column read; skipped entirely for order/snapshot events.
+  let autoShareVerified = false;
+  if (dealPayload && dealPayload.deal_entry === "in" && !dealPayload.backfill
+      && accountType !== "demo" && accountType !== "prop_firm") {
+    const { data: profileFlag } = await supabase
+      .from("profiles")
+      .select("auto_share_verified")
+      .eq("id", userId)
+      .maybeSingle();
+    autoShareVerified = profileFlag?.auto_share_verified === true;
+  }
+
   // 10. Dispatch to the appropriate handler
   let finalRes: NextResponse;
   let positionId: string | null = null;
@@ -1607,7 +1627,7 @@ export async function POST(req: NextRequest) {
   } else if (isOrderEvent && orderPayload) {
     finalRes = await handleOrderEvent(supabase, orderPayload, userId, tokenId, brokerAccountId, accountType);
   } else if (dealPayload) {
-    const result = await handleDealEvent(supabase, dealPayload, userId, tokenId, brokerAccountId, accountType, acct);
+    const result = await handleDealEvent(supabase, dealPayload, userId, tokenId, brokerAccountId, accountType, acct, autoShareVerified);
     finalRes   = result.res;
     positionId = result.positionId;
     resultStatus = result.resultStatus;

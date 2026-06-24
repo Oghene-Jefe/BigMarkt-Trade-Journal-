@@ -179,6 +179,21 @@ export default function ProfileForm({
         <span className="mt-1 block text-xs text-muted">Used to compute growth %. Required for the quality leaderboard.</span>
       </label>
 
+      <label className="flex cursor-pointer items-start gap-3 rounded-md border border-white/10 bg-black/20 px-4 py-3 text-sm">
+        <input
+          type="checkbox"
+          name="auto_share_verified"
+          defaultChecked={!!profile?.auto_share_verified}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-gold"
+        />
+        <div>
+          <span className="font-medium text-white">Auto-share verified trades with followers</span>
+          <span className="mt-0.5 block text-xs text-muted">
+            When enabled, your verified EA trades will be visible to your followers (but not the general public).
+          </span>
+        </div>
+      </label>
+
       <div className="space-y-2">
         <span className="block text-sm text-muted">Avatar</span>
         <CompressedFileInput

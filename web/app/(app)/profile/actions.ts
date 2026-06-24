@@ -18,6 +18,7 @@ const updateSchema = z.object({
   journal_mode: journalMode,
   username: usernameSchema.nullable().optional(),
   starting_balance: z.number().finite().nonnegative().nullable(),
+  auto_share_verified: z.boolean(),
 });
 
 async function requireUser() {
@@ -39,6 +40,7 @@ export async function updateProfileAction(_: ProfileActionState, fd: FormData): 
     journal_mode: fd.get("journal_mode") ?? "manual",
     username: fd.get("username") ? String(fd.get("username")).toLowerCase().trim() : null,
     starting_balance: Number.isFinite(startBal) ? startBal : null,
+    auto_share_verified: fd.get("auto_share_verified") === "on",
   });
   if (!parsed.success) return { error: "Check your inputs." };
 
@@ -85,4 +87,24 @@ export async function updateProfileAction(_: ProfileActionState, fd: FormData): 
   revalidatePath("/dashboard");
   revalidatePath("/leaderboard");
   return { ok: "Profile saved." };
+}
+
+// One-shot backfill: flip all private verified closed EA trades to followers_only.
+// Idempotent — the WHERE guard means re-running only touches still-private rows.
+export async function backfillVerifiedVisibilityAction(): Promise<{ ok?: string; error?: string }> {
+  const { sb, user } = await requireUser();
+  const { error } = await sb
+    .from("trades")
+    .update({ visibility: "followers_only" })
+    .eq("user_id", user.id)
+    .eq("source", "ea")
+    .eq("verified", true)
+    .eq("trust_badge", "auto_verified")
+    .eq("status", "closed")
+    .eq("visibility", "private");
+
+  if (error) return { error: safeDbError(error, "Couldn't share trades. Try again.", "backfill_visibility") };
+  revalidatePath("/profile");
+  revalidatePath("/feed");
+  return { ok: "Done — your verified trades are now visible to your followers." };
 }

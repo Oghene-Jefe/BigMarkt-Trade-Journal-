@@ -138,6 +138,7 @@ export type ProfileRow = {
   journal_mode: JournalMode;
   username: string | null;
   tos_automation_accepted_at: string | null;
+  auto_share_verified: boolean;
   created_at: string;
   updated_at: string;
 };
