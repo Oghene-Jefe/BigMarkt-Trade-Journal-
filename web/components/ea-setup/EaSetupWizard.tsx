@@ -5,6 +5,12 @@ import { Download, CheckCircle2, ChevronLeft, ChevronRight, RefreshCw } from "lu
 import type { EaTokenRow, BrokerAccountOption, WsStatus } from "@/app/(app)/ea-setup/page";
 import { Button, buttonClasses } from "@/components/ui/Button";
 
+// Single source of truth for the published EA version. Bump this one line on a
+// release — the download links and on-screen labels all derive from it.
+const EA_VERSION = "2.7.1";
+const EA_EX5_PATH = `/downloads/BigMarkt_EA_v${EA_VERSION}.ex5`;
+const EA_MQL_PATH = `/downloads/BigMarkt_EA_v${EA_VERSION}.mq5`;
+
 // ─── Step indicator ──────────────────────────────────────────────────────────
 
 function StepIndicator({ current, total, completed }: { current: number; total: number; completed: Set<number> }) {
@@ -109,12 +115,18 @@ function StepDownload() {
       <p className="text-sm text-muted">
         Click to download the compiled EA file. No MetaEditor or coding required.
       </p>
-      <a href="/downloads/BigMarkt_EA_v2.5.1.ex5" download className={buttonClasses()}>
-        <Download size={14} aria-hidden />
-        <span>Download BigMarkt EA v2.5.1</span>
-      </a>
+      <div className="flex flex-wrap items-center gap-3">
+        <a href={EA_EX5_PATH} download className={buttonClasses()}>
+          <Download size={14} aria-hidden />
+          <span>Download EA (MT5) — v{EA_VERSION}</span>
+        </a>
+        <a href={EA_MQL_PATH} download className="text-xs text-muted underline hover:text-white">
+          View source (.mq5)
+        </a>
+      </div>
       <p className="text-xs text-muted">
-        This file works on any MT5 terminal — demo or live.
+        This file works on any MT5 terminal — demo or live. Current version: {EA_VERSION}.
+        The <Mono>.mq5</Mono> source is provided for advanced users and transparency.
       </p>
     </div>
   );
@@ -129,7 +141,7 @@ function StepInstall() {
         {[
           <>Open MT5 and click <em>File → Open Data Folder</em></>,
           <>Navigate to <Mono>MQL5 → Experts</Mono></>,
-          <>Drag and drop <Mono>BigMarkt_EA_v2.5.1.ex5</Mono> into that folder</>,
+          <>Drag and drop <Mono>{`BigMarkt_EA_v${EA_VERSION}.ex5`}</Mono> into that folder</>,
           <>Restart MT5 or press <Mono>F5</Mono> to refresh the Navigator panel</>,
           <>Find <Mono>BigMarkt EA</Mono> under <em>Expert Advisors</em> in the Navigator</>,
         ].map((step, i) => (
