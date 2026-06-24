@@ -5,7 +5,8 @@ import { Info } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signAvatars } from "@/lib/storage";
 import { PageHeader, EmptyState } from "@/components/ui";
-import type { ScoreTier } from "@/lib/types";
+import type { ScoreTier, Subscription } from "@/lib/types";
+import FollowButton from "@/components/FollowButton";
 
 export const dynamic = "force-dynamic";
 
@@ -90,10 +91,10 @@ export default async function LeaderboardPage({
   const tab: Tab = VALID_TABS.includes(sp.tab as Tab) ? (sp.tab as Tab) : "all";
 
   const sb = await supabaseServer();
-  const { data, error } = await sb.rpc("get_leaderboard_scores", {
-    p_tier: tab,
-    p_limit: 50,
-  });
+  const [{ data, error }, { data: { user } }] = await Promise.all([
+    sb.rpc("get_leaderboard_scores", { p_tier: tab, p_limit: 50 }),
+    sb.auth.getUser(),
+  ]);
   // Audit N-H3: previously the page rendered `error.message` directly to
   // the user, leaking the get_leaderboard_scores RPC's PostgREST error
   // shape (table names, RLS-policy names). Log server-side; show a
@@ -102,6 +103,23 @@ export default async function LeaderboardPage({
     console.error("[leaderboard_rpc]", { code: error.code, message: error.message });
   }
   const rows = (data ?? []) as LeaderboardScoreEntry[];
+  const currentUserId = user?.id ?? null;
+
+  // Batch-fetch existing follows for all leader cards in one query.
+  const subMap = new Map<string, Subscription>();
+  if (currentUserId && rows.length > 0) {
+    const leaderIds = [...new Set(rows.map((r) => r.user_id))];
+    const { data: subRows } = await sb
+      .from("subscriptions")
+      .select("*")
+      .eq("follower_id", currentUserId)
+      .in("leader_id", leaderIds)
+      .neq("status", "cancelled");
+    for (const s of (subRows ?? []) as Subscription[]) {
+      subMap.set(s.leader_id, s);
+    }
+  }
+
   const paths = rows.map((r) => r.avatar_path).filter((p): p is string => !!p);
   const avatars = await signAvatars(paths);
 
@@ -235,7 +253,13 @@ export default async function LeaderboardPage({
                 </div>
 
                 {/* Footer */}
-                <div className="mt-auto flex items-center justify-end">
+                <div className="mt-auto flex items-center justify-between gap-2">
+                  <FollowButton
+                    leaderId={r.user_id}
+                    leaderUsername={r.username}
+                    currentUserId={currentUserId}
+                    existingSubscription={subMap.get(r.user_id) ?? null}
+                  />
                   <span className="text-[10px] text-muted">
                     {fmtRelative(r.last_scored_at)}
                   </span>
