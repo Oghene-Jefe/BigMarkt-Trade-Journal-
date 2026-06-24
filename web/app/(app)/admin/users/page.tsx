@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin";
+import { fmtMoney } from "@/lib/format";
 import { banUserAction, unbanUserAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -86,16 +87,18 @@ export default async function AdminUsersPage({
   const total = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  // Per-user trade counts via a single rollup query.
+  // Per-user trade counts + P&L via a single rollup query.
   const ids = users.map((u) => u.id);
   const tradeCountMap = new Map<string, number>();
+  const tradePnlMap = new Map<string, number>();
   if (ids.length > 0) {
     const { data: tradeRows } = await sb
       .from("trades")
-      .select("user_id")
+      .select("user_id, pnl")
       .in("user_id", ids);
-    for (const r of (tradeRows ?? []) as { user_id: string }[]) {
+    for (const r of (tradeRows ?? []) as { user_id: string; pnl: number | null }[]) {
       tradeCountMap.set(r.user_id, (tradeCountMap.get(r.user_id) ?? 0) + 1);
+      tradePnlMap.set(r.user_id, (tradePnlMap.get(r.user_id) ?? 0) + (r.pnl ?? 0));
     }
   }
 
@@ -154,6 +157,7 @@ export default async function AdminUsersPage({
               <th className="px-3 py-2 text-left">User</th>
               <th className="px-3 py-2 text-left">Email</th>
               <th className="px-3 py-2 text-right">Trades</th>
+              <th className="px-3 py-2 text-right">P&amp;L</th>
               <th className="px-3 py-2 text-left">Joined</th>
               <th className="px-3 py-2 text-left">Status</th>
               <th className="px-3 py-2 text-right">Actions</th>
@@ -162,7 +166,7 @@ export default async function AdminUsersPage({
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-6 text-center text-sm text-muted">
+                <td colSpan={8} className="p-6 text-center text-sm text-muted">
                   No users match.
                 </td>
               </tr>
@@ -190,6 +194,17 @@ export default async function AdminUsersPage({
                     <td className="px-3 py-2 text-xs text-muted">{u.email ?? "—"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">
                       {tradeCountMap.get(u.id) ?? 0}
+                    </td>
+                    <td
+                      className={`px-3 py-2 text-right tabular-nums ${
+                        (tradePnlMap.get(u.id) ?? 0) > 0
+                          ? "text-win"
+                          : (tradePnlMap.get(u.id) ?? 0) < 0
+                            ? "text-loss"
+                            : "text-muted"
+                      }`}
+                    >
+                      {fmtMoney(tradePnlMap.get(u.id) ?? 0)}
                     </td>
                     <td className="px-3 py-2 text-xs text-muted">{fmtDate(u.created_at)}</td>
                     <td className="px-3 py-2">

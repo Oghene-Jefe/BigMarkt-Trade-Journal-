@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin";
+import { fmtMoney, fmtDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,38 @@ async function safeCount(
   const { count, error } = await q;
   if (error) return 0;
   return count ?? 0;
+}
+
+type SignupRow = {
+  id: string;
+  email: string | null;
+  name: string | null;
+  source: string | null;
+  visibility: string | null;
+  created_at: string | null;
+};
+
+type RecentTradeRow = {
+  id: string;
+  user_id: string;
+  user_email: string | null;
+  user_name: string | null;
+  pair: string | null;
+  direction: string | null;
+  result: string | null;
+  pnl: number | null;
+  created_at: string | null;
+};
+
+type TopPairRow = {
+  pair: string | null;
+  trade_count: number | null;
+};
+
+function displayName(name: string | null, email: string | null): string {
+  if (name && name.trim()) return name;
+  if (email) return email.split("@")[0];
+  return "—";
 }
 
 export default async function AdminPage() {
@@ -80,6 +113,26 @@ export default async function AdminPage() {
 
   const winRate = closedCount > 0 ? Math.round((winCount / closedCount) * 100) : 0;
   const lastUpdated = new Date().toLocaleString();
+
+  // Admin-only RPCs (each SECURITY DEFINER + is_admin gated). Fetched
+  // independently so one failing section never throws the whole page —
+  // defense-in-depth, mirroring the sb.rpc(...) pattern in lib/admin.ts.
+  const [signupsRes, recentTradesRes, topPairsRes] = await Promise.all([
+    sb.rpc("admin_recent_signups", { lim: 10 }),
+    sb.rpc("admin_recent_trades", { lim: 10 }),
+    sb.rpc("admin_top_pairs", { lim: 7 }),
+  ]);
+
+  const signups = (signupsRes.data ?? []) as SignupRow[];
+  const signupsError = signupsRes.error;
+  const recentTrades = (recentTradesRes.data ?? []) as RecentTradeRow[];
+  const recentTradesError = recentTradesRes.error;
+  const topPairs = (topPairsRes.data ?? []) as TopPairRow[];
+  const topPairsError = topPairsRes.error;
+  const maxPairCount = topPairs.reduce(
+    (m, p) => Math.max(m, p.trade_count ?? 0),
+    0,
+  );
 
   return (
     <div className="space-y-8">
@@ -146,6 +199,136 @@ export default async function AdminPage() {
             desc="Send announcements to all users or a single user."
           />
         </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="border-b border-white/10 pb-2 text-sm font-medium text-white">
+          Recent signups
+        </h2>
+        {signupsError ? (
+          <p className="text-xs text-loss">Couldn&apos;t load recent signups.</p>
+        ) : signups.length === 0 ? (
+          <p className="text-xs text-muted">No signups yet.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-panel">
+            <table className="w-full text-sm">
+              <thead className="bg-black/30 text-xs uppercase tracking-wider text-muted">
+                <tr>
+                  <th className="px-3 py-2 text-left">Name</th>
+                  <th className="px-3 py-2 text-left">Email</th>
+                  <th className="px-3 py-2 text-left">Source</th>
+                  <th className="px-3 py-2 text-left">Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                {signups.map((s) => (
+                  <tr key={s.id} className="border-t border-white/5">
+                    <td className="px-3 py-2 font-medium text-white">
+                      {displayName(s.name, s.email)}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted">{s.email ?? "—"}</td>
+                    <td className="px-3 py-2 text-xs text-muted">{s.source ?? "—"}</td>
+                    <td className="px-3 py-2 text-xs text-muted">{fmtDate(s.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="border-b border-white/10 pb-2 text-sm font-medium text-white">
+          Recent trades
+        </h2>
+        {recentTradesError ? (
+          <p className="text-xs text-loss">Couldn&apos;t load recent trades.</p>
+        ) : recentTrades.length === 0 ? (
+          <p className="text-xs text-muted">No trades yet.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-panel">
+            <table className="w-full text-sm">
+              <thead className="bg-black/30 text-xs uppercase tracking-wider text-muted">
+                <tr>
+                  <th className="px-3 py-2 text-left">User</th>
+                  <th className="px-3 py-2 text-left">Pair</th>
+                  <th className="px-3 py-2 text-left">Direction</th>
+                  <th className="px-3 py-2 text-left">Result</th>
+                  <th className="px-3 py-2 text-right">P&amp;L</th>
+                  <th className="px-3 py-2 text-left">When</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentTrades.map((t) => (
+                  <tr key={t.id} className="border-t border-white/5">
+                    <td className="px-3 py-2 font-medium text-white">
+                      {displayName(t.user_name, t.user_email)}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted">{t.pair ?? "—"}</td>
+                    <td className="px-3 py-2 text-xs uppercase text-muted">
+                      {t.direction ?? "—"}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`text-xs uppercase ${
+                          t.result === "WIN"
+                            ? "text-win"
+                            : t.result === "LOSS"
+                              ? "text-loss"
+                              : "text-muted"
+                        }`}
+                      >
+                        {t.result ?? "—"}
+                      </span>
+                    </td>
+                    <td
+                      className={`px-3 py-2 text-right tabular-nums ${
+                        (t.pnl ?? 0) >= 0 ? "text-win" : "text-loss"
+                      }`}
+                    >
+                      {fmtMoney(t.pnl)}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-muted">{fmtDate(t.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="border-b border-white/10 pb-2 text-sm font-medium text-white">
+          Top pairs
+        </h2>
+        {topPairsError ? (
+          <p className="text-xs text-loss">Couldn&apos;t load top pairs.</p>
+        ) : topPairs.length === 0 ? (
+          <p className="text-xs text-muted">No pairs yet.</p>
+        ) : (
+          <div className="space-y-2 rounded-lg border border-white/10 bg-panel p-4">
+            {topPairs.map((p, i) => {
+              const count = p.trade_count ?? 0;
+              const pct = maxPairCount > 0 ? (count / maxPairCount) * 100 : 0;
+              return (
+                <div key={`${p.pair ?? "unknown"}-${i}`} className="flex items-center gap-3">
+                  <span className="w-24 shrink-0 text-sm text-white">
+                    {p.pair ?? "—"}
+                  </span>
+                  <div className="h-2 flex-1 overflow-hidden rounded bg-white/5">
+                    <div
+                      className="h-full rounded bg-gold"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="w-10 shrink-0 text-right text-xs tabular-nums text-muted">
+                    {count}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
     </div>
   );
