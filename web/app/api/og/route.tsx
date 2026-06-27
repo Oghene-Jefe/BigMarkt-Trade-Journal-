@@ -11,60 +11,68 @@ export async function GET(request: NextRequest) {
   const wr = searchParams.get("wr") ?? "0";
 
   const winRate = parseFloat(wr);
-  const wrDisplay = Number.isFinite(winRate) ? `${winRate.toFixed(1)}%` : "—";
+  const wrDisplay = Number.isFinite(winRate) ? `${winRate.toFixed(1)}%` : "0.0%";
   const wrColor = winRate >= 50 ? "#4ade80" : "#f87171";
 
   return new ImageResponse(
     (
       <div
         style={{
-          width: "1200px",
-          height: "630px",
+          width: 1200,
+          height: 630,
           display: "flex",
           flexDirection: "column",
           backgroundColor: "#0a0a0a",
           fontFamily: "sans-serif",
         }}
       >
-        {/* Gold top bar — flex child, no absolute positioning */}
-        <div style={{ width: "1200px", height: "4px", backgroundColor: "#D4AF37", display: "flex" }} />
+        {/* Gold top bar */}
+        <div
+          style={{
+            display: "flex",
+            width: 1200,
+            height: 4,
+            backgroundColor: "#D4AF37",
+          }}
+        />
 
-        {/* Main content area */}
+        {/* Main content: logo row, name section, footer stacked vertically */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             flexGrow: 1,
-            padding: "48px 60px 40px 60px",
+            paddingTop: 48,
+            paddingBottom: 40,
+            paddingLeft: 60,
+            paddingRight: 60,
           }}
         >
           {/* Logo row */}
-          <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
             <span
               style={{
-                fontSize: "20px",
+                fontSize: 20,
                 fontWeight: 700,
                 color: "#D4AF37",
-                textTransform: "uppercase",
-                letterSpacing: "2px",
+                letterSpacing: 2,
               }}
             >
-              BigMarkt
+              BIGMARKT
             </span>
             <span
               style={{
-                fontSize: "12px",
+                fontSize: 12,
                 color: "#555555",
-                textTransform: "uppercase",
-                letterSpacing: "2px",
-                marginLeft: "12px",
+                letterSpacing: 2,
+                marginLeft: 12,
               }}
             >
-              Verified Trading Journal
+              VERIFIED TRADING JOURNAL
             </span>
           </div>
 
-          {/* Trader name */}
+          {/* Spacer + name + username + stats */}
           <div
             style={{
               display: "flex",
@@ -73,63 +81,53 @@ export async function GET(request: NextRequest) {
               justifyContent: "center",
             }}
           >
+            {/* Trader name */}
             <div
               style={{
-                fontSize: "62px",
-                fontWeight: 800,
+                display: "flex",
+                fontSize: 62,
+                fontWeight: 700,
                 color: "#ffffff",
-                lineHeight: "1.05",
+                lineHeight: 1,
               }}
             >
               {name}
             </div>
 
-            {username ? (
-              <div
-                style={{
-                  fontSize: "22px",
-                  color: "#D4AF37",
-                  marginTop: "10px",
-                }}
-              >
-                @{username}
-              </div>
-            ) : null}
+            {/* Username */}
+            <div
+              style={{
+                display: "flex",
+                fontSize: 22,
+                color: "#D4AF37",
+                marginTop: 10,
+              }}
+            >
+              {username ? `@${username}` : " "}
+            </div>
 
-            {/* Stat boxes */}
-            <div style={{ display: "flex", marginTop: "36px" }}>
+            {/* Stat boxes row */}
+            <div style={{ display: "flex", flexDirection: "row", marginTop: 36 }}>
               {/* Trades box */}
               <div
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  borderWidth: "1px",
+                  borderWidth: 1,
                   borderStyle: "solid",
                   borderColor: "#2a2a2a",
                   backgroundColor: "#111111",
-                  padding: "18px 28px",
-                  marginRight: "16px",
+                  paddingTop: 18,
+                  paddingBottom: 18,
+                  paddingLeft: 28,
+                  paddingRight: 28,
+                  marginRight: 16,
                 }}
               >
-                <span
-                  style={{
-                    fontSize: "11px",
-                    color: "#666666",
-                    textTransform: "uppercase",
-                    letterSpacing: "2px",
-                    marginBottom: "8px",
-                  }}
-                >
-                  Trades
+                <span style={{ fontSize: 11, color: "#666666", marginBottom: 8 }}>
+                  TRADES
                 </span>
-                <span
-                  style={{
-                    fontSize: "38px",
-                    fontWeight: 700,
-                    color: "#D4AF37",
-                    lineHeight: "1",
-                  }}
-                >
+                <span style={{ fontSize: 38, fontWeight: 700, color: "#D4AF37", lineHeight: 1 }}>
                   {trades}
                 </span>
               </div>
@@ -139,32 +137,20 @@ export async function GET(request: NextRequest) {
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  borderWidth: "1px",
+                  borderWidth: 1,
                   borderStyle: "solid",
                   borderColor: "#2a2a2a",
                   backgroundColor: "#111111",
-                  padding: "18px 28px",
+                  paddingTop: 18,
+                  paddingBottom: 18,
+                  paddingLeft: 28,
+                  paddingRight: 28,
                 }}
               >
-                <span
-                  style={{
-                    fontSize: "11px",
-                    color: "#666666",
-                    textTransform: "uppercase",
-                    letterSpacing: "2px",
-                    marginBottom: "8px",
-                  }}
-                >
-                  Win Rate
+                <span style={{ fontSize: 11, color: "#666666", marginBottom: 8 }}>
+                  WIN RATE
                 </span>
-                <span
-                  style={{
-                    fontSize: "38px",
-                    fontWeight: 700,
-                    color: wrColor,
-                    lineHeight: "1",
-                  }}
-                >
+                <span style={{ fontSize: 38, fontWeight: 700, color: wrColor, lineHeight: 1 }}>
                   {wrDisplay}
                 </span>
               </div>
@@ -172,11 +158,18 @@ export async function GET(request: NextRequest) {
           </div>
 
           {/* Footer */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "12px", color: "#444444", textTransform: "uppercase", letterSpacing: "2px" }}>
-              Verified Trading Record
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span style={{ fontSize: 12, color: "#444444" }}>
+              VERIFIED TRADING RECORD
             </span>
-            <span style={{ fontSize: "12px", color: "#444444" }}>
+            <span style={{ fontSize: 12, color: "#444444" }}>
               journal.bigmarkt.co
             </span>
           </div>
