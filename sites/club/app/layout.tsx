@@ -19,6 +19,9 @@ export const metadata: Metadata = {
     "student trading community",
     "bigmarkt club",
   ],
+  verification: {
+    google: "ysCDfQkvSTdp1V0PV5QkLilM8slrPpWL_5ef7fExhmI",
+  },
   icons: {
     // First entry has no `media` so every browser/agent picks at least one
     // icon — including those that ignore prefers-color-scheme on favicons
