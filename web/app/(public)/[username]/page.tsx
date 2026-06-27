@@ -32,7 +32,7 @@ export async function generateMetadata({
 
   const title = `${profile.display_name}'s Trading Journal`;
   const description = `Browse @${profile.username}'s read-only trading journal on BigMarkt — verified trades, win rate, and performance stats.`;
-  const canonical = `/@${profile.username}`;
+  const canonical = `https://journal.bigmarkt.co/@${profile.username}`;
 
   const ogImageUrl = `/api/og?username=${encodeURIComponent(profile.username ?? "")}&name=${encodeURIComponent(profile.display_name)}&trades=${profile.trade_count ?? 0}&wr=${profile.win_rate ?? 0}`;
   const ogImage = { url: ogImageUrl, width: 1200, height: 630, alt: `${profile.display_name}'s verified trading record` };
