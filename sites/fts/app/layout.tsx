@@ -4,10 +4,25 @@ import Navbar from "./_components/Navbar";
 import Footer from "./_components/Footer";
 
 export const metadata: Metadata = {
-  title: "Free Trading Academy — FTS",
+  title: {
+    default: "FTS — Free Trading Academy | Forex & SMC Education",
+    template: "%s — FTS by BigMarkt",
+  },
   description:
-    "Learn to trade properly. No hype. No expensive courses. The education arm of BigMarkt.",
+    "Free forex and SMC trading education. Learn order blocks, ICT concepts, risk management and trading psychology. Community of verified traders across Africa and beyond.",
   metadataBase: new URL("https://fts.bigmarkt.co"),
+  keywords: [
+    "free forex education",
+    "SMC trading course",
+    "ICT trading education",
+    "forex trading Nigeria",
+    "free trading academy",
+    "order block trading",
+    "smart money trading",
+    "forex West Africa",
+    "trading community Africa",
+    "FTS trading",
+  ],
   icons: {
     // First entry has no `media` so every browser/agent picks at least one
     // icon — including those that ignore prefers-color-scheme on favicons
@@ -21,15 +36,19 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Free Trading Academy — FTS",
+    title: "FTS — Free Trading Academy | Forex & SMC Education",
     description:
-      "Learn the craft. Build the record. Free forex education from BigMarkt.",
+      "Free forex and SMC trading education. Learn order blocks, ICT concepts, risk management and trading psychology. Community of verified traders across Africa and beyond.",
     url: "https://fts.bigmarkt.co",
     siteName: "FTS — Free Trading Academy",
-    images: ["/images/bigmarkt-logo.png"],
+    images: [{ url: "/images/bigmarkt-logo.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
+    title: "FTS — Free Trading Academy | Forex & SMC Education",
+    description:
+      "Free forex and SMC trading education. Learn order blocks, ICT concepts, risk management and trading psychology.",
+    images: ["/images/bigmarkt-logo.png"],
   },
 };
 

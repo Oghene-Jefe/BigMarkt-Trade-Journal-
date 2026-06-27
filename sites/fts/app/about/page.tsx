@@ -76,9 +76,9 @@ export default function AboutPage() {
 
       <section className="px-6 py-24">
         <div className="mx-auto max-w-3xl border border-[#1f1f1f] bg-[#111111] p-8">
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-[#C9A84C]">Founder note</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-[#C9A84C]">Lead Contributor</h3>
           <p className="mt-4 text-white/80">
-            FTS was founded by Jefe S., a full-time trader and educator focused on building financial literacy across Africa and beyond. The community is the product.
+            FTS is led by Jefe S., a full-time trader and educator focused on building financial literacy across Africa and beyond. The community is the product.
           </p>
         </div>
       </section>
