@@ -1,99 +1,252 @@
 %PDF-1.4
-%“Œ‹ž ReportLab Generated PDF document (opensource)
+%âãÏÓ
 1 0 obj
-<<
-/F1 2 0 R /F2 3 0 R /F3 4 0 R
->>
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
 2 0 obj
-<<
-/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
->>
+<< /Length 2657 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 54 738 Tm (BIGMARKT LIVE READINESS CHECKLIST) Tj
+1 0 0 1 54 725 Tm () Tj
+1 0 0 1 54 712 Tm () Tj
+1 0 0 1 54 699 Tm (Updated: June 27, 2026) Tj
+1 0 0 1 54 686 Tm () Tj
+1 0 0 1 54 673 Tm (BigMarkt is ready for a controlled beta / live pilot only after the checks below) Tj
+1 0 0 1 54 660 Tm (are confirmed against the production Vercel, Railway, and Supabase projects.) Tj
+1 0 0 1 54 647 Tm () Tj
+1 0 0 1 54 634 Tm () Tj
+1 0 0 1 54 621 Tm (1. Production environment audit) Tj
+1 0 0 1 54 608 Tm () Tj
+1 0 0 1 54 595 Tm () Tj
+1 0 0 1 54 582 Tm (Required Vercel journal variables:) Tj
+1 0 0 1 54 569 Tm () Tj
+1 0 0 1 54 556 Tm (* NEXT_PUBLIC_SUPABASE_URL) Tj
+1 0 0 1 54 543 Tm (* NEXT_PUBLIC_SUPABASE_ANON_KEY) Tj
+1 0 0 1 54 530 Tm (* NEXT_PUBLIC_SITE_URL) Tj
+1 0 0 1 54 517 Tm (* SUPABASE_SERVICE_ROLE_KEY) Tj
+1 0 0 1 54 504 Tm (* CRON_SECRET) Tj
+1 0 0 1 54 491 Tm (* EA_SIGNING_SECRET_ENCRYPTION_KEY) Tj
+1 0 0 1 54 478 Tm (* EXCHANGE_CREDENTIAL_ENCRYPTION_KEY) Tj
+1 0 0 1 54 465 Tm (* WS_STATUS_URL) Tj
+1 0 0 1 54 452 Tm (* WS_STATUS_SECRET) Tj
+1 0 0 1 54 439 Tm () Tj
+1 0 0 1 54 426 Tm (Optional Vercel variables:) Tj
+1 0 0 1 54 413 Tm () Tj
+1 0 0 1 54 400 Tm (* EA_INGEST_V1_CUTOFF_AT) Tj
+1 0 0 1 54 387 Tm (* BYBIT_MAINNET_BASE_URL) Tj
+1 0 0 1 54 374 Tm (* BYBIT_TESTNET_BASE_URL) Tj
+1 0 0 1 54 361 Tm (* BYBIT_PROXY_TOKEN) Tj
+1 0 0 1 54 348 Tm () Tj
+1 0 0 1 54 335 Tm (Required Railway WebSocket variables:) Tj
+1 0 0 1 54 322 Tm () Tj
+1 0 0 1 54 309 Tm (* SUPABASE_URL) Tj
+1 0 0 1 54 296 Tm (* SUPABASE_SERVICE_ROLE_KEY) Tj
+1 0 0 1 54 283 Tm (* WS_STATUS_SECRET) Tj
+1 0 0 1 54 270 Tm () Tj
+1 0 0 1 54 257 Tm (Acceptance criteria:) Tj
+1 0 0 1 54 244 Tm () Tj
+1 0 0 1 54 231 Tm (* Service-role and encryption secrets exist only in server-side environments.) Tj
+1 0 0 1 54 218 Tm (* EA_SIGNING_SECRET_ENCRYPTION_KEY and) Tj
+1 0 0 1 54 205 Tm (  EXCHANGE_CREDENTIAL_ENCRYPTION_KEY decode to at least 32 bytes.) Tj
+1 0 0 1 54 192 Tm (* WS_STATUS_SECRET is present on both Vercel and Railway and values match.) Tj
+1 0 0 1 54 179 Tm (* WS_STATUS_URL points to the deployed Railway /status endpoint.) Tj
+1 0 0 1 54 166 Tm (* NEXT_PUBLIC_SITE_URL is the canonical journal origin used for reset links.) Tj
+1 0 0 1 54 153 Tm (* No .env, .env.local, Vercel metadata, service-role keys, exchange keys,) Tj
+1 0 0 1 54 140 Tm (  EA tokens, signing secrets, or user credentials are tracked in GitHub.) Tj
+1 0 0 1 54 127 Tm () Tj
+1 0 0 1 54 114 Tm () Tj
+1 0 0 1 54 101 Tm (2. Supabase privacy / RLS tests) Tj
+1 0 0 1 54 88 Tm () Tj
+1 0 0 1 54 75 Tm () Tj
+1 0 0 1 54 62 Tm (Run the privacy test suite against a staging or production-like Supabase) Tj
+ET
+endstream
 endobj
 3 0 obj
-<<
-/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
->>
+<< /Length 3077 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 54 738 Tm (project.) Tj
+1 0 0 1 54 725 Tm () Tj
+1 0 0 1 54 712 Tm (    cd web) Tj
+1 0 0 1 54 699 Tm (    SUPABASE_SERVICE_ROLE_KEY=... npm test -- tests/privacy.spec.ts --run) Tj
+1 0 0 1 54 686 Tm () Tj
+1 0 0 1 54 673 Tm (Acceptance criteria:) Tj
+1 0 0 1 54 660 Tm () Tj
+1 0 0 1 54 647 Tm (* Privacy tests run instead of skipping.) Tj
+1 0 0 1 54 634 Tm (* Users cannot read or mutate another user's private trades, profile-only) Tj
+1 0 0 1 54 621 Tm (  fields, broker accounts, EA tokens, notifications, support messages,) Tj
+1 0 0 1 54 608 Tm (  exchange credentials, or leaderboard score rows.) Tj
+1 0 0 1 54 595 Tm (* account_scores remains read-only to authenticated users; score writes only) Tj
+1 0 0 1 54 582 Tm (  happen through trusted service-role/server-side flows.) Tj
+1 0 0 1 54 569 Tm (* Public follow graph RPCs return only public profile fields and never email.) Tj
+1 0 0 1 54 556 Tm () Tj
+1 0 0 1 54 543 Tm () Tj
+1 0 0 1 54 530 Tm (3. Live EA smoke test) Tj
+1 0 0 1 54 517 Tm () Tj
+1 0 0 1 54 504 Tm () Tj
+1 0 0 1 54 491 Tm (Connect one MT5 terminal using a fresh token from /ea-setup.) Tj
+1 0 0 1 54 478 Tm () Tj
+1 0 0 1 54 465 Tm (Steps:) Tj
+1 0 0 1 54 452 Tm () Tj
+1 0 0 1 54 439 Tm (* Confirm /ea-setup offers BigMarkt_EA_v2.7.1.mq5.) Tj
+1 0 0 1 54 426 Tm (* Generate a fresh EA token, token UUID, and signing secret.) Tj
+1 0 0 1 54 413 Tm (* Link the token to an active broker account.) Tj
+1 0 0 1 54 400 Tm (* Configure MT5 with the endpoint https://journal.bigmarkt.co/api/ea/ingest) Tj
+1 0 0 1 54 387 Tm (  and allow-list https://journal.bigmarkt.co for WebRequest.) Tj
+1 0 0 1 54 374 Tm (* Confirm Railway WebSocket service is healthy at /healthz.) Tj
+1 0 0 1 54 361 Tm (* Confirm /ea-setup shows the EA as connected through the scoped /status) Tj
+1 0 0 1 54 348 Tm (  poll.) Tj
+1 0 0 1 54 335 Tm (* Send one small demo fill and one SL/TP modification.) Tj
+1 0 0 1 54 322 Tm (* Restart the EA with an open position and confirm an open_snapshot event) Tj
+1 0 0 1 54 309 Tm (  reconciles live open-state without creating duplicates.) Tj
+1 0 0 1 54 296 Tm () Tj
+1 0 0 1 54 283 Tm (Acceptance criteria:) Tj
+1 0 0 1 54 270 Tm () Tj
+1 0 0 1 54 257 Tm (* Valid v2 requests are accepted and rejected replays return safely.) Tj
+1 0 0 1 54 244 Tm (* Invalid, revoked, or legacy-without-signing-secret tokens are rejected.) Tj
+1 0 0 1 54 231 Tm (* Token last_used_at updates.) Tj
+1 0 0 1 54 218 Tm (* trade_events records deal/order/position-modify/snapshot events) Tj
+1 0 0 1 54 205 Tm (  idempotently.) Tj
+1 0 0 1 54 192 Tm (* Journal rows have capture_source = ea and an account-appropriate) Tj
+1 0 0 1 54 179 Tm (  trust_badge.) Tj
+1 0 0 1 54 166 Tm (* Account score recalculation runs when the token is linked to a broker) Tj
+1 0 0 1 54 153 Tm (  account.) Tj
+1 0 0 1 54 140 Tm (* /status only returns connections matching the current user's token IDs.) Tj
+1 0 0 1 54 127 Tm () Tj
+1 0 0 1 54 114 Tm () Tj
+1 0 0 1 54 101 Tm (4. Community and Pro smoke test) Tj
+1 0 0 1 54 88 Tm () Tj
+1 0 0 1 54 75 Tm () Tj
+1 0 0 1 54 62 Tm (Steps:) Tj
+ET
+endstream
 endobj
 4 0 obj
-<<
-/BaseFont /Courier /Encoding /WinAnsiEncoding /Name /F3 /Subtype /Type1 /Type /Font
->>
+<< /Length 2983 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 54 738 Tm () Tj
+1 0 0 1 54 725 Tm (* Follow a trader from /leaderboard; confirm the button changes to) Tj
+1 0 0 1 54 712 Tm (  Following.) Tj
+1 0 0 1 54 699 Tm (* Confirm the trader appears in /following.) Tj
+1 0 0 1 54 686 Tm (* Enable auto-share of verified EA trades from the followed leader's profile) Tj
+1 0 0 1 54 673 Tm (  settings or profile form.) Tj
+1 0 0 1 54 660 Tm (* Confirm /feed shows only closed, verified, non-demo EA trades from leaders) Tj
+1 0 0 1 54 647 Tm (  the caller follows.) Tj
+1 0 0 1 54 634 Tm (* Pause and unfollow; confirm /following and /feed update accordingly.) Tj
+1 0 0 1 54 621 Tm (* Visit /upgrade as a free user; join and leave the waitlist.) Tj
+1 0 0 1 54 608 Tm (* Visit /upgrade as a pro + active and pro + comp profile; confirm the) Tj
+1 0 0 1 54 595 Tm (  entitled states render and no payment flow is presented.) Tj
+1 0 0 1 54 582 Tm () Tj
+1 0 0 1 54 569 Tm (Acceptance criteria:) Tj
+1 0 0 1 54 556 Tm () Tj
+1 0 0 1 54 543 Tm (* Follow/unfollow is journal-only; execution/copy-trade mode is not exposed.) Tj
+1 0 0 1 54 530 Tm (* Feed visibility is limited to public and followers_only verified EA) Tj
+1 0 0 1 54 517 Tm (  trades.) Tj
+1 0 0 1 54 504 Tm (* pro_interest_at is stamped idempotently and can be cleared.) Tj
+1 0 0 1 54 491 Tm () Tj
+1 0 0 1 54 478 Tm () Tj
+1 0 0 1 54 465 Tm (5. Exchange sync smoke test) Tj
+1 0 0 1 54 452 Tm () Tj
+1 0 0 1 54 439 Tm () Tj
+1 0 0 1 54 426 Tm (Steps:) Tj
+1 0 0 1 54 413 Tm () Tj
+1 0 0 1 54 400 Tm (* Add a read-only Bybit key in /exchanges/new.) Tj
+1 0 0 1 54 387 Tm (* Confirm credentials are encrypted before storage.) Tj
+1 0 0 1 54 374 Tm (* Run a sync for a small date window.) Tj
+1 0 0 1 54 361 Tm (* If direct Bybit access is blocked, route through the optional proxy variables) Tj
+1 0 0 1 54 348 Tm (  and confirm the proxy token is required.) Tj
+1 0 0 1 54 335 Tm () Tj
+1 0 0 1 54 322 Tm (Acceptance criteria:) Tj
+1 0 0 1 54 309 Tm () Tj
+1 0 0 1 54 296 Tm (* Keys with withdrawal or transfer permissions are rejected.) Tj
+1 0 0 1 54 283 Tm (* The encryption key is required for decrypt/sync paths.) Tj
+1 0 0 1 54 270 Tm (* No plaintext API secret is logged or returned to the browser.) Tj
+1 0 0 1 54 257 Tm () Tj
+1 0 0 1 54 244 Tm () Tj
+1 0 0 1 54 231 Tm (6. Cron smoke tests) Tj
+1 0 0 1 54 218 Tm () Tj
+1 0 0 1 54 205 Tm () Tj
+1 0 0 1 54 192 Tm (Routes configured in web/vercel.json:) Tj
+1 0 0 1 54 179 Tm () Tj
+1 0 0 1 54 166 Tm (* /api/cron/news-feed at 0 0 * * *) Tj
+1 0 0 1 54 153 Tm (* /api/cron/recalculate-scores at 0 2 * * *) Tj
+1 0 0 1 54 140 Tm (* /api/cron/cleanup at 0 3 * * *) Tj
+1 0 0 1 54 127 Tm () Tj
+1 0 0 1 54 114 Tm (Acceptance criteria:) Tj
+1 0 0 1 54 101 Tm () Tj
+1 0 0 1 54 88 Tm (* Missing or wrong Authorization: Bearer <CRON_SECRET> returns 401.) Tj
+1 0 0 1 54 75 Tm (* News cron upserts news_events rows including URL where available.) Tj
+1 0 0 1 54 62 Tm (* Score cron recalculates account/leaderboard scores without client-side write) Tj
+ET
+endstream
 endobj
 5 0 obj
-<<
-/Contents 10 0 R /MediaBox [ 0 0 612 792 ] /Parent 9 0 R /Resources <<
-/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
->> /Rotate 0 /Trans <<
-
->> 
-  /Type /Page
->>
+<< /Length 973 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 54 738 Tm (  access.) Tj
+1 0 0 1 54 725 Tm (* Cleanup cron completes without deleting active user data.) Tj
+1 0 0 1 54 712 Tm () Tj
+1 0 0 1 54 699 Tm () Tj
+1 0 0 1 54 686 Tm (7. Final launch decision) Tj
+1 0 0 1 54 673 Tm () Tj
+1 0 0 1 54 660 Tm () Tj
+1 0 0 1 54 647 Tm (Controlled beta / live pilot: approved after environment variables, privacy) Tj
+1 0 0 1 54 634 Tm (tests, EA smoke, community/feed smoke, exchange smoke, and cron smoke pass.) Tj
+1 0 0 1 54 621 Tm () Tj
+1 0 0 1 54 608 Tm (Final sign-off fields:) Tj
+1 0 0 1 54 595 Tm () Tj
+1 0 0 1 54 582 Tm (* Environment audit completed by:) Tj
+1 0 0 1 54 569 Tm (* Privacy/RLS tests completed by:) Tj
+1 0 0 1 54 556 Tm (* Live EA smoke test completed by:) Tj
+1 0 0 1 54 543 Tm (* Community/feed/Pro smoke test completed by:) Tj
+1 0 0 1 54 530 Tm (* Exchange sync smoke test completed by:) Tj
+1 0 0 1 54 517 Tm (* Cron smoke tests completed by:) Tj
+1 0 0 1 54 504 Tm (* Launch approved by:) Tj
+ET
+endstream
 endobj
 6 0 obj
-<<
-/Contents 11 0 R /MediaBox [ 0 0 612 792 ] /Parent 9 0 R /Resources <<
-/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
->> /Rotate 0 /Trans <<
-
->> 
-  /Type /Page
->>
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
 endobj
 7 0 obj
-<<
-/PageMode /UseNone /Pages 9 0 R /Type /Catalog
->>
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 3 0 R >>
 endobj
 8 0 obj
-<<
-/Author (\(anonymous\)) /CreationDate (D:20260517012402+01'00') /Creator (\(unspecified\)) /Keywords () /ModDate (D:20260517012402+01'00') /Producer (ReportLab PDF Library - \(opensource\)) 
-  /Subject (\(unspecified\)) /Title (\(anonymous\)) /Trapped /False
->>
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 4 0 R >>
 endobj
 9 0 obj
-<<
-/Count 2 /Kids [ 5 0 R 6 0 R ] /Type /Pages
->>
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 5 0 R >>
 endobj
 10 0 obj
-<<
-/Filter [ /ASCII85Decode /FlateDecode ] /Length 2301
->>
-stream
-Gau0D>BALf'Roe[3,`q$+DZ*gc1JiL,YdU7%cF^bkmXmh$`pI7Zn&cVYOC.M#o%1aFDT\<@^"[5mRICrr$D4>3!6[X_V'8;`.@.SLhCue]nFf*jQd+d<r.h6JC(Q@.aE"g)S!]p?*JoHi.O9r%e9'$WoXO.7b6b_8K",eJ>:G6!d/NS/DH##G+-52"^c_QeX_@dIa;EGBYng;":S?_^.Z"uho#(%VE[>\]+)T)`nr@u5npC$H6`ja!Ebp0g3s0jDrUiN"VAf1L:dS4qLRb0U66hlM*:tIHf3P4rGO%h@9?SGb9^,'W$3iDp*2uA)6rQEmLFn9\41-:p_/6j7iih0PkY_P4[J:8IZ#pYNsO1a+P2e:6A'Q:78X)>\B&5]Ua`%11J-O6;C1%[VhMM9K&J26b8,5h6<VW5*^`Qc4C7]"CK@<+icLcBi6**t`<,+X6*/QZnA)DUYkE&.?,Np/'+i=fruh"qDEq.k#*BWchslgK/:KR`U4M]$%W$VQ4&EE2%]*aM"-j4q4?G$9Sldp\*]1)>416-dMep&E-"5_c:R'kG8o\7c."u?2>\Zhs<[;LZP_^ET0OF.hM57Em>IW:3+.gkkl+-ic9!WU$n-'K[6i5CfS<meeg`lm3OK8N]P16bt71Ll`k>dXWb"M2;`T]Kr![nrj]#K>'),#.Bn,UQ0<QmA<pJ3nfO)2\n/gg!mfbA`.\/#XjVsu!&-D]iCKoOADAAoS<K0AVp3I;;KU\Hl+/aUrL$LsYMI`6fGQkZ!V4)gH@j/5*Y3$+#CS62p)&$9JWNMkcG$55R;Y6XH5`pCsEG5@W_kje$g5.76SjsIQC97.J0e03tR3TTdQEQgqD4GdQ[`ef_9iiV[Li/N'2M=?a3E4rO2;9*S#l\+_M-&od"r*rTc?ro*$)UIWYd2,j&/FC9@o(7Js)Y9?G-(RuN\kXSob+UrLRA+.tCL3_%F^._q<M>RT$A-53PM.&/AqaqHj&2^X=hk7pJ#VUXEf:g9\T\<gp*Q58IpgD%'C.M[`HAYWi:Lq#L7g2">11SiN<F]H7[lb?iG/#JFEW(REVXT6S(q8@?^sn]Z^^Jrn+iCCX5C*m^Q&6X[?MSKVs>(]dJ1o*iFk.KrGn]8_JkH\-DTOE2!r+$PM'Jm5/!AO9/^/%JpjBa_WOAL^7qDA)hC6+Hr@n,9Kj'B[t8pWqG)?hQV'L2=I3h-Y_Hg:d)s81m&33M=_5R*E_]m\@04Z>n".=KN(PXe"KXaW05gu8+;mN&JBW[HpH3&99\^'EfV8H?&(]>Z8"fG\S7bi/nDmgB4q+b:\Sm#oWW3F3oNG+(=D]<_d[ir*%@\EeM,uN@[U69VY&P1'1R9-o:/b'oaGQ^G-Aq@pXEg4AE$W8*6/Sq*;=qFkb%EEBSA8+#k*Nd7opf*!+NCgGf\O[M7*Sa1^Vk)o^.Gosq%@dZZ,mIRP[eF3Aq:W)/=(VaOm?iS<Fhc^-Pebq7RgM;fR^$`qk!ZUFWX5MVO%70"Q=Jhk&+8C];!SHQ=W?gAjuq%^+#5j)SoOMA?ghKX5C,GHk/gGa9M)U2n8;,DL`ipBa8uKm*@rPnZkP/*G3;dGW\7NmmVJRSq_@fc1AfZ`l_ht)I!m*9GV;R`Z)Z+`n[B`_h=_Uc7>tPdD"VMW,kt-@T=mt.*"j5aVR(:b38>qW6;KF,_c=Ck`TX-hp/5N?I#Qr6*%qGk"ld'cW7/RWVCCo4rR$L%7<#;RIVgZT"^5r=RONSAV8AZeup$WLr;B"W6bj)M9IJRQ:s;R<Rf2,9!&kDAN*dGdOrG(ec/gLX)"+^2Q3^6DA8t=7Ua?np>FJ1(Y5WIL)^m>K25Df4ep/ENqHs8<4ns05`)\qVPJ8eb)7noFi`#b5>9Bqj_BirON;kQj(R=)4iN;8l&=$(@'VCBE8@rTCR)M4L+]WWi,T!+*i=)n*gnnr/!$-rTrn=><`n>(e\A+b167J7s+ZM8TquK>a<3B%lu_8@F7?k%WJ^77>EQuTg4W3$3\iSc"0*_W=TJo%V?c+&K/]%&0p.\-3C@o1N(U$A/;]fRMo'=.=3;+/l@B9_']ZL-Q'djMD.k886-S77?rV'l&S3kua\iRW4=Xss;u"1d+\2D%;1tD]g;\.Kdkn4+SIngJ6ujeilBoS<"?L^TB:;E'Q!FkFAA<i9J'@@qb&q0pfR70>W\gWSdYcjq?[)fg6GLl'd3!^H<2XDX7AW<!@AkTP?d(F3URU=ZAFT-P"4KP\,gfoN^pDrk]f:>aOO[1@4ZYDKGfT!B>rgle-GD:#=-<%*]ZsFN;+9#0!P9BBiT*3h$"us~>endstream
+<< /Type /Pages /Kids [6 0 R 7 0 R 8 0 R 9 0 R] /Count 4 >>
 endobj
 11 0 obj
-<<
-/Filter [ /ASCII85Decode /FlateDecode ] /Length 802
->>
-stream
-Gau0@?#/1K'Rf_Z\;sphWoVg<b[@Z?A5GV%VXE33\;o"9[H1BeaLY`n.k+6A26^oDR+TtQdQ-Js?'t`4Mn+13!IW#II):DfO=buO,_Bh>j",EbfOe_8&cp+q6:HTJ695#X+>f&p'0oY>iZ"8?!6Ksq/:nIEPp9'FGA*Dj"JXQh:4BDmJW%/lTj::;EnruhC(4t//mW.%l?QI<$=amYDc_-Aj,;SM,9J%TK^9C24QuDUY<UhurZ5rm]hkSHB('7`Fk_G/KiGa%cF[($N=FC)8Zq5q=a*?u-%(:pRp<;,J7!G(&j-otR"TM^V:&-Ke17M,;B,EF-@+"ijooX8dg"ArN9>Vlb5Au<8%KK.*F.Le]PEkA;8;2IpPG$YSS['kZrh!t./O:8C)Wojp)@Urj.8N"0-oI.p!S@IVD^qV'`VZ4F@[e_2KB[TS'af$@%qI1go(I+p2.&OjPT0A7RDp!<VO)(f>/gNI"Y9:-'VV>D&7jSiP7j5X3UXY86DAdeF@g.mZc1+JPgO8ZN,`#4L2t&`k#5Rj2uO9hT]%.7:!#ffjaL??hRanDds]\qMsY($itsD,]jCNNU$,pja8u"J_"\uYmO]q6NWce`@V$'cQnH66W;N2dO?.f0Q8#ka,cn_!a"+eepg5,Batmb2qR5SGIgmC^;;O3s7a*@Q>LTq9:,F'$j^Jsi@tm-8jhr5JfPOP1!I?9f[fB%#-&dYY*%KFgXKYR)lKlKo[UT_`aK?H7jttOrGY#cKHrX%58pbn&J8k758pa[->C!/r5`CI-s/G-D<L'8>nHo<WH>F7~>endstream
+<< /Type /Catalog /Pages 10 0 R >>
 endobj
 xref
 0 12
-0000000000 65535 f 
-0000000061 00000 n 
-0000000112 00000 n 
-0000000219 00000 n 
-0000000331 00000 n 
-0000000436 00000 n 
-0000000630 00000 n 
-0000000824 00000 n 
-0000000892 00000 n 
-0000001172 00000 n 
-0000001237 00000 n 
-0000003630 00000 n 
+0000000000 65535 f
+0000000015 00000 n
+0000000085 00000 n
+0000002794 00000 n
+0000005923 00000 n
+0000008958 00000 n
+0000009982 00000 n
+0000010109 00000 n
+0000010236 00000 n
+0000010363 00000 n
+0000010490 00000 n
+0000010566 00000 n
 trailer
-<<
-/ID 
-[<b517519b9e9cf9cc2214eb5b9f8a40e4><b517519b9e9cf9cc2214eb5b9f8a40e4>]
-% ReportLab generated PDF document -- digest (opensource)
-
-/Info 8 0 R
-/Root 7 0 R
-/Size 12
->>
+<< /Size 12 /Root 11 0 R >>
 startxref
-4523
+10617
 %%EOF
