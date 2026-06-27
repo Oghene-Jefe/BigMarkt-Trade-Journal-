@@ -12,6 +12,7 @@ const organizationJsonLd = {
   name: "BigMarkt",
   url: "https://www.bigmarkt.co",
   logo: "https://www.bigmarkt.co/images/bigmarkt-logo.png",
+  description: "Verified trading journal for forex, crypto, stock and commodity traders",
   sameAs: [
     "https://x.com/bigmarkt_hq",
     "https://www.linkedin.com/company/bigmarkt",
@@ -19,6 +20,13 @@ const organizationJsonLd = {
     "https://t.me/bigmarkt_hq",
     "https://youtube.com/@bigmarkt_hq",
   ],
+};
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "BigMarkt",
+  url: "https://www.bigmarkt.co",
 };
 
 const features = [
@@ -57,6 +65,10 @@ export default function Home() {
         type="application/ld+json"
         // Static, hardcoded structured data — no user input.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
       />
       {/* Hero */}
       <section className="relative min-h-[calc(100vh-4rem)] overflow-hidden border-b border-[#1f1f1f]">

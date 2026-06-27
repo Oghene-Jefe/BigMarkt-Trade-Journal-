@@ -5,12 +5,31 @@ import Footer from "./_components/Footer";
 
 export const metadata: Metadata = {
   title: {
-    default: "BigMarkt — The Verified Trading Journal",
+    default: "BigMarkt — The Verified Trading Journal for Serious Traders",
     template: "%s — BigMarkt",
   },
   description:
-    "Auto-capture trades, review performance, and build a cleaner trading record.",
+    "Log forex, gold, crypto and stock trades automatically from MT4/MT5. Build a verified performance record. Follow top traders. Free to start — bigmarkt.co",
   metadataBase: new URL("https://www.bigmarkt.co"),
+  keywords: [
+    "forex trading journal",
+    "MT5 trading journal",
+    "verified trading journal",
+    "crypto trading journal",
+    "stock trading journal",
+    "gold trading journal",
+    "XAUUSD journal",
+    "trading performance tracker",
+    "prop firm journal",
+    "funded trader journal",
+    "SMC trading journal",
+    "ICT trading journal",
+    "trading accountability",
+    "trading constitution",
+    "follow verified traders",
+    "trading leaderboard",
+    "best trading journal 2026",
+  ],
   icons: {
     // First entry has no `media` so every browser/agent picks at least one
     // icon — including those that ignore prefers-color-scheme on favicons
@@ -24,15 +43,19 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "BigMarkt — The Verified Trading Journal",
+    title: "BigMarkt — The Verified Trading Journal for Serious Traders",
     description:
-      "Auto-capture trades, review performance, and build a cleaner trading record.",
+      "Log forex, gold, crypto and stock trades automatically from MT4/MT5. Build a verified performance record. Follow top traders. Free to start.",
     url: "https://www.bigmarkt.co",
     siteName: "BigMarkt",
-    images: ["/images/bigmarkt-logo.png"],
+    images: [{ url: "/images/bigmarkt-logo.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
+    title: "BigMarkt — The Verified Trading Journal for Serious Traders",
+    description:
+      "Log forex, gold, crypto and stock trades automatically from MT4/MT5. Build a verified performance record. Follow top traders. Free to start.",
+    images: ["/images/bigmarkt-logo.png"],
   },
 };
 

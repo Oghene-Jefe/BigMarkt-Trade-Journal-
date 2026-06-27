@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createMDX from "@next/mdx";
 
 const securityHeaders = [
   {
@@ -43,9 +44,12 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  pageExtensions: ["ts", "tsx", "md", "mdx"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
 };
 
-export default nextConfig;
+const withMDX = createMDX({});
+
+export default withMDX(nextConfig);
