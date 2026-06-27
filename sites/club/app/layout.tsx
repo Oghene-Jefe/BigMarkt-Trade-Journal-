@@ -4,10 +4,21 @@ import Navbar from "./_components/Navbar";
 import Footer from "./_components/Footer";
 
 export const metadata: Metadata = {
-  title: "BigMarkt Club — Financial education for students",
+  title: {
+    default: "BigMarkt Club — Free Financial Education for Students",
+    template: "%s — BigMarkt Club",
+  },
   description:
-    "Free financial literacy, trading skills and industry mentorship for students. African roots. Global reach.",
+    "Free financial literacy, trading skills and investment education for students. African roots. Global reach. Join BigMarkt Club.",
   metadataBase: new URL("https://club.bigmarkt.co"),
+  keywords: [
+    "financial education students",
+    "free trading course students",
+    "investment education Africa",
+    "financial literacy youth",
+    "student trading community",
+    "bigmarkt club",
+  ],
   icons: {
     // First entry has no `media` so every browser/agent picks at least one
     // icon — including those that ignore prefers-color-scheme on favicons
