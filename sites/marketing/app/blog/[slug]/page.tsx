@@ -5,14 +5,14 @@ import { getAllPosts, getPostBySlug } from "@/lib/posts";
 
 type Props = { params: Promise<{ slug: string }> };
 
-// Static map so webpack can bundle all MDX files at build time.
+// Static map so the bundler can resolve all TSX content components at build time.
 const POST_MODULES: Record<string, () => Promise<{ default: React.ComponentType }>> = {
   "best-trading-journal-2026": () =>
-    import("@/content/posts/best-trading-journal-2026.mdx"),
+    import("@/content/posts/best-trading-journal-2026"),
   "xauusd-gold-trading-journal": () =>
-    import("@/content/posts/xauusd-gold-trading-journal.mdx"),
+    import("@/content/posts/xauusd-gold-trading-journal"),
   "prop-firm-trading-journal": () =>
-    import("@/content/posts/prop-firm-trading-journal.mdx"),
+    import("@/content/posts/prop-firm-trading-journal"),
 };
 
 export async function generateStaticParams() {
@@ -60,7 +60,6 @@ export default async function BlogPostPage({ params }: Props) {
   return (
     <article className="px-6 py-24">
       <div className="mx-auto max-w-3xl">
-        {/* Back link */}
         <Link
           href="/blog"
           className="mb-10 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#C9A84C] hover:underline"
@@ -68,7 +67,6 @@ export default async function BlogPostPage({ params }: Props) {
           ← All posts
         </Link>
 
-        {/* Header */}
         <header className="mb-12">
           <div className="mb-4 flex items-center gap-4 text-xs text-white/40">
             <span>{fmtDate(post.date)}</span>
@@ -81,12 +79,10 @@ export default async function BlogPostPage({ params }: Props) {
           <p className="mt-4 text-base leading-relaxed text-white/60">{post.excerpt}</p>
         </header>
 
-        {/* MDX body */}
         <div className="prose-blog">
           <PostContent />
         </div>
 
-        {/* CTA */}
         <div className="mt-16 border border-[#C9A84C]/30 bg-[#C9A84C]/5 p-8">
           <div className="mb-2 font-mono text-xs uppercase tracking-widest text-[#C9A84C]">
             Start for free
