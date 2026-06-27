@@ -47,6 +47,9 @@ export const metadata: Metadata = {
       "The trading journal that captures your broker data automatically. Track forex, gold, crypto and stock trades. Verify your performance. Follow top traders. Free for MT4 and MT5 users.",
     images: ["/images/og-default.png"],
   },
+  verification: {
+    google: "ysCDfQkvSTdp1V0PV5QkLilM8slrPpWL_5ef7fExhmI",
+  },
   icons: {
     icon: [
       // Browsers pick the variant whose `media` matches the OS/browser
