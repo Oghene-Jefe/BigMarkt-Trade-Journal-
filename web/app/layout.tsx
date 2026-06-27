@@ -5,19 +5,47 @@ import Script from "next/script";
 export const metadata: Metadata = {
   metadataBase: new URL("https://journal.bigmarkt.co"),
   title: {
-    default: "BigMarkt Trade Journal",
+    default: "BigMarkt — Verified Trading Journal for Forex, Crypto & Stock Traders",
     template: "%s — BigMarkt",
   },
   description:
-    "A verified trading journal — log trades, track your stats, and share a read-only journal of your performance.",
+    "The trading journal that captures your broker data automatically. Track forex, gold, crypto and stock trades. Verify your performance. Follow top traders. Free for MT4 and MT5 users.",
+  keywords: [
+    "forex trading journal",
+    "MT5 trading journal",
+    "verified trading journal",
+    "crypto trading journal",
+    "stock trading journal",
+    "gold trading journal",
+    "XAUUSD journal",
+    "trading performance tracker",
+    "prop firm journal",
+    "funded trader journal",
+    "SMC trading journal",
+    "ICT trading journal",
+    "trading accountability",
+    "trading constitution",
+    "follow verified traders",
+    "trading leaderboard",
+    "best trading journal 2026",
+  ],
   openGraph: {
+    title: "BigMarkt — Verified Trading Journal for Forex, Crypto & Stock Traders",
+    description:
+      "The trading journal that captures your broker data automatically. Track forex, gold, crypto and stock trades. Verify your performance. Follow top traders. Free for MT4 and MT5 users.",
+    url: "https://journal.bigmarkt.co",
     siteName: "BigMarkt Trade Journal",
     type: "website",
     locale: "en_GB",
+    images: [{ url: "/images/og-default.png", width: 1200, height: 630 }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     site: "@BigMarkt_Hq",
+    title: "BigMarkt — Verified Trading Journal for Forex, Crypto & Stock Traders",
+    description:
+      "The trading journal that captures your broker data automatically. Track forex, gold, crypto and stock trades. Verify your performance. Follow top traders. Free for MT4 and MT5 users.",
+    images: ["/images/og-default.png"],
   },
   icons: {
     icon: [

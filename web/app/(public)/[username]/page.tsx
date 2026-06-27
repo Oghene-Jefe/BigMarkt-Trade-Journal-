@@ -8,7 +8,7 @@ import TrustBadge from "@/components/TrustBadge";
 import FollowButton from "@/components/FollowButton";
 import { FollowStats } from "@/components/FollowListModal";
 import Link from "next/link";
-import type { PublicProfileFull, PublicTrade, Subscription } from "@/lib/types";
+import type { PublicProfileFull, PublicTrade, Subscription, ScoreTier } from "@/lib/types";
 import { chartProxyUrl } from "@/lib/chart-url";
 import Logo from "@/components/ui/Logo";
 import Avatar from "@/components/ui/Avatar";
@@ -34,12 +34,15 @@ export async function generateMetadata({
   const description = `Browse @${profile.username}'s read-only trading journal on BigMarkt — verified trades, win rate, and performance stats.`;
   const canonical = `/@${profile.username}`;
 
+  const ogImageUrl = `/api/og?username=${encodeURIComponent(profile.username ?? "")}&name=${encodeURIComponent(profile.display_name)}&trades=${profile.trade_count ?? 0}&wr=${profile.win_rate ?? 0}`;
+  const ogImage = { url: ogImageUrl, width: 1200, height: 630, alt: `${profile.display_name}'s verified trading record` };
+
   return {
     title,
     description,
     alternates: { canonical },
-    openGraph: { title, description, url: canonical, type: "profile" },
-    twitter: { card: "summary", title, description },
+    openGraph: { title, description, url: canonical, type: "profile", images: [ogImage] },
+    twitter: { card: "summary_large_image", title, description, images: [ogImageUrl] },
   };
 }
 
@@ -58,12 +61,26 @@ export default async function UsernameProfilePage({
   const profile = (Array.isArray(profileData) ? profileData[0] : profileData) as PublicProfileFull | null;
   if (!profile) notFound();
 
-  const [{ data: tradesData }, { data: adherenceData }] = await Promise.all([
+  const [{ data: tradesData }, { data: adherenceData }, { data: scoreData }] = await Promise.all([
     sb.rpc("get_public_trades", { profile_id: profile.id, lim: 50 }),
     sb.rpc("get_public_adherence", { profile_id: profile.id }),
+    sb.rpc("get_public_score", { p_profile_id: profile.id }),
   ]);
 
   const trades = (tradesData ?? []) as PublicTrade[];
+
+  type PublicScore = {
+    score_tier: ScoreTier;
+    active_score: number | null;
+    pro_score: number | null;
+    trade_count: number | null;
+    win_rate_pct: number | null;
+    expectancy_pct: number | null;
+    max_drawdown_pct: number | null;
+    last_scored_at: string | null;
+  };
+  const scoreRow = (Array.isArray(scoreData) ? scoreData[0] : scoreData) as PublicScore | null;
+  const score = scoreRow?.score_tier && scoreRow.score_tier !== "none" ? scoreRow : null;
 
   // Public adherence trust signal — only when opted in AND evaluated>0.
   const adherenceRow = (
@@ -143,6 +160,19 @@ export default async function UsernameProfilePage({
             <p className="text-xs uppercase tracking-wider text-muted">
               @{profile.username} · {profile.visibility}
             </p>
+            {score ? (
+              <div className="mt-1">
+                <span
+                  className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] ${
+                    score.score_tier === "pro"
+                      ? "border-gold/40 bg-gold/15 text-gold"
+                      : "border-white/15 bg-white/5 text-muted"
+                  }`}
+                >
+                  {score.score_tier === "pro" ? "Verified Pro" : "Active Trader"}
+                </span>
+              </div>
+            ) : null}
             {journalModeLabel ? (
               <p className="mt-1 text-xs text-gold">{journalModeLabel}</p>
             ) : null}
@@ -170,6 +200,31 @@ export default async function UsernameProfilePage({
             tone={(profile.win_rate ?? 0) >= 50 ? "win" : "loss"}
           />
         </div>
+
+        {score ? (
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <Stat
+              label="Expectancy"
+              value={
+                score.expectancy_pct != null && Number.isFinite(score.expectancy_pct)
+                  ? `${Number(score.expectancy_pct).toFixed(2)}%`
+                  : "—"
+              }
+              tone={
+                score.expectancy_pct != null && score.expectancy_pct >= 0 ? "win" : "loss"
+              }
+            />
+            <Stat
+              label="Max DD"
+              value={
+                score.max_drawdown_pct != null && Number.isFinite(score.max_drawdown_pct)
+                  ? `${Number(score.max_drawdown_pct).toFixed(1)}%`
+                  : "—"
+              }
+              tone="loss"
+            />
+          </div>
+        ) : null}
 
         {adherence ? (
           <div className="mt-4 flex items-center gap-2 rounded-md border border-gold/30 bg-gold/5 px-3 py-2 text-xs text-gold">
