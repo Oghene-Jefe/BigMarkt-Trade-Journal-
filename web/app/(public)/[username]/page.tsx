@@ -12,6 +12,7 @@ import type { PublicProfileFull, PublicTrade, Subscription, ScoreTier } from "@/
 import { chartProxyUrl } from "@/lib/chart-url";
 import Logo from "@/components/ui/Logo";
 import Avatar from "@/components/ui/Avatar";
+import ShareButton from "./ShareButton";
 
 export const dynamic = "force-dynamic";
 
@@ -153,29 +154,32 @@ export default async function UsernameProfilePage({
       <section className="rounded-lg border border-white/10 bg-panel p-6">
         <div className="flex items-center gap-5">
           <Avatar url={avatarUrl} name={profile.display_name} size="lg" />
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-semibold text-white truncate">
-              {profile.display_name}
-            </h1>
-            <p className="text-xs uppercase tracking-wider text-muted">
-              @{profile.username} · {profile.visibility}
-            </p>
-            {score ? (
-              <div className="mt-1">
-                <span
-                  className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] ${
-                    score.score_tier === "pro"
-                      ? "border-gold/40 bg-gold/15 text-gold"
-                      : "border-white/15 bg-white/5 text-muted"
-                  }`}
-                >
-                  {score.score_tier === "pro" ? "Verified Pro" : "Active Trader"}
-                </span>
-              </div>
-            ) : null}
-            {journalModeLabel ? (
-              <p className="mt-1 text-xs text-gold">{journalModeLabel}</p>
-            ) : null}
+          <div className="flex-1 min-w-0 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold text-white truncate">
+                {profile.display_name}
+              </h1>
+              <p className="text-xs uppercase tracking-wider text-muted">
+                @{profile.username} · {profile.visibility}
+              </p>
+              {score ? (
+                <div className="mt-1">
+                  <span
+                    className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] ${
+                      score.score_tier === "pro"
+                        ? "border-gold/40 bg-gold/15 text-gold"
+                        : "border-white/15 bg-white/5 text-muted"
+                    }`}
+                  >
+                    {score.score_tier === "pro" ? "Verified Pro" : "Active Trader"}
+                  </span>
+                </div>
+              ) : null}
+              {journalModeLabel ? (
+                <p className="mt-1 text-xs text-gold">{journalModeLabel}</p>
+              ) : null}
+            </div>
+            <ShareButton url={`https://journal.bigmarkt.co/@${profile.username}`} />
           </div>
         </div>
 

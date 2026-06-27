@@ -12,7 +12,6 @@ export async function GET(request: NextRequest) {
 
   const winRate = parseFloat(wr);
   const wrDisplay = Number.isFinite(winRate) ? `${winRate.toFixed(1)}%` : "0.0%";
-  const wrColor = winRate >= 50 ? "#4ade80" : "#f87171";
 
   return new ImageResponse(
     (
@@ -127,7 +126,7 @@ export async function GET(request: NextRequest) {
                 <span style={{ fontSize: 11, color: "#666666", marginBottom: 8 }}>
                   TRADES
                 </span>
-                <span style={{ fontSize: 38, fontWeight: 700, color: "#D4AF37", lineHeight: 1 }}>
+                <span style={{ fontSize: 46, fontWeight: 700, color: "#D4AF37", lineHeight: 1 }}>
                   {trades}
                 </span>
               </div>
@@ -150,7 +149,7 @@ export async function GET(request: NextRequest) {
                 <span style={{ fontSize: 11, color: "#666666", marginBottom: 8 }}>
                   WIN RATE
                 </span>
-                <span style={{ fontSize: 38, fontWeight: 700, color: wrColor, lineHeight: 1 }}>
+                <span style={{ fontSize: 46, fontWeight: 700, color: "#D4AF37", lineHeight: 1 }}>
                   {wrDisplay}
                 </span>
               </div>
