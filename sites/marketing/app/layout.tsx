@@ -57,6 +57,9 @@ export const metadata: Metadata = {
       "Log forex, gold, crypto and stock trades automatically from MT4/MT5. Build a verified performance record. Follow top traders. Free to start.",
     images: ["/images/bigmarkt-logo.png"],
   },
+  verification: {
+    google: "ysCDfQkvSTdp1V0PV5QkLilM8slrPpWL_5ef7fExhmI",
+  },
 };
 
 export default function RootLayout({
