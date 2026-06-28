@@ -34,7 +34,12 @@ export default function ReactionBar({ tradeId }: { tradeId: string }) {
         p_trade_id: tradeId,
         p_reaction: reaction,
       });
-      if (!error && data) setRows(data as Row[]);
+      if (!error && data) {
+        const normalized = (data as { out_reaction: string; out_cnt: number; out_reacted: boolean }[]).map(
+          (d) => ({ reaction: d.out_reaction, cnt: d.out_cnt, reacted: d.out_reacted })
+        );
+        setRows(normalized);
+      }
       setBusy(null);
     },
     [tradeId, busy]
