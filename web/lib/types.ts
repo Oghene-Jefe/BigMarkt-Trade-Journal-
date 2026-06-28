@@ -25,6 +25,7 @@ export type TradeRow = {
   setup_grade: string | null;
   tags: string | null;
   notes: string | null;
+  trade_thesis: string | null;
   image_url: string | null;
   chart_path: string | null;
   visibility: "private" | "public" | "exclude" | "followers_only";

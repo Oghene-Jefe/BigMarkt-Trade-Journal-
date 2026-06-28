@@ -73,6 +73,7 @@ function parseTradeForm(fd: FormData) {
     setup_grade: str("setup_grade"),
     tags: str("tags"),
     notes: str("notes"),
+    trade_thesis: str("trade_thesis"),
     visibility: fd.get("visibility") || "private",
   });
 }
@@ -222,6 +223,7 @@ export async function updateTradeAction(id: string, _: TradeActionState, fd: For
     setup_grade: parsed.data.setup_grade,
     tags: parsed.data.tags,
     notes: parsed.data.notes,
+    trade_thesis: parsed.data.trade_thesis,
     visibility: parsed.data.visibility,
     trade_visibility: parsed.data.visibility,
   };

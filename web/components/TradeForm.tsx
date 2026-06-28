@@ -300,6 +300,19 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
       </div>
 
       <label className="block text-sm">
+        <span className="mb-1 block text-muted">Trade thesis <span className="text-xs">(public)</span></span>
+        <textarea
+          name="trade_thesis"
+          rows={3}
+          defaultValue={trade?.trade_thesis ?? ""}
+          maxLength={2000}
+          placeholder="Your read on this trade — bias, confluence, why you took it. Shown publicly when the trade is public."
+          className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2"
+        />
+        {fe.trade_thesis ? <span className="mt-1 block text-xs text-loss">{fe.trade_thesis}</span> : null}
+      </label>
+
+      <label className="block text-sm">
         <span className="mb-1 block text-muted">Notes</span>
         <textarea
           name="notes"

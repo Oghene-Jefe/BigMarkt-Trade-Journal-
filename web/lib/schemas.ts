@@ -152,6 +152,10 @@ export const tradeSchema = z.object({
   setup_grade: z.string().max(4).nullable().optional(),
   tags: z.string().max(400).nullable().optional(),
   notes: z.string().max(4000).nullable().optional(),
+  // C4b: public-facing trade rationale. Shown on public surfaces when the
+  // trade is public; distinct from private notes (owner-only). Rides the
+  // trade's own visibility — no separate gating on the thesis itself.
+  trade_thesis: z.string().max(2000).nullable().optional(),
   visibility: tradeVisibility.default("private"),
 });
 export type TradeInput = z.infer<typeof tradeSchema>;
