@@ -17,6 +17,7 @@ export default function ReactionBar({ tradeId }: { tradeId: string }) {
 
   const load = useCallback(async () => {
     const sb = supabaseBrowser();
+    await sb.auth.getSession();
     const { data } = await sb.rpc("get_trade_reactions", { p_trade_id: tradeId });
     if (data) setRows(data as Row[]);
   }, [tradeId]);
@@ -30,6 +31,8 @@ export default function ReactionBar({ tradeId }: { tradeId: string }) {
       if (busy) return;
       setBusy(reaction);
       const sb = supabaseBrowser();
+      // Force session hydration so the RPC carries the user's JWT (not anon).
+      await sb.auth.getSession();
       const { data, error } = await sb.rpc("toggle_trade_reaction", {
         p_trade_id: tradeId,
         p_reaction: reaction,
