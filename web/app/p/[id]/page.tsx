@@ -256,6 +256,11 @@ export default async function PublicProfilePage({
                   ) : null}
                 </span>
                 <TrustBadge badge={t.trust_badge ?? "manual"} />
+                {t.trade_thesis ? (
+                  <p className="mt-1 w-full border-l-2 border-gold/40 pl-3 text-xs italic text-muted">
+                    {t.trade_thesis}
+                  </p>
+                ) : null}
               </li>
             ))}
           </ul>

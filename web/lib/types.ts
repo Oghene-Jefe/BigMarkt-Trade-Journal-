@@ -87,6 +87,7 @@ export type PublicTrade = {
   rr_ratio: number | null;
   setup_grade: string | null;
   chart_path: string | null;
+  trade_thesis: string | null;
   trust_badge: TrustBadge;
   capture_source: CaptureSource;
   core_fields_locked: boolean;

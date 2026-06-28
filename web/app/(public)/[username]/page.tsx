@@ -309,6 +309,11 @@ export default async function UsernameProfilePage({
                 <div className="mt-1 w-full border-t border-white/5 pt-2">
                   <ReactionPicker tradeId={t.id} />
                 </div>
+                {t.trade_thesis ? (
+                  <p className="mt-2 w-full border-l-2 border-gold/40 pl-3 text-xs italic text-muted">
+                    {t.trade_thesis}
+                  </p>
+                ) : null}
               </li>
             ))}
           </ul>
