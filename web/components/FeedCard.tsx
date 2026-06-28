@@ -4,6 +4,7 @@ import Avatar from "@/components/ui/Avatar";
 import TrustBadge, { type Badge } from "@/components/TrustBadge";
 import type { FeedTrade } from "@/lib/actions/feed";
 import { fmtMoney, fmtDate } from "@/lib/format";
+import ReactionBar from "@/components/ReactionBar";
 
 export default function FeedCard({ trade: r }: { trade: FeedTrade }) {
   const href = (r.leader_username ? `/@${r.leader_username}` : `/p/${r.user_id}`) as Route;
@@ -39,6 +40,7 @@ export default function FeedCard({ trade: r }: { trade: FeedTrade }) {
             <span className="text-xs text-muted">{r.rr_ratio.toFixed(2)}R</span>
           ) : null}
         </div>
+        <ReactionBar tradeId={r.trade_id} />
       </div>
     </div>
   );
