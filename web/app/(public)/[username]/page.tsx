@@ -13,6 +13,7 @@ import { chartProxyUrl } from "@/lib/chart-url";
 import Logo from "@/components/ui/Logo";
 import Avatar from "@/components/ui/Avatar";
 import ShareButton from "./ShareButton";
+import ReactionPicker from "@/components/ReactionPicker";
 
 export const dynamic = "force-dynamic";
 
@@ -296,6 +297,9 @@ export default async function UsernameProfilePage({
                   {fmtMoney(t.pnl)}
                 </span>
                 <TrustBadge badge={t.trust_badge ?? "manual"} />
+                <div className="mt-1 w-full border-t border-white/5 pt-2">
+                  <ReactionPicker tradeId={t.id} />
+                </div>
               </li>
             ))}
           </ul>
