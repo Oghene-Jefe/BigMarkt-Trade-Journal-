@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { chartProxyUrl } from "@/lib/chart-url";
 import type { Route } from "next";
 import Avatar from "@/components/ui/Avatar";
 import ReactionPicker from "@/components/ReactionPicker";
@@ -12,6 +13,8 @@ export type CardTrade = {
   result: string | null;
   return_pct: number | null;
   rr_ratio: number | null;
+  trade_thesis: string | null;
+  chart_path: string | null;
   trust_badge: string | null;
   isOpen: boolean;
   timestamp: string;
@@ -114,6 +117,29 @@ export default function TradeCard({ trade: r }: { trade: CardTrade }) {
           ) : null}
         </div>
       </div>
+
+      {/* Chart + thesis — closed trades that opted to share them */}
+      {r.chart_path ? (
+        <a
+          href={chartProxyUrl(r.trade_id, r.chart_path)}
+          target="_blank"
+          rel="noopener"
+          className="mt-3 block overflow-hidden rounded-lg border border-white/8"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- same-origin /c/<id> chart proxy */}
+          <img
+            src={chartProxyUrl(r.trade_id, r.chart_path)}
+            alt=""
+            className="max-h-56 w-full object-cover"
+            loading="lazy"
+          />
+        </a>
+      ) : null}
+      {r.trade_thesis ? (
+        <p className="mt-3 border-l-2 border-gold/40 pl-3 text-sm italic text-muted">
+          {r.trade_thesis}
+        </p>
+      ) : null}
 
       {/* Reactions */}
       <div className="mt-3 border-t border-white/5 pt-2.5">

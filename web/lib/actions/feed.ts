@@ -12,6 +12,15 @@ export type FeedTrade = {
   result: string | null;
   return_pct: number | null;
   rr_ratio: number | null;
+  entry_price: number | null;
+  exit_price: number | null;
+  stop_loss: number | null;
+  take_profit: number | null;
+  lot_size: number | null;
+  session: string | null;
+  setup_grade: string | null;
+  trade_thesis: string | null;
+  chart_path: string | null;
   trust_badge: string | null;
   source: string | null;
   status: string | null;
