@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import Avatar from "@/components/ui/Avatar";
 import ReactionPicker from "@/components/ReactionPicker";
-import { fmtMoney, fmtDate } from "@/lib/format";
+import { fmtDate } from "@/lib/format";
 
 export type CardTrade = {
   trade_id: string;
@@ -24,8 +24,6 @@ export default function TradeCard({ trade: r }: { trade: CardTrade }) {
   const href = (r.leader_username ? `/@${r.leader_username}` : `/p/${r.user_id}`) as Route;
   const isBuy = r.direction === "BUY";
   const dirClass = isBuy ? "bg-win/15 text-win" : "bg-loss/15 text-loss";
-  const pnl = r.pnl ?? 0;
-  const pnlClass = pnl > 0 ? "text-win" : pnl < 0 ? "text-loss" : "text-muted";
 
   return (
     <article
@@ -78,15 +76,29 @@ export default function TradeCard({ trade: r }: { trade: CardTrade }) {
                 {r.result ?? "—"}
               </span>
             )}
-            {r.rr_ratio != null ? (
-              <span className="text-muted">· {r.rr_ratio.toFixed(2)}R</span>
-            ) : null}
           </div>
         </div>
 
         <div className="shrink-0 text-right">
-          <div className={`font-display text-2xl tabular-nums ${pnlClass}`}>{fmtMoney(r.pnl)}</div>
-          <div className="text-xs text-muted">{r.isOpen ? "live P&L" : "closed P&L"}</div>
+          {r.rr_ratio != null ? (
+            <div
+              className={`font-display text-2xl tabular-nums ${
+                r.rr_ratio > 0 ? "text-win" : r.rr_ratio < 0 ? "text-loss" : "text-muted"
+              }`}
+            >
+              {r.rr_ratio > 0 ? "+" : ""}
+              {r.rr_ratio.toFixed(2)}R
+            </div>
+          ) : (
+            <div
+              className={`font-display text-2xl ${
+                r.result === "WIN" ? "text-win" : r.result === "LOSS" ? "text-loss" : "text-muted"
+              }`}
+            >
+              {r.result ?? "—"}
+            </div>
+          )}
+          <div className="text-xs text-muted">{r.isOpen ? "live" : "result"}</div>
         </div>
       </div>
 

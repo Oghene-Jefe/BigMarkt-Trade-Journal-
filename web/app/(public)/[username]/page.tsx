@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signAvatar } from "@/lib/storage";
-import { fmtMoney, fmtDate } from "@/lib/format";
+import { fmtDate } from "@/lib/format";
 import { ShieldCheck } from "lucide-react";
 import TrustBadge from "@/components/TrustBadge";
 import FollowButton from "@/components/FollowButton";
@@ -289,12 +289,16 @@ export default async function UsernameProfilePage({
                 >
                   {t.result ?? "—"}
                 </span>
-                <span
-                  className={`flex-1 text-right tabular-nums ${
-                    (t.pnl ?? 0) >= 0 ? "text-win" : "text-loss"
-                  }`}
-                >
-                  {fmtMoney(t.pnl)}
+                <span className="flex-1 text-right tabular-nums">
+                  {t.rr_ratio != null ? (
+                    <span className={t.rr_ratio > 0 ? "text-win" : t.rr_ratio < 0 ? "text-loss" : "text-muted"}>
+                      {t.rr_ratio > 0 ? "+" : ""}{t.rr_ratio.toFixed(2)}R
+                    </span>
+                  ) : (
+                    <span className={t.result === "WIN" ? "text-win" : t.result === "LOSS" ? "text-loss" : "text-muted"}>
+                      {t.result ?? "—"}
+                    </span>
+                  )}
                 </span>
                 <TrustBadge badge={t.trust_badge ?? "manual"} />
                 <div className="mt-1 w-full border-t border-white/5 pt-2">
