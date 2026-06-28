@@ -10,7 +10,7 @@ export type FeedTrade = {
   pair: string | null;
   direction: string | null;
   result: string | null;
-  pnl: number | null;
+  return_pct: number | null;
   rr_ratio: number | null;
   trust_badge: string | null;
   source: string | null;

@@ -290,15 +290,20 @@ export default async function UsernameProfilePage({
                   {t.result ?? "—"}
                 </span>
                 <span className="flex-1 text-right tabular-nums">
-                  {t.rr_ratio != null ? (
+                  {t.return_pct != null ? (
+                    <span className={t.return_pct > 0 ? "text-win" : t.return_pct < 0 ? "text-loss" : "text-muted"}>
+                      {t.return_pct > 0 ? "+" : ""}{t.return_pct.toFixed(2)}%
+                      {t.rr_ratio != null ? (
+                        <span className="ml-1.5 text-xs text-muted">
+                          {t.rr_ratio > 0 ? "+" : ""}{t.rr_ratio.toFixed(2)}R
+                        </span>
+                      ) : null}
+                    </span>
+                  ) : t.rr_ratio != null ? (
                     <span className={t.rr_ratio > 0 ? "text-win" : t.rr_ratio < 0 ? "text-loss" : "text-muted"}>
                       {t.rr_ratio > 0 ? "+" : ""}{t.rr_ratio.toFixed(2)}R
                     </span>
-                  ) : (
-                    <span className={t.result === "WIN" ? "text-win" : t.result === "LOSS" ? "text-loss" : "text-muted"}>
-                      {t.result ?? "—"}
-                    </span>
-                  )}
+                  ) : null}
                 </span>
                 <TrustBadge badge={t.trust_badge ?? "manual"} />
                 <div className="mt-1 w-full border-t border-white/5 pt-2">

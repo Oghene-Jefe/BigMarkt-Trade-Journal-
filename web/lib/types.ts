@@ -82,7 +82,7 @@ export type PublicTrade = {
   pair: string | null;
   direction: "BUY" | "SELL" | null;
   result: "WIN" | "LOSS" | "BE" | null;
-  pnl: number | null;
+  return_pct: number | null;
   rr_ratio: number | null;
   setup_grade: string | null;
   chart_path: string | null;

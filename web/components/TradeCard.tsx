@@ -10,7 +10,7 @@ export type CardTrade = {
   pair: string | null;
   direction: string | null;
   result: string | null;
-  pnl: number | null;
+  return_pct: number | null;
   rr_ratio: number | null;
   trust_badge: string | null;
   isOpen: boolean;
@@ -80,25 +80,38 @@ export default function TradeCard({ trade: r }: { trade: CardTrade }) {
         </div>
 
         <div className="shrink-0 text-right">
-          {r.rr_ratio != null ? (
-            <div
-              className={`font-display text-2xl tabular-nums ${
-                r.rr_ratio > 0 ? "text-win" : r.rr_ratio < 0 ? "text-loss" : "text-muted"
-              }`}
-            >
-              {r.rr_ratio > 0 ? "+" : ""}
-              {r.rr_ratio.toFixed(2)}R
-            </div>
-          ) : (
-            <div
-              className={`font-display text-2xl ${
-                r.result === "WIN" ? "text-win" : r.result === "LOSS" ? "text-loss" : "text-muted"
-              }`}
-            >
-              {r.result ?? "—"}
-            </div>
-          )}
-          <div className="text-xs text-muted">{r.isOpen ? "live" : "result"}</div>
+          {r.return_pct != null ? (
+            <>
+              <div
+                className={`font-display text-2xl tabular-nums ${
+                  r.return_pct > 0 ? "text-win" : r.return_pct < 0 ? "text-loss" : "text-muted"
+                }`}
+              >
+                {r.return_pct > 0 ? "+" : ""}
+                {r.return_pct.toFixed(2)}%
+              </div>
+              {r.rr_ratio != null ? (
+                <div className="text-xs tabular-nums text-muted">
+                  {r.rr_ratio > 0 ? "+" : ""}
+                  {r.rr_ratio.toFixed(2)}R
+                </div>
+              ) : (
+                <div className="text-xs text-muted">{r.isOpen ? "live" : "return"}</div>
+              )}
+            </>
+          ) : r.rr_ratio != null ? (
+            <>
+              <div
+                className={`font-display text-2xl tabular-nums ${
+                  r.rr_ratio > 0 ? "text-win" : r.rr_ratio < 0 ? "text-loss" : "text-muted"
+                }`}
+              >
+                {r.rr_ratio > 0 ? "+" : ""}
+                {r.rr_ratio.toFixed(2)}R
+              </div>
+              <div className="text-xs text-muted">{r.isOpen ? "live" : "result"}</div>
+            </>
+          ) : null}
         </div>
       </div>
 

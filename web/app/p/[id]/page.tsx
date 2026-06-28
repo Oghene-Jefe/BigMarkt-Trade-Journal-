@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { signAvatar } from "@/lib/storage";
-import { fmtMoney, fmtDate, fmtPct } from "@/lib/format";
+import { fmtDate, fmtPct } from "@/lib/format";
 import { ShieldCheck } from "lucide-react";
 import TrustBadge from "@/components/TrustBadge";
 import FollowButton from "@/components/FollowButton";
@@ -239,12 +239,21 @@ export default async function PublicProfilePage({
                 >
                   {t.result ?? "—"}
                 </span>
-                <span
-                  className={`flex-1 text-right tabular-nums ${
-                    (t.pnl ?? 0) >= 0 ? "text-win" : "text-loss"
-                  }`}
-                >
-                  {fmtMoney(t.pnl)}
+                <span className="flex-1 text-right tabular-nums">
+                  {t.return_pct != null ? (
+                    <span className={t.return_pct > 0 ? "text-win" : t.return_pct < 0 ? "text-loss" : "text-muted"}>
+                      {t.return_pct > 0 ? "+" : ""}{t.return_pct.toFixed(2)}%
+                      {t.rr_ratio != null ? (
+                        <span className="ml-1.5 text-xs text-muted">
+                          {t.rr_ratio > 0 ? "+" : ""}{t.rr_ratio.toFixed(2)}R
+                        </span>
+                      ) : null}
+                    </span>
+                  ) : t.rr_ratio != null ? (
+                    <span className={t.rr_ratio > 0 ? "text-win" : t.rr_ratio < 0 ? "text-loss" : "text-muted"}>
+                      {t.rr_ratio > 0 ? "+" : ""}{t.rr_ratio.toFixed(2)}R
+                    </span>
+                  ) : null}
                 </span>
                 <TrustBadge badge={t.trust_badge ?? "manual"} />
               </li>

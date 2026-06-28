@@ -3,7 +3,7 @@ import type { Route } from "next";
 import Avatar from "@/components/ui/Avatar";
 import TrustBadge, { type Badge } from "@/components/TrustBadge";
 import type { FeedTrade } from "@/lib/actions/feed";
-import { fmtMoney, fmtDate } from "@/lib/format";
+import { fmtDate } from "@/lib/format";
 import ReactionBar from "@/components/ReactionBar";
 
 export default function FeedCard({ trade: r }: { trade: FeedTrade }) {
@@ -11,7 +11,6 @@ export default function FeedCard({ trade: r }: { trade: FeedTrade }) {
   const dirClass = r.direction === "BUY" ? "bg-win/20 text-win" : "bg-loss/20 text-loss";
   const resultClass =
     r.result === "WIN" ? "text-win" : r.result === "LOSS" ? "text-loss" : "text-muted";
-  const pnlClass = (r.pnl ?? 0) > 0 ? "text-win" : (r.pnl ?? 0) < 0 ? "text-loss" : "text-muted";
 
   return (
     <div className="flex items-start gap-3 py-3">
@@ -35,9 +34,10 @@ export default function FeedCard({ trade: r }: { trade: FeedTrade }) {
             {r.direction}
           </span>
           <span className={`text-xs uppercase ${resultClass}`}>{r.result ?? "—"}</span>
-          <span className={`tabular-nums text-sm font-semibold ${pnlClass}`}>{fmtMoney(r.pnl)}</span>
           {r.rr_ratio != null ? (
-            <span className="text-xs text-muted">{r.rr_ratio.toFixed(2)}R</span>
+            <span className={`tabular-nums text-sm font-semibold ${r.rr_ratio > 0 ? "text-win" : r.rr_ratio < 0 ? "text-loss" : "text-muted"}`}>
+              {r.rr_ratio > 0 ? "+" : ""}{r.rr_ratio.toFixed(2)}R
+            </span>
           ) : null}
         </div>
         <ReactionBar tradeId={r.trade_id} />
