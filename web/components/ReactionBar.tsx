@@ -9,7 +9,7 @@ const REACTIONS = [
   { key: "fire", emoji: "🔥" },
 ] as const;
 
-type Row = { reaction: string; count: number; reacted: boolean };
+type Row = { reaction: string; cnt: number; reacted: boolean };
 
 export default function ReactionBar({ tradeId }: { tradeId: string }) {
   const [rows, setRows] = useState<Row[]>([]);
@@ -40,7 +40,7 @@ export default function ReactionBar({ tradeId }: { tradeId: string }) {
     [tradeId, busy]
   );
 
-  const countFor = (key: string) => rows.find((r) => r.reaction === key)?.count ?? 0;
+  const countFor = (key: string) => rows.find((r) => r.reaction === key)?.cnt ?? 0;
   const reactedFor = (key: string) => rows.find((r) => r.reaction === key)?.reacted ?? false;
 
   return (
