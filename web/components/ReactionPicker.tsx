@@ -67,7 +67,6 @@ export default function ReactionPicker({ tradeId }: { tradeId: string }) {
 
   return (
     <div ref={wrapRef} className="relative flex items-center gap-2">
-      {/* Existing reactions — flat, no heavy background */}
       {existing.map((r) => {
         const mine = r.reaction === myReaction;
         return (
@@ -76,37 +75,40 @@ export default function ReactionPicker({ tradeId }: { tradeId: string }) {
             type="button"
             onClick={() => react(r.reaction)}
             disabled={busy}
-            className={`flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs transition disabled:opacity-40 ${
+            className={`group flex items-center gap-1 rounded-full px-1.5 py-0.5 text-xs transition disabled:opacity-40 ${
               mine ? "text-gold" : "text-muted hover:text-white"
             }`}
           >
-            <span className="text-sm leading-none">{EMOJI[r.reaction]}</span>
+            <span className="text-base leading-none transition-transform duration-150 group-hover:scale-125 group-active:scale-90">
+              {EMOJI[r.reaction]}
+            </span>
             <span className="tabular-nums">{r.cnt}</span>
           </button>
         );
       })}
 
-      {/* Add-reaction trigger */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-6 w-6 items-center justify-center rounded-full text-muted transition hover:bg-white/5 hover:text-white"
+        className={`flex h-7 w-7 items-center justify-center rounded-full text-muted transition-all duration-200 hover:bg-white/5 hover:text-white ${
+          open ? "rotate-45 bg-white/10 text-white" : ""
+        }`}
         aria-label="Add reaction"
       >
-        <span className="text-sm leading-none">＋</span>
+        <span className="text-base leading-none">＋</span>
       </button>
 
-      {/* Floating picker */}
       {open ? (
-        <div className="absolute bottom-full left-0 z-10 mb-1.5 flex items-center gap-1 rounded-full border border-white/10 bg-panel px-1.5 py-1 shadow-lg">
-          {REACTIONS.map(({ key, emoji }) => (
+        <div className="absolute bottom-full left-0 z-10 mb-2 flex animate-[pop_160ms_ease-out] items-center gap-1.5 rounded-full border border-white/10 bg-panel px-2 py-1.5 shadow-xl">
+          {REACTIONS.map(({ key, emoji }, i) => (
             <button
               key={key}
               type="button"
               onClick={() => react(key)}
               disabled={busy}
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-base transition hover:scale-110 hover:bg-white/10 disabled:opacity-40 ${
-                key === myReaction ? "bg-gold/15" : ""
+              style={{ animationDelay: `${i * 40}ms` }}
+              className={`flex h-9 w-9 animate-[rise_220ms_ease-out_both] items-center justify-center rounded-full text-xl transition-transform duration-150 hover:-translate-y-1 hover:scale-125 active:scale-95 disabled:opacity-40 ${
+                key === myReaction ? "bg-gold/15" : "hover:bg-white/10"
               }`}
             >
               {emoji}
