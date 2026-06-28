@@ -1,10 +1,10 @@
-﻿// Tiny formatters shared by JournalTable + Dashboard. All accept null/undefined
+// Tiny formatters shared by JournalTable + Dashboard. All accept null/undefined
 // so server-rendered cells stay simple.
 export function fmtMoney(
   n: number | null | undefined,
   currency?: string | null,
 ): string {
-  if (n == null || !Number.isFinite(n)) return "â€”";
+  if (n == null || !Number.isFinite(n)) return "—";
   const sign = n < 0 ? "-" : "";
   const abs = Math.abs(n);
   const num = abs.toLocaleString("en-US", { maximumFractionDigits: 2 });
@@ -17,14 +17,14 @@ export function fmtMoney(
 }
 
 export function fmtDate(d: string | Date | null | undefined): string {
-  if (!d) return "â€”";
+  if (!d) return "—";
   const t = typeof d === "string" ? new Date(d) : d;
-  if (Number.isNaN(t.getTime())) return "â€”";
+  if (Number.isNaN(t.getTime())) return "—";
   return t.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" });
 }
 
 export function fmtPct(n: number | null | undefined, digits = 1): string {
-  if (n == null || !Number.isFinite(n)) return "â€”";
+  if (n == null || !Number.isFinite(n)) return "—";
   const sign = n > 0 ? "+" : "";
   return `${sign}${n.toFixed(digits)}%`;
 }
