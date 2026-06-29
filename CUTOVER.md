@@ -8,15 +8,25 @@ that subdirectory rather than treating the repo root as a static site.
 1. Open the BigMarkt project on https://vercel.com/dashboard
 2. **Settings → General → Root Directory** → set to `web` → Save
    (Vercel will auto-detect Next.js once this is set.)
-3. **Settings → Environment Variables** → add for **Production**, **Preview**, and **Development**:
+3. **Settings → Environment Variables** → add for **Production**, **Preview**, and **Development** as needed:
 
    | Name | Value |
    |---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | `https://<your-project-ref>.supabase.co` (from Supabase dashboard → Settings → API → Project URL) |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the anon JWT (Supabase dashboard → Settings → API → anon public key) |
+   | `SUPABASE_SERVICE_ROLE_KEY` | service-role JWT, required by server-only admin/EA/cron paths |
+   | `EA_SIGNING_SECRET_ENCRYPTION_KEY` | base64 32-byte key for EA v2 per-token signing secrets |
+   | `CRON_SECRET` | shared secret for Vercel cron routes |
+   | `NEXT_PUBLIC_SITE_URL` | canonical journal URL, for password-reset redirects |
+   | `WS_STATUS_URL` | Railway WebSocket server `/status` URL |
+   | `WS_STATUS_SECRET` | shared secret matching the Railway service |
 
-   **Do not** add `SUPABASE_SERVICE_ROLE_KEY` to Vercel. It's never imported
-   from `app/` or `components/`; only the test suite needs it.
+   Optional rollout-specific variables include `EXCHANGE_CREDENTIAL_ENCRYPTION_KEY`
+   for exchange sync and Bybit proxy variables from `web/.env.example`.
+
+   `SUPABASE_SERVICE_ROLE_KEY` must stay server-only. It is safe to configure
+   as a Vercel secret for the web project, but never import it into client
+   components or expose it through `NEXT_PUBLIC_*`.
 4. **Deployments → … on the latest deployment → Redeploy** (or push any
    commit; the next one will build with the new settings).
 
