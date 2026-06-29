@@ -124,13 +124,13 @@ export default function TradeCard({ trade: r }: { trade: CardTrade }) {
           href={chartProxyUrl(r.trade_id, r.chart_path)}
           target="_blank"
           rel="noopener"
-          className="mt-3 block overflow-hidden rounded-lg border border-white/8"
+          className="mt-3 block overflow-hidden rounded-lg border border-white/8 bg-black/20"
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- same-origin /c/<id> chart proxy */}
           <img
             src={chartProxyUrl(r.trade_id, r.chart_path)}
             alt=""
-            className="max-h-56 w-full object-cover"
+            className="mx-auto max-h-44 w-auto max-w-full object-contain"
             loading="lazy"
           />
         </a>

@@ -46,6 +46,7 @@ const GROUPS: { label: string; items: LinkItem[] }[] = [
   {
     label: "Compete",
     items: [
+      { href: "/discover", label: "Discover" },
       { href: "/leaderboard", label: "Leaderboard" },
       { href: "/following", label: "Following" },
       { href: "/feed", label: "Feed" },
