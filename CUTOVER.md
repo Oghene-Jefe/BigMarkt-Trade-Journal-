@@ -8,15 +8,23 @@ that subdirectory rather than treating the repo root as a static site.
 1. Open the BigMarkt project on https://vercel.com/dashboard
 2. **Settings → General → Root Directory** → set to `web` → Save
    (Vercel will auto-detect Next.js once this is set.)
-3. **Settings → Environment Variables** → add for **Production**, **Preview**, and **Development**:
+3. **Settings → Environment Variables** → add for **Production**, **Preview**, and **Development** as needed:
 
    | Name | Value |
    |---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | `https://<your-project-ref>.supabase.co` (from Supabase dashboard → Settings → API → Project URL) |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the anon JWT (Supabase dashboard → Settings → API → anon public key) |
+   | `NEXT_PUBLIC_SITE_URL` | canonical journal origin, e.g. `https://journal.bigmarkt.co` |
+   | `SUPABASE_SERVICE_ROLE_KEY` | service-role JWT, server-only/sensitive |
+   | `CRON_SECRET` | long random string for Vercel cron routes |
+   | `WS_STATUS_URL` | Railway `/status` URL |
+   | `WS_STATUS_SECRET` | same secret configured on Railway |
+   | `EA_SIGNING_SECRET_ENCRYPTION_KEY` | 32-byte base64 key for EA v2 signing secrets |
+   | `EXCHANGE_CREDENTIAL_ENCRYPTION_KEY` | 32-byte base64 key for exchange credential encryption |
 
-   **Do not** add `SUPABASE_SERVICE_ROLE_KEY` to Vercel. It's never imported
-   from `app/` or `components/`; only the test suite needs it.
+   Keep `SUPABASE_SERVICE_ROLE_KEY` server-only. It is used by trusted server
+   routes and scripts; never expose it with a `NEXT_PUBLIC_` prefix or import
+   the admin client from client components.
 4. **Deployments → … on the latest deployment → Redeploy** (or push any
    commit; the next one will build with the new settings).
 
@@ -46,7 +54,7 @@ In the browser:
 
 | | Before (static `index.html`) | After (Next.js at root URL) |
 |---|---|---|
-| URL | `/index.html` (single SPA) | `/login`, `/dashboard`, `/journal`, `/leaderboard`, `/profile`, `/admin`, `/p/[id]` |
+| URL | `/index.html` (single SPA) | `/login`, `/dashboard`, `/journal`, `/feed`, `/discover`, `/leaderboard`, `/profile`, `/admin`, `/@username`, `/p/[id]` |
 | Auth | localStorage tokens | HTTP-only cookies (more secure, survives tab reload identically) |
 | Profile reads | Anon could read all emails | Anon reads return `[]`; emails never in HTML |
 | Admin | Frontend email allowlist | Server-side `admin_users` table |
@@ -55,26 +63,14 @@ In the browser:
 
 ## Compatibility window
 
-The old static files (`index.html`, `css/`, `js/`) **stay in the repo for
-now** but are **not deployed** once Vercel's Root Directory is set to
-`web/`. Vercel only sees that subdirectory.
+The old static files now live under `archive/legacy-static-app/` and are **not
+deployed** once Vercel's Root Directory is set to `web/`. Vercel only sees that
+subdirectory.
 
-If you need an emergency rollback: change Root Directory back to `/` (or
-unset it) and the static app deploys again.
+The old root-static rollback path is no longer the normal rollback path. Roll
+back by redeploying a known-good Vercel deployment of `web/`.
 
-The legacy schema columns (`trades.image_url`, `trades.trade_visibility`,
-`profiles.avatar_url`) are still populated on every write so the old app
-keeps working if rolled back. They get dropped in a follow-up migration
-once cutover is confirmed stable for ~1 week.
-
-## After ~1 week of stable cutover
-
-1. Delete `index.html`, `css/`, `js/`, `manifest.json`, `assets/` from the
-   repo root.
-2. Apply migration `0011_drop_legacy_columns.sql` (TBD, see plan in plan
-   docs) — drops `trade_visibility`, `image_url`, `avatar_url`.
-3. Update writes in `web/app/(app)/actions.ts` to stop mirroring into the
-   legacy columns.
+Legacy static assets have already been moved out of the deploy path.
 
 ## Domain
 

@@ -1,127 +1,115 @@
-# BigMarkt Trade Journal — Web (rebuild)
+# BigMarkt Journal Web App
 
-Next.js + Supabase rebuild of the static HTML/JS journal in the repo root.
-This directory is **parallel** to the old app — nothing in `../js/`, `../css/`,
-or `../index.html` is touched. Cutover happens once Slices 1–N are verified.
+`web/` is the production journal app for `journal.bigmarkt.co`. It is a
+Next.js App Router application backed by Supabase Postgres, RLS, private
+storage buckets, and server-only service-role flows.
 
-## What's in this slice (Slice 1 — security foundation)
+The archived static app is preserved at `../archive/legacy-static-app/` for
+reference only. It is not deployed.
 
-- Versioned Supabase schema in [`../supabase/migrations/`](../supabase/migrations/).
-- Strict RLS: anon clients can read **nothing** from base tables.
-- `admin_users` table replaces the old client-side `ADMIN_EMAILS` allowlist.
-- Sanitized `get_leaderboard` / `get_public_profile` RPCs (no email leakage,
-  respect profile visibility).
-- Private storage buckets (`avatars`, `trade-charts`) — public sharing is
-  signed-URL only, minted server-side.
-- Cookie-based auth via `@supabase/ssr` so RLS works in Server Components.
-- Email + password login / signup / reset, all through server actions with
-  Zod validation.
-- Privacy + rendering test suites (`vitest`).
+## Current Product Surface
 
-UI pages beyond auth + an empty dashboard land in Slice 2.
+- Email/password auth, reset, callback handling, and first-run onboarding
+- Dashboard activation flow, journal CRUD/imports, analytics, calculator, challenges
+- Public profiles at `/@username` and `/p/[id]`, public chart proxy at `/c/[id]`
+- Leaderboard, follow graph, Discover search, Following feed, live open-position strip
+- EA setup, token management, v1/v2 EA ingest, signed/replay-protected v2 envelopes
+- Broker account management, broker submissions, exchange connection tooling
+- Trading Constitution rule checks and public adherence signal
+- Notifications, support chat, disputes, referrals, upgrade waitlist, admin panels
+- Cron routes for news feed, cleanup, and score recalculation
 
 ## Setup
 
 ```bash
 cd web
-cp .env.example .env.local       # fill in Supabase URL + anon key
+cp .env.example .env.local
 npm install
-npm run dev                      # http://localhost:3000
+npm run dev
 ```
 
-### Apply migrations
+Open `http://localhost:3000`.
 
-The migrations are written to be idempotent and additive against the existing
-production schema, but **run them on a staging project first**.
-
-Using the Supabase CLI:
+Minimum local env:
 
 ```bash
-# from repo root
-supabase link --project-ref YOUR_PROJECT_REF
-supabase db push
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-Or paste each `supabase/migrations/000N_*.sql` file into the dashboard SQL
-editor in order.
+Feature-dependent env:
 
-### Grant admin
+| Variable | Used for |
+|---|---|
+| `SUPABASE_SERVICE_ROLE_KEY` | Privacy tests, admin/server flows, EA ingest, crons, scripts |
+| `CRON_SECRET` | `/api/cron/*` route authorization |
+| `WS_STATUS_URL`, `WS_STATUS_SECRET` | EA setup presence polling via Railway WebSocket service |
+| `EA_SIGNING_SECRET_ENCRYPTION_KEY` | EA v2 per-token signing-secret encryption |
+| `EA_INGEST_V1_CUTOFF_AT` | Optional ISO cutoff for rejecting legacy v1 EA ingest |
+| `EXCHANGE_CREDENTIAL_ENCRYPTION_KEY` | Exchange API credential envelope encryption |
+| `BYBIT_MAINNET_BASE_URL`, `BYBIT_TESTNET_BASE_URL`, `BYBIT_PROXY_TOKEN` | Optional Bybit proxy |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Turnstile-protected forms |
 
-```sql
-insert into public.admin_users (user_id, note)
-values ('00000000-0000-0000-0000-000000000000', 'manually granted 2026-05-09');
-```
+See `.env.example` for notes and generation commands.
 
-Never grant admin via the API — `admin_users` has no INSERT policy by design.
-
-### Run privacy tests
-
-The tests need a service-role key to spin up disposable users. **Use a
-non-production project.**
+## Commands
 
 ```bash
-SUPABASE_SERVICE_ROLE_KEY=... npm test
+npm run dev             # local Next.js dev server
+npm run build           # production build, required before push
+npm run start           # serve a built app
+npm run lint            # ESLint
+npm run typecheck       # app typecheck via tsconfig.typecheck.json
+npm run typecheck:full  # full TypeScript check
+npm test                # Vitest unit/privacy suites
+npm run news:run        # run the news cron code locally, bypassing CRON_SECRET
 ```
 
-## Migration notes from the static app
+Privacy tests need a service-role key and should run against staging or another
+non-production project:
 
-| Old behaviour                                                | New behaviour                                                  |
-|--------------------------------------------------------------|----------------------------------------------------------------|
-| `ADMIN_EMAILS` array in `js/state.js`                        | `public.admin_users` table + `is_admin()` SQL function         |
-| `_sb.from('profiles').select('*')` from admin panel           | `admin_list_users()` RPC, gated by `is_admin(auth.uid())`      |
-| Leaderboard reads raw trades + emails from browser            | `get_leaderboard()` RPC; emails never leave the database       |
-| `getPublicUrl` on public `trade-charts` / `avatars` buckets   | Private buckets + per-request signed URLs (Slice 3)            |
-| `innerHTML` rendering with manual `escHtml`                   | React text rendering by default; `rendering.spec.tsx` pins it  |
-| `localStorage` Supabase tokens (default v2)                   | Cookie-based session via `@supabase/ssr`                       |
-| Profile email exposed to anon reads                           | RLS blocks anon SELECT on `profiles` entirely                  |
-| Schema lived only in the dashboard                            | `supabase/migrations/000N_*.sql` in version control            |
-
-### Data migration
-
-Existing rows in `profiles` and `trades` keep working. The migrations only
-**add** columns (`visibility`, `display_name`, `updated_at`) with safe
-defaults. No destructive changes. After applying:
-
-1. Existing profiles default to `visibility = 'private'` — they vanish from
-   the leaderboard until users opt in. This is the correct default per the
-   privacy brief.
-2. Existing trades default to `visibility = 'private'`.
-3. Existing storage objects in the now-private buckets stay accessible to
-   their owner. Old `getPublicUrl` links break — Slice 3 generates signed
-   URLs in their place. Communicate this to active users before cutover.
-
-## Project layout
-
+```bash
+SUPABASE_SERVICE_ROLE_KEY=... npm test -- tests/privacy.spec.ts --run
 ```
+
+## Database Migrations
+
+Schema changes live in `../supabase/migrations/`. Current project convention is
+to apply production migrations manually in the Supabase SQL Editor and verify
+the created functions/tables/policies directly in Supabase. Do not use
+`supabase db push` for production.
+
+When adding a migration:
+
+1. Create the next numbered `../supabase/migrations/00NN_description.sql` file.
+2. Test against a non-production Supabase project when possible.
+3. Apply the exact SQL manually in the production SQL Editor when approved.
+4. Verify persistence, especially for RPC definitions in `pg_proc`.
+5. Commit the migration with the matching application changes.
+
+## Project Layout
+
+```text
 web/
   app/
-    (auth)/                  # login, signup, reset, reset/confirm, actions.ts
-    auth/callback/           # email-link redirect handler
-    dashboard/               # placeholder, filled in Slice 2
-    layout.tsx, page.tsx, globals.css
-  lib/
-    supabase/
-      client.ts              # browser client
-      server.ts              # server component / action client
-      middleware.ts          # session refresh
-    schemas.ts               # Zod schemas (shared client + server)
-  tests/
-    privacy.spec.ts          # RLS + sanitization tests
-    rendering.spec.tsx       # XSS-safe rendering pins
-  middleware.ts              # wires lib/supabase/middleware.ts
-
-../supabase/
-  migrations/
-    0001_baseline_schema.sql
-    0002_rls_policies.sql
-    0003_leaderboard_rpc.sql
-    0004_storage_policies.sql
+    (auth)/                 login, signup, reset, server actions
+    (app)/                  authenticated app routes
+    (public)/[username]/    public username profile
+    api/                    EA ingest, crons, public platform stats, OG
+    auth/callback/          Supabase email-link callback
+    onboarding/             first-run profile setup
+    p/[id]/                 legacy/public UUID profile
+  components/               shared UI and product components
+  lib/                      Supabase clients, actions, scoring, EA, exchange, storage
+  scripts/                  local maintenance/smoke scripts
+  tests/                    Vitest coverage for security and domain logic
+  docs/                     web-specific security notes
 ```
 
-## What's next
+## Deployment
 
-- **Slice 2**: trades CRUD + JournalTable + TradeForm.
-- **Slice 3**: signed-URL flow for chart screenshots + avatars.
-- **Slice 4**: leaderboard UI + public profile pages.
-- **Slice 5**: server-only admin panel.
-- **Slice 6**: challenges, referrals, balance resets, analytics.
+Vercel is configured with `web/` as the project root and deploys on push to
+`main`. The service-role key is server-only and must be set only as a sensitive
+server environment variable; never expose it with a `NEXT_PUBLIC_` prefix or
+import the admin client from client components.

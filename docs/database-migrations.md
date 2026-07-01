@@ -7,20 +7,23 @@ existed in prod that were never in the repo (`subscriptions`, `notifications`,
 Supabase SQL editor instead of through committed migrations, so the repo was not
 a faithful picture of prod and bugs hid in the gap.
 
-## The rule (going forward)
+## The current rule
 
-**Every schema change is a migration file, applied with the CLI. Never hand-edit
-prod in the dashboard SQL editor.**
+**Every schema change needs a committed migration file, but production
+migrations are applied manually in the Supabase SQL Editor. Do not run
+`supabase db push` against production.**
 
-```bash
-# 1. write supabase/migrations/00NN_description.sql
-# 2. apply it to prod
-supabase db push
-# 3. commit the migration file
-```
+This reflects the current operating rule in `CURRENT_STATE.md`: SQL Editor
+reports are not enough, so verify persistence after apply, especially RPCs in
+`pg_proc`.
 
-`supabase db push` applies only un-applied migrations and records them in the
-remote `schema_migrations` table, so the repo and prod stay in lockstep.
+Current flow:
+
+1. Write `supabase/migrations/00NN_description.sql`.
+2. Test on a staging/non-production project when possible.
+3. Apply the exact SQL manually in the Supabase SQL Editor.
+4. Verify the resulting tables, policies, grants, and RPC definitions.
+5. Commit the migration file with the matching app change.
 
 ## One-time: recover a true baseline (needs DB credentials)
 
@@ -36,8 +39,9 @@ supabase db pull                                 # writes a baseline migration f
 git add supabase/migrations && git commit -m "chore(db): baseline from prod"
 ```
 
-After this, `supabase/migrations/` reproduces prod from scratch and the drift
-check below becomes meaningful.
+After this, `supabase/migrations/` can reproduce prod from scratch and the
+drift check below becomes meaningful. This baseline command is for recovery
+only; it is not the production apply path.
 
 ## CI drift check
 
@@ -52,7 +56,7 @@ no-ops until these repo secrets are set
 | `SUPABASE_PROJECT_REF` | `awvrylniqppybwaiwzse` |
 | `SUPABASE_DB_PASSWORD` | Project Settings → Database |
 
-## Migrations hand-applied this session
+## Earlier manually applied reconciliation migrations
 
 These were applied directly to prod via the SQL editor during UAT fixes and are
 committed to the repo (prod and repo are in sync for them). The baseline pull
@@ -70,3 +74,14 @@ above will subsume them:
 > `0064` re-asserts its effect. The baseline pull will reconcile any remaining
 > objects that exist in prod but not in `supabase/migrations/`
 > (`subscriptions`, `notifications` + policies, etc.).
+
+## Current migration head
+
+The repo currently carries migrations through `0081_search_profiles.sql`
+(with intentional numbering gaps after `0067`). Recent public-surface changes:
+
+| Migration | What |
+|---|---|
+| `0079_public_trades_thesis.sql` | returns `trade_thesis` from public trades |
+| `0080_feed_enrichment.sql` | widens the following feed with chart/thesis and trade anatomy, without dollar P&L |
+| `0081_search_profiles.sql` | profile search RPC for Discover |

@@ -2,6 +2,8 @@
 
 Generated: May 17, 2026
 
+Last reviewed against code: July 1, 2026
+
 Current readiness score: 96/100
 
 BigMarkt is ready for a controlled beta / live pilot. Before a full public launch, complete and sign off the checks below.
@@ -18,6 +20,18 @@ Required Vercel variables:
 - CRON_SECRET
 - WS_STATUS_URL
 - WS_STATUS_SECRET
+- NEXT_PUBLIC_SITE_URL
+- EA_SIGNING_SECRET_ENCRYPTION_KEY
+- EXCHANGE_CREDENTIAL_ENCRYPTION_KEY
+- TURNSTILE_SECRET_KEY
+- NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
+Optional Vercel variables:
+
+- EA_INGEST_V1_CUTOFF_AT
+- BYBIT_MAINNET_BASE_URL
+- BYBIT_TESTNET_BASE_URL
+- BYBIT_PROXY_TOKEN
 
 Required Railway WebSocket variables:
 
@@ -25,11 +39,20 @@ Required Railway WebSocket variables:
 - SUPABASE_SERVICE_ROLE_KEY
 - WS_STATUS_SECRET
 
+Required club / FTS site variables when application forms are live:
+
+- NEXT_PUBLIC_SUPABASE_URL
+- SUPABASE_SERVICE_ROLE_KEY
+- TURNSTILE_SECRET_KEY
+- NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
 Acceptance criteria:
 
 - CRON_SECRET is present and strong.
 - WS_STATUS_SECRET is present on both Vercel and Railway and values match.
 - WS_STATUS_URL points to the deployed Railway `/status` endpoint.
+- EA_SIGNING_SECRET_ENCRYPTION_KEY and EXCHANGE_CREDENTIAL_ENCRYPTION_KEY are 32-byte base64 secrets.
+- NEXT_PUBLIC_SITE_URL is the canonical journal origin used by auth redirects.
 - Service-role keys exist only in server-side environments.
 - No `.env`, `.env.local`, Vercel metadata, service-role keys, exchange keys, or user credentials are tracked in GitHub.
 

@@ -5,6 +5,7 @@ The public marketing site for BigMarkt at [bigmarkt.co](https://bigmarkt.co). Ex
 ## Develop
 
 ```bash
+cd sites/marketing
 npm install
 npm run dev
 ```
