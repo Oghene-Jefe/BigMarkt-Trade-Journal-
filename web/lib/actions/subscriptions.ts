@@ -64,7 +64,7 @@ export async function followLeaderAction(
   // unique violation ("Couldn't subscribe."). Upsert reactivates the existing
   // row — repointing it at the (re)followed leader and flipping it back to
   // active — which also covers re-using an account to follow a different leader.
-  const { error: insertErr } = await sb
+  const { data: upserted, error: insertErr } = await sb
     .from("subscriptions")
     .upsert(
       {
@@ -77,7 +77,9 @@ export async function followLeaderAction(
         leader_also_follows: leaderAlsoFollows,
       },
       { onConflict: "broker_account_id,mode" },
-    );
+    )
+    .select("id")
+    .single();
 
   if (insertErr) return { error: safeDbError(insertErr, "Couldn't subscribe.", "follow_insert") };
 
@@ -90,7 +92,7 @@ export async function followLeaderAction(
     `${name} is now following you.`,
   );
 
-  return { success: true as const };
+  return { success: true as const, subscriptionId: upserted?.id ?? null };
 }
 
 export async function unfollowLeaderAction(subscriptionId: string) {

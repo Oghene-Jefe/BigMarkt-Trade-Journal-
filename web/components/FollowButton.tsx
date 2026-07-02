@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, useState } from "react";
+import { useTransition, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Plus } from "lucide-react";
 import {
@@ -22,6 +22,10 @@ type Props = {
   existingSubscription: Subscription | null;
 };
 
+// Minimal local shape we can construct optimistically — enough for this
+// component's own state machine (isActive / isPaused checks + unfollow id).
+type LocalSub = { id: string; status: "active" | "paused" };
+
 export default function FollowButton({
   leaderId,
   leaderUsername,
@@ -33,13 +37,31 @@ export default function FollowButton({
   const [menuOpen, setMenuOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Local override — starts from the prop, but can move ahead of it after a
+  // successful action, so surfaces that don't server-repaint (e.g. Discover's
+  // client-side result list) still reflect the new state immediately.
+  const [localSub, setLocalSub] = useState<LocalSub | null>(
+    existingSubscription
+      ? { id: existingSubscription.id, status: existingSubscription.status as "active" | "paused" }
+      : null,
+  );
+
+  // If the parent re-renders with fresh server data (e.g. leaderboard after
+  // router.refresh()), let it win — keeps this component correct on surfaces
+  // that DO server-repaint, while still allowing local optimism where they don't.
+  useEffect(() => {
+    setLocalSub(
+      existingSubscription
+        ? { id: existingSubscription.id, status: existingSubscription.status as "active" | "paused" }
+        : null,
+    );
+  }, [existingSubscription?.id, existingSubscription?.status]);
+
   if (!currentUserId) return null;
   if (currentUserId === leaderId) return null;
 
-  const isActive =
-    existingSubscription && existingSubscription.status === "active";
-  const isPaused =
-    existingSubscription && existingSubscription.status === "paused";
+  const isActive = localSub?.status === "active";
+  const isPaused = localSub?.status === "paused";
 
   function run(fn: () => Promise<{ error?: string; success?: true } | void>) {
     setError(null);
@@ -55,7 +77,7 @@ export default function FollowButton({
   }
 
   // ── Active following state ──────────────────────────────────────────────
-  if (isActive && existingSubscription) {
+  if (isActive && localSub) {
     return (
       <div className="relative inline-block">
         <button
@@ -77,11 +99,13 @@ export default function FollowButton({
           <div className="absolute right-0 z-20 mt-2 w-56 rounded-md border border-white/10 bg-panel p-1 shadow-lg">
             <MenuItem
               onClick={() =>
-                run(() =>
-                  updateSubscriptionAction(existingSubscription.id, {
-                    status: "paused",
-                  })
-                )
+                run(async () => {
+                  const res = await updateSubscriptionAction(localSub.id, { status: "paused" });
+                  if (!res || !("error" in res) || !res.error) {
+                    setLocalSub({ id: localSub.id, status: "paused" });
+                  }
+                  return res;
+                })
               }
             >
               Pause
@@ -89,7 +113,13 @@ export default function FollowButton({
             <MenuItem
               tone="loss"
               onClick={() =>
-                run(() => unfollowLeaderAction(existingSubscription.id))
+                run(async () => {
+                  const res = await unfollowLeaderAction(localSub.id);
+                  if (!res || !("error" in res) || !res.error) {
+                    setLocalSub(null);
+                  }
+                  return res;
+                })
               }
             >
               Unfollow
@@ -102,7 +132,7 @@ export default function FollowButton({
   }
 
   // ── Paused state ───────────────────────────────────────────────────────
-  if (isPaused && existingSubscription) {
+  if (isPaused && localSub) {
     return (
       <div className="relative inline-block">
         <button
@@ -124,11 +154,13 @@ export default function FollowButton({
           <div className="absolute right-0 z-20 mt-2 w-56 rounded-md border border-white/10 bg-panel p-1 shadow-lg">
             <MenuItem
               onClick={() =>
-                run(() =>
-                  updateSubscriptionAction(existingSubscription.id, {
-                    status: "active",
-                  })
-                )
+                run(async () => {
+                  const res = await updateSubscriptionAction(localSub.id, { status: "active" });
+                  if (!res || !("error" in res) || !res.error) {
+                    setLocalSub({ id: localSub.id, status: "active" });
+                  }
+                  return res;
+                })
               }
             >
               Resume
@@ -136,7 +168,13 @@ export default function FollowButton({
             <MenuItem
               tone="loss"
               onClick={() =>
-                run(() => unfollowLeaderAction(existingSubscription.id))
+                run(async () => {
+                  const res = await unfollowLeaderAction(localSub.id);
+                  if (!res || !("error" in res) || !res.error) {
+                    setLocalSub(null);
+                  }
+                  return res;
+                })
               }
             >
               Unfollow
@@ -171,6 +209,16 @@ export default function FollowButton({
       if ("error" in res && res.error) {
         setError(res.error);
         return;
+      }
+      // Optimistically flip to Following immediately — critical for surfaces
+      // like Discover where results are client state and router.refresh()
+      // won't repaint them. Falls back to a placeholder id if the action
+      // didn't return one; router.refresh() will still reconcile it on
+      // server-rendered surfaces.
+      if ("subscriptionId" in res && res.subscriptionId) {
+        setLocalSub({ id: res.subscriptionId, status: "active" });
+      } else {
+        setLocalSub({ id: "pending", status: "active" });
       }
       router.refresh();
     });
