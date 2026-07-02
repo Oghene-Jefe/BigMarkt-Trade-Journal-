@@ -1256,9 +1256,16 @@ async function handleOpenSnapshot(
   const orphanRows = openRows.filter((r) => !r.position_id || !incomingOpen.has(r.position_id));
   const orphanIds = orphanRows.map((r) => r.id);
   if (orphanIds.length > 0) {
+    // No real close deal was ever received for these positions — the
+    // EA's close-sweep history scan found nothing either — so we only know
+    // the position is gone, not what it closed at. Writing a normal
+    // "closed" row with null price/result would render as a blank card on
+    // public surfaces. Force visibility to private instead: the trade stays
+    // in the owner's own journal (honestly incomplete), but never appears
+    // on the feed or a public profile until/unless real data exists.
     const { error: closeErr } = await supabase
       .from("trades")
-      .update({ status: "closed" })
+      .update({ status: "closed", visibility: "private" })
       .in("id", orphanIds)
       .eq("user_id", userId)
       .eq("broker_account_id", brokerAccountId)
@@ -1274,7 +1281,7 @@ async function handleOpenSnapshot(
         user_id:     userId,
         position_id: r.position_id ?? null,
         event_type:  "reconcile_closed",
-        raw:         { reason: "open_snapshot", source: "ea" },
+        raw:         { reason: "open_snapshot", source: "ea", data_quality: "unknown_close" },
       });
     }
   }
