@@ -8,7 +8,7 @@ import {
   type OpenPosition,
 } from "@/lib/actions/feed";
 import Avatar from "@/components/ui/Avatar";
-import { fmtMoney } from "@/lib/format";
+import { fmtPct } from "@/lib/format";
 
 export default function LiveFollowingStrip({
   initial,
@@ -51,7 +51,7 @@ export default function LiveFollowingStrip({
             p.direction === "BUY"
               ? "bg-win/20 text-win"
               : "bg-loss/20 text-loss";
-          const pnlClass = (p.pnl ?? 0) >= 0 ? "text-win" : "text-loss";
+          const pnlClass = (p.return_pct ?? 0) >= 0 ? "text-win" : "text-loss";
 
           return (
             <Link
@@ -76,7 +76,7 @@ export default function LiveFollowingStrip({
                 </span>
               </div>
               <span className={`tabular-nums font-semibold ${pnlClass}`}>
-                {fmtMoney(p.pnl)}
+                {fmtPct(p.return_pct)}
               </span>
             </Link>
           );

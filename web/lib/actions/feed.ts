@@ -72,7 +72,7 @@ export type OpenPosition = {
   user_id: string;
   pair: string | null;
   direction: string | null;
-  pnl: number | null;
+  return_pct: number | null;
   trust_badge: string | null;
   opened_at: string;
   leader_display_name: string | null;
