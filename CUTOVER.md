@@ -1,4 +1,8 @@
-# Cutover: static `index.html` → Next.js app at `web/`
+# Cutover: static app to Next.js `web/`
+
+Status: historical. The live journal is the Next.js app in `web/`. The legacy
+static app has been moved to `archive/legacy-static-app/` and is not the
+deployed production surface.
 
 The Next.js rebuild lives at `web/`. Vercel needs to know to build from
 that subdirectory rather than treating the repo root as a static site.
@@ -15,8 +19,9 @@ that subdirectory rather than treating the repo root as a static site.
    | `NEXT_PUBLIC_SUPABASE_URL` | `https://<your-project-ref>.supabase.co` (from Supabase dashboard → Settings → API → Project URL) |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the anon JWT (Supabase dashboard → Settings → API → anon public key) |
 
-   **Do not** add `SUPABASE_SERVICE_ROLE_KEY` to Vercel. It's never imported
-   from `app/` or `components/`; only the test suite needs it.
+   Add `SUPABASE_SERVICE_ROLE_KEY` only as a server-side Vercel secret. It is
+   required by trusted server routes such as EA ingest and must never be exposed
+   to client components or public browser bundles.
 4. **Deployments → … on the latest deployment → Redeploy** (or push any
    commit; the next one will build with the new settings).
 
@@ -55,26 +60,24 @@ In the browser:
 
 ## Compatibility window
 
-The old static files (`index.html`, `css/`, `js/`) **stay in the repo for
-now** but are **not deployed** once Vercel's Root Directory is set to
-`web/`. Vercel only sees that subdirectory.
+The old static files now live under `archive/legacy-static-app/`. They are not
+deployed when Vercel's Root Directory is `web/`.
 
-If you need an emergency rollback: change Root Directory back to `/` (or
-unset it) and the static app deploys again.
+An emergency rollback to the archive would require restoring/deploying the
+archived static app intentionally; simply unsetting the Vercel root directory is
+no longer a complete rollback plan.
 
 The legacy schema columns (`trades.image_url`, `trades.trade_visibility`,
-`profiles.avatar_url`) are still populated on every write so the old app
-keeps working if rolled back. They get dropped in a follow-up migration
-once cutover is confirmed stable for ~1 week.
+`profiles.avatar_url`) are still present for data compatibility. Current app
+writes still mirror `trade_visibility`; removal needs a dedicated migration and
+code cleanup, not a routine cutover step.
 
-## After ~1 week of stable cutover
+## Post-cutover status
 
-1. Delete `index.html`, `css/`, `js/`, `manifest.json`, `assets/` from the
-   repo root.
-2. Apply migration `0011_drop_legacy_columns.sql` (TBD, see plan in plan
-   docs) — drops `trade_visibility`, `image_url`, `avatar_url`.
-3. Update writes in `web/app/(app)/actions.ts` to stop mirroring into the
-   legacy columns.
+- Root-level static app files have been removed or archived.
+- Production journal writes and reads through the Next.js app.
+- Legacy compatibility notes in this file should be treated as historical
+  context, not current deployment instructions.
 
 ## Domain
 

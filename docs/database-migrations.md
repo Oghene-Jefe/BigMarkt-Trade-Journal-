@@ -7,14 +7,14 @@ existed in prod that were never in the repo (`subscriptions`, `notifications`,
 Supabase SQL editor instead of through committed migrations, so the repo was not
 a faithful picture of prod and bugs hid in the gap.
 
-## The rule (going forward)
+## The rule
 
-**Every schema change is a migration file, applied with the CLI. Never hand-edit
-prod in the dashboard SQL editor.**
+**Every schema change is a migration file, applied with the CLI. Do not make
+untracked production changes in the dashboard SQL editor.**
 
 ```bash
 # 1. write supabase/migrations/00NN_description.sql
-# 2. apply it to prod
+# 2. test it against staging, then apply it to prod
 supabase db push
 # 3. commit the migration file
 ```
@@ -22,12 +22,12 @@ supabase db push
 `supabase db push` applies only un-applied migrations and records them in the
 remote `schema_migrations` table, so the repo and prod stay in lockstep.
 
-## One-time: recover a true baseline (needs DB credentials)
+## Baseline / drift recovery (needs DB credentials)
 
-Because prod has objects the migrations never created, a fresh apply of
-`supabase/migrations/` cannot reproduce prod today. Capture the current prod
-schema as a baseline (run locally — needs your Supabase login + DB password,
-which CI/agents should not handle):
+The repository now tracks migrations through `0082`. If CI reports drift, first
+confirm whether production has objects that were changed directly outside the
+repo. To recover, capture the current prod schema locally (needs your Supabase
+login + DB password, which CI/agents should not handle):
 
 ```bash
 supabase login                                   # opens browser for an access token
@@ -36,8 +36,8 @@ supabase db pull                                 # writes a baseline migration f
 git add supabase/migrations && git commit -m "chore(db): baseline from prod"
 ```
 
-After this, `supabase/migrations/` reproduces prod from scratch and the drift
-check below becomes meaningful.
+After this, commit the generated migration so `supabase/migrations/` can
+reproduce prod from scratch and the drift check stays meaningful.
 
 ## CI drift check
 
@@ -52,11 +52,11 @@ no-ops until these repo secrets are set
 | `SUPABASE_PROJECT_REF` | `awvrylniqppybwaiwzse` |
 | `SUPABASE_DB_PASSWORD` | Project Settings → Database |
 
-## Migrations hand-applied this session
+## Historical hand-applied migrations
 
-These were applied directly to prod via the SQL editor during UAT fixes and are
-committed to the repo (prod and repo are in sync for them). The baseline pull
-above will subsume them:
+These were applied directly to prod via the SQL editor during UAT fixes and
+then committed to the repo. Keep this list for provenance only; new work should
+use committed migrations plus CLI apply.
 
 | Migration | What |
 |---|---|
@@ -70,3 +70,18 @@ above will subsume them:
 > `0064` re-asserts its effect. The baseline pull will reconcile any remaining
 > objects that exist in prod but not in `supabase/migrations/`
 > (`subscriptions`, `notifications` + policies, etc.).
+
+## Current tracked tail
+
+The latest production implementation represented in the repo includes:
+
+| Migration | What |
+|---|---|
+| `0074_trade_reactions.sql` | trade reaction rows |
+| `0075_toggle_trade_reaction.sql` | reaction read/toggle RPCs |
+| `0076_feed_return_pct.sql` | following feed returns `return_pct`, not raw `pnl` |
+| `0077_public_trades_return_pct.sql` | public trades return `return_pct`, not raw `pnl` |
+| `0079_public_trades_thesis.sql` | public trades include `trade_thesis` |
+| `0080_feed_enrichment.sql` | following feed includes chart/thesis/trade-detail fields |
+| `0081_search_profiles.sql` | community/public profile search RPC |
+| `0082_pause_hides_feed_and_open_positions_privacy.sql` | paused follows hidden; open positions return `return_pct` |

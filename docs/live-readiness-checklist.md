@@ -1,6 +1,7 @@
 # BigMarkt Live Readiness Checklist
 
 Generated: May 17, 2026
+Updated: July 3, 2026
 
 Current readiness score: 96/100
 
@@ -14,10 +15,14 @@ Required Vercel variables:
 
 - NEXT_PUBLIC_SUPABASE_URL
 - NEXT_PUBLIC_SUPABASE_ANON_KEY
+- NEXT_PUBLIC_SITE_URL
 - SUPABASE_SERVICE_ROLE_KEY
+- EA_SIGNING_SECRET_ENCRYPTION_KEY
+- EXCHANGE_CREDENTIAL_ENCRYPTION_KEY
 - CRON_SECRET
 - WS_STATUS_URL
 - WS_STATUS_SECRET
+- Optional, only when Bybit blocks direct Vercel egress: BYBIT_MAINNET_BASE_URL, BYBIT_TESTNET_BASE_URL, BYBIT_PROXY_TOKEN
 
 Required Railway WebSocket variables:
 
@@ -28,6 +33,7 @@ Required Railway WebSocket variables:
 Acceptance criteria:
 
 - CRON_SECRET is present and strong.
+- EA_SIGNING_SECRET_ENCRYPTION_KEY and EXCHANGE_CREDENTIAL_ENCRYPTION_KEY are present and generated as base64 32-byte keys.
 - WS_STATUS_SECRET is present on both Vercel and Railway and values match.
 - WS_STATUS_URL points to the deployed Railway `/status` endpoint.
 - Service-role keys exist only in server-side environments.
@@ -40,7 +46,7 @@ Run the privacy test suite against a staging or production-like Supabase project
 Command from `web/`:
 
 ```bash
-SUPABASE_SERVICE_ROLE_KEY=... npm test -- tests/privacy.spec.ts --run
+SUPABASE_SERVICE_ROLE_KEY=... npm test -- tests/privacy.spec.ts
 ```
 
 Acceptance criteria:
@@ -48,6 +54,8 @@ Acceptance criteria:
 - Privacy tests run instead of skipping.
 - Users cannot read or mutate another user's private trades, profile-only fields, broker accounts, EA tokens, notifications, support messages, or leaderboard score rows.
 - `account_scores` remains read-only to authenticated users; score writes only happen through trusted service-role/server-side flows.
+- Public/following RPCs do not return raw dollar `pnl`; public trade, following feed, and following open-position read paths expose `return_pct` instead.
+- Paused follows do not continue to show feed or open-position rows.
 
 ## 3. Live EA Smoke Test
 
