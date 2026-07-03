@@ -357,3 +357,58 @@ export interface SupportMessage {
   created_at: string;
   read_at: string | null;
 }
+
+// ── MetaApi cloud-capture (migration 0083) ──────────────────────────────────
+// A metaapi_connections row is a capture mechanism for a broker_accounts row —
+// the same relationship ea_tokens has to broker_accounts. Trades captured via
+// MetaApi carry broker_account_id + source='metaapi' + capture_source='metaapi'
+// and key on position_id/ticket exactly like EA trades (EA write model, no
+// staging). The broker investor password is never stored; only the encrypted
+// reader-scoped MetaApi token lives here (see web/lib/metaapi/secrets.ts).
+
+export type MetaApiConnectionStatus =
+  | "provisioning"
+  | "active"
+  | "paused"
+  | "error"
+  | "revoked";
+
+export type MetaApiConnectionRow = {
+  id: string;
+  user_id: string;
+  broker_account_id: string;
+  // MetaApi linkage
+  metaapi_account_id: string;
+  region: string | null;
+  // Non-secret display/debug
+  broker_server: string | null;
+  login: string | null;
+  // Encrypted reader token (base64 blobs; written by lib/metaapi/secrets.ts).
+  // Null until provisioning completes. Never select these except on the
+  // decrypt path.
+  reader_token_ciphertext: string | null;
+  reader_token_iv: string | null;
+  reader_token_tag: string | null;
+  reader_token_key_version: number | null;
+  status: MetaApiConnectionStatus;
+  last_sync_at: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MetaApiSyncRunStatus = "running" | "success" | "partial" | "failed";
+
+export type MetaApiSyncRunRow = {
+  id: string;
+  user_id: string;
+  connection_id: string;
+  status: MetaApiSyncRunStatus;
+  started_at: string;
+  finished_at: string | null;
+  imported_count: number;
+  skipped_count: number;
+  window_start: string | null;
+  window_end: string | null;
+  error_message: string | null;
+};
