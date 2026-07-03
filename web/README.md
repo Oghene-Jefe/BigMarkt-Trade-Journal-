@@ -1,24 +1,23 @@
-# BigMarkt Trade Journal — Web (rebuild)
+# BigMarkt Trade Journal - Web
 
-Next.js + Supabase rebuild of the static HTML/JS journal in the repo root.
-This directory is **parallel** to the old app — nothing in `../js/`, `../css/`,
-or `../index.html` is touched. Cutover happens once Slices 1–N are verified.
+Production Next.js + Supabase journal app for `journal.bigmarkt.co`.
 
-## What's in this slice (Slice 1 — security foundation)
+The legacy static app is archived under `../archive/legacy-static-app/`; `web/`
+is the deployed app root. The app uses cookie-based Supabase auth, private
+storage with server-minted signed URLs, strict RLS, server actions, and RPCs for
+public/community read paths.
 
-- Versioned Supabase schema in [`../supabase/migrations/`](../supabase/migrations/).
-- Strict RLS: anon clients can read **nothing** from base tables.
-- `admin_users` table replaces the old client-side `ADMIN_EMAILS` allowlist.
-- Sanitized `get_leaderboard` / `get_public_profile` RPCs (no email leakage,
-  respect profile visibility).
-- Private storage buckets (`avatars`, `trade-charts`) — public sharing is
-  signed-URL only, minted server-side.
-- Cookie-based auth via `@supabase/ssr` so RLS works in Server Components.
-- Email + password login / signup / reset, all through server actions with
-  Zod validation.
-- Privacy + rendering test suites (`vitest`).
+## Current app surface
 
-UI pages beyond auth + an empty dashboard land in Slice 2.
+- Auth: login, signup, reset, callback, onboarding.
+- App: dashboard, journal, analytics, calculator, challenges, accounts, EA
+  setup, exchanges, feed, following, discover, leaderboard, notifications,
+  profile/settings, upgrade waitlist, disputes, admin tools.
+- Public: `/@username`, `/p/[id]`, chart proxy `/c/[id]`, privacy page,
+  sitemap, OG image route.
+- APIs: EA ingest/status, cron jobs for cleanup/news/score recalculation,
+  public platform stats.
+- Supabase schema and RPC history live in `../supabase/migrations/`.
 
 ## Setup
 
@@ -29,10 +28,28 @@ npm install
 npm run dev                      # http://localhost:3000
 ```
 
+### Required environment
+
+See `.env.example` for the full list. The common local minimum is:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SITE_URL`
+
+Server-only features need additional secrets:
+
+- `SUPABASE_SERVICE_ROLE_KEY` for EA ingest and privacy tests.
+- `EA_SIGNING_SECRET_ENCRYPTION_KEY` for EA v2 token signing secrets.
+- `EXCHANGE_CREDENTIAL_ENCRYPTION_KEY` for encrypted exchange credentials.
+- `CRON_SECRET` for cron routes.
+- `WS_STATUS_URL` and `WS_STATUS_SECRET` for `/ea-setup` presence status.
+- Optional Bybit proxy vars: `BYBIT_MAINNET_BASE_URL`,
+  `BYBIT_TESTNET_BASE_URL`, `BYBIT_PROXY_TOKEN`.
+
 ### Apply migrations
 
-The migrations are written to be idempotent and additive against the existing
-production schema, but **run them on a staging project first**.
+Write schema changes as files in `../supabase/migrations/` and apply them with
+the Supabase CLI. Run against staging first.
 
 Using the Supabase CLI:
 
@@ -42,8 +59,8 @@ supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
 ```
 
-Or paste each `supabase/migrations/000N_*.sql` file into the dashboard SQL
-editor in order.
+Avoid untracked dashboard SQL edits in production. They create drift between
+the repo and the live database.
 
 ### Grant admin
 
@@ -54,10 +71,16 @@ values ('00000000-0000-0000-0000-000000000000', 'manually granted 2026-05-09');
 
 Never grant admin via the API — `admin_users` has no INSERT policy by design.
 
-### Run privacy tests
+### Verify
 
-The tests need a service-role key to spin up disposable users. **Use a
-non-production project.**
+```bash
+npm run typecheck
+npm test
+npm run build
+```
+
+The privacy tests need a service-role key to spin up disposable users. Use a
+non-production project for real RLS runs:
 
 ```bash
 SUPABASE_SERVICE_ROLE_KEY=... npm test
@@ -70,25 +93,11 @@ SUPABASE_SERVICE_ROLE_KEY=... npm test
 | `ADMIN_EMAILS` array in `js/state.js`                        | `public.admin_users` table + `is_admin()` SQL function         |
 | `_sb.from('profiles').select('*')` from admin panel           | `admin_list_users()` RPC, gated by `is_admin(auth.uid())`      |
 | Leaderboard reads raw trades + emails from browser            | `get_leaderboard()` RPC; emails never leave the database       |
-| `getPublicUrl` on public `trade-charts` / `avatars` buckets   | Private buckets + per-request signed URLs (Slice 3)            |
+| `getPublicUrl` on public `trade-charts` / `avatars` buckets   | Private buckets + per-request signed URLs minted server-side   |
 | `innerHTML` rendering with manual `escHtml`                   | React text rendering by default; `rendering.spec.tsx` pins it  |
 | `localStorage` Supabase tokens (default v2)                   | Cookie-based session via `@supabase/ssr`                       |
 | Profile email exposed to anon reads                           | RLS blocks anon SELECT on `profiles` entirely                  |
 | Schema lived only in the dashboard                            | `supabase/migrations/000N_*.sql` in version control            |
-
-### Data migration
-
-Existing rows in `profiles` and `trades` keep working. The migrations only
-**add** columns (`visibility`, `display_name`, `updated_at`) with safe
-defaults. No destructive changes. After applying:
-
-1. Existing profiles default to `visibility = 'private'` — they vanish from
-   the leaderboard until users opt in. This is the correct default per the
-   privacy brief.
-2. Existing trades default to `visibility = 'private'`.
-3. Existing storage objects in the now-private buckets stay accessible to
-   their owner. Old `getPublicUrl` links break — Slice 3 generates signed
-   URLs in their place. Communicate this to active users before cutover.
 
 ## Project layout
 
@@ -97,31 +106,27 @@ web/
   app/
     (auth)/                  # login, signup, reset, reset/confirm, actions.ts
     auth/callback/           # email-link redirect handler
-    dashboard/               # placeholder, filled in Slice 2
+    (app)/                    # authenticated journal application
+    (public)/[username]/      # public profile by username
+    p/[id]/                   # public profile by user id
+    c/[id]/                   # signed chart proxy
+    api/                      # cron, EA, public stats, OG routes
+    onboarding/               # first-run setup
     layout.tsx, page.tsx, globals.css
   lib/
+    actions/                  # server actions / RPC wrappers
+    ea/                       # EA normalization, signatures, secrets
+    exchanges/                # Bybit client, signing, encryption
     supabase/
       client.ts              # browser client
       server.ts              # server component / action client
       middleware.ts          # session refresh
     schemas.ts               # Zod schemas (shared client + server)
   tests/
-    privacy.spec.ts          # RLS + sanitization tests
-    rendering.spec.tsx       # XSS-safe rendering pins
+    *.spec.ts[x]             # unit, privacy, ingest, exchange, rendering tests
   middleware.ts              # wires lib/supabase/middleware.ts
 
 ../supabase/
   migrations/
-    0001_baseline_schema.sql
-    0002_rls_policies.sql
-    0003_leaderboard_rpc.sql
-    0004_storage_policies.sql
+    0001_*.sql ... 0082_*.sql
 ```
-
-## What's next
-
-- **Slice 2**: trades CRUD + JournalTable + TradeForm.
-- **Slice 3**: signed-URL flow for chart screenshots + avatars.
-- **Slice 4**: leaderboard UI + public profile pages.
-- **Slice 5**: server-only admin panel.
-- **Slice 6**: challenges, referrals, balance resets, analytics.
