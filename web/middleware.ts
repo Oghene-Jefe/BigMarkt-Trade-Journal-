@@ -45,8 +45,9 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Excludes static assets, favicon, image extensions, public share
-    // routes (/p/[id]), AND the entire /api tree — API routes handle
-    // their own auth and don't need session-refresh cookies.
-    "/((?!api|_next/static|_next/image|favicon.ico|p/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // routes (/p/[id]), the public /guide docs section, AND the entire
+    // /api tree — API routes handle their own auth and don't need
+    // session-refresh cookies.
+    "/((?!api|_next/static|_next/image|favicon.ico|p/|guide/|guide$|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
