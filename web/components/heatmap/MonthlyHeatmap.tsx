@@ -135,7 +135,7 @@ export default function MonthlyHeatmap({
             return (
               <div
                 key={`${d.date}-${idx}`}
-                className="h-10 w-full rounded-sm bg-white/5"
+                className="h-12 w-full rounded-sm bg-white/5"
               />
             );
           }
@@ -160,7 +160,7 @@ export default function MonthlyHeatmap({
               key={`${d.date}-${idx}`}
               type="button"
               onClick={() => onDayClick(isSelected ? null : d.date)}
-              className={`relative h-10 w-full cursor-pointer rounded-sm text-left transition ${
+              className={`relative h-12 w-full cursor-pointer rounded-sm text-left transition ${
                 isSelected ? "ring-2 ring-[#D4AF37]" : ""
               } ${isNoTrades ? "bg-white/10" : ""}`}
               style={isNoTrades ? undefined : { backgroundColor: bg }}
@@ -186,6 +186,26 @@ export default function MonthlyHeatmap({
               >
                 {dayNum}
               </span>
+              {hasTrades ? (
+                <>
+                  <span
+                    className="absolute right-1 top-0.5 text-[9px] font-medium text-white/70"
+                    aria-hidden
+                  >
+                    {stats!.total}
+                  </span>
+                  <span
+                    className="absolute bottom-0.5 left-1 right-1 truncate text-[9px] font-semibold"
+                    style={{ color: stats!.pnl >= 0 ? "#fff" : "#fff" }}
+                    aria-hidden
+                  >
+                    {stats!.pnl >= 0 ? "+" : ""}
+                    {Math.abs(stats!.pnl) >= 1000
+                      ? `${(stats!.pnl / 1000).toFixed(1)}k`
+                      : stats!.pnl.toFixed(0)}
+                  </span>
+                </>
+              ) : null}
             </button>
           );
         })}
