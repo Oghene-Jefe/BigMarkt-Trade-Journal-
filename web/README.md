@@ -1,127 +1,134 @@
-# BigMarkt Trade Journal — Web (rebuild)
+# BigMarkt Journal App
 
-Next.js + Supabase rebuild of the static HTML/JS journal in the repo root.
-This directory is **parallel** to the old app — nothing in `../js/`, `../css/`,
-or `../index.html` is touched. Cutover happens once Slices 1–N are verified.
+Production journal app for `journal.bigmarkt.co`.
 
-## What's in this slice (Slice 1 — security foundation)
+## Stack
 
-- Versioned Supabase schema in [`../supabase/migrations/`](../supabase/migrations/).
-- Strict RLS: anon clients can read **nothing** from base tables.
-- `admin_users` table replaces the old client-side `ADMIN_EMAILS` allowlist.
-- Sanitized `get_leaderboard` / `get_public_profile` RPCs (no email leakage,
-  respect profile visibility).
-- Private storage buckets (`avatars`, `trade-charts`) — public sharing is
-  signed-URL only, minted server-side.
-- Cookie-based auth via `@supabase/ssr` so RLS works in Server Components.
-- Email + password login / signup / reset, all through server actions with
-  Zod validation.
-- Privacy + rendering test suites (`vitest`).
-
-UI pages beyond auth + an empty dashboard land in Slice 2.
+- Next.js 15.5 App Router, React 19, TypeScript strict
+- Supabase Postgres with RLS and cookie-based auth via `@supabase/ssr`
+- Tailwind CSS
+- Vercel deployment from the `web/` root directory
+- Vitest for unit, privacy, rendering, ingest, and integration-style checks
 
 ## Setup
 
 ```bash
 cd web
-cp .env.example .env.local       # fill in Supabase URL + anon key
-npm install
-npm run dev                      # http://localhost:3000
+cp .env.example .env.local
+npm ci
+npm run dev
 ```
 
-### Apply migrations
+`npm run dev` starts the app at `http://localhost:3000`.
 
-The migrations are written to be idempotent and additive against the existing
-production schema, but **run them on a staging project first**.
-
-Using the Supabase CLI:
+## Commands
 
 ```bash
-# from repo root
-supabase link --project-ref YOUR_PROJECT_REF
-supabase db push
+npm run typecheck       # tsc --noEmit against tsconfig.typecheck.json
+npm run typecheck:full  # full TypeScript project check
+npm test                # vitest run
+npm run build           # required before pushing journal changes
+npm run news:run        # local helper for the news cron path
 ```
 
-Or paste each `supabase/migrations/000N_*.sql` file into the dashboard SQL
-editor in order.
-
-### Grant admin
-
-```sql
-insert into public.admin_users (user_id, note)
-values ('00000000-0000-0000-0000-000000000000', 'manually granted 2026-05-09');
-```
-
-Never grant admin via the API — `admin_users` has no INSERT policy by design.
-
-### Run privacy tests
-
-The tests need a service-role key to spin up disposable users. **Use a
-non-production project.**
+Privacy tests need Supabase credentials and should run against staging or a
+production-like non-destructive project:
 
 ```bash
-SUPABASE_SERVICE_ROLE_KEY=... npm test
+SUPABASE_SERVICE_ROLE_KEY=... npm test -- tests/privacy.spec.ts --run
 ```
 
-## Migration notes from the static app
+## Required Environment
 
-| Old behaviour                                                | New behaviour                                                  |
-|--------------------------------------------------------------|----------------------------------------------------------------|
-| `ADMIN_EMAILS` array in `js/state.js`                        | `public.admin_users` table + `is_admin()` SQL function         |
-| `_sb.from('profiles').select('*')` from admin panel           | `admin_list_users()` RPC, gated by `is_admin(auth.uid())`      |
-| Leaderboard reads raw trades + emails from browser            | `get_leaderboard()` RPC; emails never leave the database       |
-| `getPublicUrl` on public `trade-charts` / `avatars` buckets   | Private buckets + per-request signed URLs (Slice 3)            |
-| `innerHTML` rendering with manual `escHtml`                   | React text rendering by default; `rendering.spec.tsx` pins it  |
-| `localStorage` Supabase tokens (default v2)                   | Cookie-based session via `@supabase/ssr`                       |
-| Profile email exposed to anon reads                           | RLS blocks anon SELECT on `profiles` entirely                  |
-| Schema lived only in the dashboard                            | `supabase/migrations/000N_*.sql` in version control            |
+See `.env.example` for the full annotated list. The production Vercel project
+must at minimum provide:
 
-### Data migration
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SITE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `CRON_SECRET`
+- `EA_SIGNING_SECRET_ENCRYPTION_KEY`
+- `EXCHANGE_CREDENTIAL_ENCRYPTION_KEY`
+- `WS_STATUS_URL`
+- `WS_STATUS_SECRET`
 
-Existing rows in `profiles` and `trades` keep working. The migrations only
-**add** columns (`visibility`, `display_name`, `updated_at`) with safe
-defaults. No destructive changes. After applying:
+Optional or feature-specific variables include Turnstile keys, Bybit proxy
+settings, `EA_INGEST_V1_CUTOFF_AT`, and `METAAPI_TOKEN_ENCRYPTION_KEY`.
+MetaApi's key is required before enabling provisioning or cron sync for
+`metaapi_connections`.
 
-1. Existing profiles default to `visibility = 'private'` — they vanish from
-   the leaderboard until users opt in. This is the correct default per the
-   privacy brief.
-2. Existing trades default to `visibility = 'private'`.
-3. Existing storage objects in the now-private buckets stay accessible to
-   their owner. Old `getPublicUrl` links break — Slice 3 generates signed
-   URLs in their place. Communicate this to active users before cutover.
+## Current App Surface
 
-## Project layout
+Authenticated app routes include dashboard, accounts, journal, imports,
+analytics, calculator, challenges, constitution, EA setup, brokers, exchanges,
+discover, feed, following, leaderboard, notifications, profile, settings,
+upgrade, disputes, and admin tools.
 
-```
+Public routes include:
+
+- `/` landing page
+- `/privacy`
+- `/guide` plus the first Getting Started guide pages
+- `/@username` and `/p/[id]` public profiles
+- `/c/[id]` chart image redirect
+- `/api/public/platform-stats`
+
+## Capture Paths
+
+- Manual trades write through server actions and keep user-entered data private
+  unless the trader opts into public visibility.
+- EA capture writes directly into `trades` through `/api/ea/ingest` using
+  HMAC-signed requests and per-token signing secrets.
+- Bybit exchange connections are read-only, encrypted at rest, and staged
+  through exchange-specific tables before user review.
+- MetaApi read-only sync scaffolding exists under `lib/metaapi/` and migration
+  `0083`, but cron, provisioning UI, and live payload refinement are not built
+  yet.
+
+Public feeds and public profiles do not expose raw dollar P&L. They use
+`return_pct` first, `rr_ratio` second, and fall back to the win/loss result.
+Owner and admin surfaces can still show private dollar data.
+
+## Database Migrations
+
+Migration files live in `../supabase/migrations/`. Production migrations are
+applied manually in the Supabase SQL Editor and then verified against the live
+schema. Do not run `supabase db push` against production for this project.
+
+The current production migration state and next migration number are tracked in
+`../CURRENT_STATE.md`. Operational details are in
+`../docs/database-migrations.md`.
+
+## Project Layout
+
+```text
 web/
-  app/
-    (auth)/                  # login, signup, reset, reset/confirm, actions.ts
-    auth/callback/           # email-link redirect handler
-    dashboard/               # placeholder, filled in Slice 2
-    layout.tsx, page.tsx, globals.css
+  app/                       # App Router pages, layouts, route handlers
+  components/                # Shared UI and feature components
+  hooks/                     # Client hooks
   lib/
-    supabase/
-      client.ts              # browser client
-      server.ts              # server component / action client
-      middleware.ts          # session refresh
-    schemas.ts               # Zod schemas (shared client + server)
-  tests/
-    privacy.spec.ts          # RLS + sanitization tests
-    rendering.spec.tsx       # XSS-safe rendering pins
-  middleware.ts              # wires lib/supabase/middleware.ts
-
-../supabase/
-  migrations/
-    0001_baseline_schema.sql
-    0002_rls_policies.sql
-    0003_leaderboard_rpc.sql
-    0004_storage_policies.sql
+    actions/                 # Server actions split by feature area
+    constitution/            # Trading constitution rules and scoring
+    cron/                    # Cron auth helpers
+    ea/                      # EA normalization, signatures, token secrets
+    exchanges/               # Read-only Bybit connection and sync helpers
+    metaapi/                 # Read-only MetaApi sync scaffolding
+    news/                    # Forex Factory feed parsing
+    supabase/                # Browser, server, admin, middleware clients
+  public/                    # Favicons, images, EA downloads
+  scripts/                   # Local smoke/utility scripts
+  tests/                     # Vitest suites
 ```
 
-## What's next
+## Deployment Notes
 
-- **Slice 2**: trades CRUD + JournalTable + TradeForm.
-- **Slice 3**: signed-URL flow for chart screenshots + avatars.
-- **Slice 4**: leaderboard UI + public profile pages.
-- **Slice 5**: server-only admin panel.
-- **Slice 6**: challenges, referrals, balance resets, analytics.
+Vercel crons are defined in `vercel.json`:
+
+- `/api/cron/news-feed` daily at 00:00 UTC
+- `/api/cron/recalculate-scores` daily at 02:00 UTC
+- `/api/cron/cleanup` daily at 03:00 UTC
+
+All cron routes require `CRON_SECRET`. The EA setup page polls the Railway
+WebSocket status service through `WS_STATUS_URL` and `WS_STATUS_SECRET`; see
+`../websocket-server/RAILWAY_DEPLOY.md`.

@@ -1,6 +1,7 @@
 # BigMarkt Live Readiness Checklist
 
 Generated: May 17, 2026
+Last reviewed against code: July 5, 2026
 
 Current readiness score: 96/100
 
@@ -14,10 +15,23 @@ Required Vercel variables:
 
 - NEXT_PUBLIC_SUPABASE_URL
 - NEXT_PUBLIC_SUPABASE_ANON_KEY
+- NEXT_PUBLIC_SITE_URL
 - SUPABASE_SERVICE_ROLE_KEY
 - CRON_SECRET
+- EA_SIGNING_SECRET_ENCRYPTION_KEY
+- EXCHANGE_CREDENTIAL_ENCRYPTION_KEY
 - WS_STATUS_URL
 - WS_STATUS_SECRET
+
+Feature-specific or optional Vercel variables:
+
+- NEXT_PUBLIC_TURNSTILE_SITE_KEY
+- TURNSTILE_SECRET_KEY
+- BYBIT_MAINNET_BASE_URL
+- BYBIT_TESTNET_BASE_URL
+- BYBIT_PROXY_TOKEN
+- EA_INGEST_V1_CUTOFF_AT
+- METAAPI_TOKEN_ENCRYPTION_KEY (required before enabling MetaApi provisioning or sync)
 
 Required Railway WebSocket variables:
 
@@ -31,6 +45,7 @@ Acceptance criteria:
 - WS_STATUS_SECRET is present on both Vercel and Railway and values match.
 - WS_STATUS_URL points to the deployed Railway `/status` endpoint.
 - Service-role keys exist only in server-side environments.
+- EA, exchange, and MetaApi encryption keys are generated with `openssl rand -base64 32` and stored as Vercel sensitive env vars.
 - No `.env`, `.env.local`, Vercel metadata, service-role keys, exchange keys, or user credentials are tracked in GitHub.
 
 ## 2. Supabase Privacy / RLS Tests
@@ -73,7 +88,12 @@ Acceptance criteria:
 
 ## 4. News Feed Cron Smoke Test
 
-Verify the economic news flow in production.
+Verify the economic news flow in production. Vercel crons are configured in
+`web/vercel.json`:
+
+- `/api/cron/news-feed` at 00:00 UTC
+- `/api/cron/recalculate-scores` at 02:00 UTC
+- `/api/cron/cleanup` at 03:00 UTC
 
 Steps:
 
@@ -88,12 +108,42 @@ Acceptance criteria:
 - Missing CRON_SECRET returns a safe server error, not an accidental open endpoint.
 - News rows contain title, event_time, impact, currency where available, and url where present.
 
-## 5. Final Launch Decision
+## 5. Score + Cleanup Cron Smoke Test
+
+Verify the two non-news cron routes in production.
+
+Steps:
+
+- Call `/api/cron/recalculate-scores` with the production CRON_SECRET.
+- Confirm it returns `succeeded`, `failed`, and `total` counts.
+- Call `/api/cron/cleanup` with the production CRON_SECRET.
+- Confirm it returns deleted counts for `ea_request_nonces` and `abuse_log`.
+
+Acceptance criteria:
+
+- Unauthorized cron requests return 401.
+- Score recalc only touches broker accounts with recent `auto_verified` trades.
+- Cleanup runs through the SECURITY DEFINER cleanup RPCs and does not require direct table writes from clients.
+
+## 6. MetaApi Last-Mile Gate
+
+MetaApi schema and read-only sync writer scaffolding exist, but the cron,
+provisioning UI, and live payload refinement are not complete yet.
+
+Acceptance criteria before enabling MetaApi to users:
+
+- Fund and deploy a MetaApi test MT5 account.
+- Set `METAAPI_TOKEN_ENCRYPTION_KEY` in Vercel Production + Preview.
+- Run the live read-only payload probe without logging tokens.
+- Confirm whether closed trades include `positionId`; if not, add the planned `0084` external-id migration before writing those closes.
+- Confirm `gain`, SL, and TP field shapes before mapping `return_pct`, `r_multiple`, `sl`, or `tp`.
+
+## 7. Final Launch Decision
 
 Launch status:
 
 - Controlled beta / live pilot: approved after environment variables are confirmed.
-- Full public launch: approved only after privacy tests and live EA smoke test pass.
+- Full public launch: approved only after privacy tests, live EA smoke test, and cron smoke tests pass.
 
 Final sign-off fields:
 
@@ -101,4 +151,6 @@ Final sign-off fields:
 - Privacy/RLS tests completed by:
 - Live EA smoke test completed by:
 - News cron smoke test completed by:
+- Score + cleanup cron smoke test completed by:
+- MetaApi gate reviewed by:
 - Launch approved by:
