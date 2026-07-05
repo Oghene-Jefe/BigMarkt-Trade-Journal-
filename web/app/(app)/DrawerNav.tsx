@@ -69,9 +69,12 @@ const GROUPS: { label: string; items: LinkItem[] }[] = [
 ];
 
 // Mobile drawer uses the flat list (everything in one scrollable column).
-const MOBILE_LINKS: LinkItem[] = GROUPS.flatMap((g) => g.items).concat([
-  { href: "/profile", label: "Profile" },
-]);
+const MOBILE_LINKS: LinkItem[] = [
+  { href: "/guide" as Route, label: "Guide" },
+  ...GROUPS.flatMap((g) => g.items).concat([
+    { href: "/profile", label: "Profile" },
+  ]),
+];
 
 export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
   const pathname = usePathname();
@@ -164,6 +167,7 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
           label="Profile"
           adornment={admin ? <Shield size={12} aria-hidden className="text-gold" /> : null}
           items={[
+            { href: "/guide" as Route, label: "Guide" },
             { href: "/profile", label: "Profile" },
             ...(admin
               ? [

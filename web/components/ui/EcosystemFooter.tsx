@@ -14,6 +14,7 @@ type Link = {
 const LINKS: Link[] = [
   { href: "https://bigmarkt.co", label: "Protocol", external: true },
   { href: "/dashboard", label: "Journal" },
+  { href: "/guide", label: "Guide" },
   { href: "https://club.bigmarkt.co", label: "Campus Club", external: true },
   { href: "https://fts.bigmarkt.co", label: "Academy", external: true },
   { href: "/privacy", label: "Privacy Policy" },
