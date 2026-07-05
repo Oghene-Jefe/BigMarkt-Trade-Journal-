@@ -189,20 +189,20 @@ export default function MonthlyHeatmap({
               {hasTrades ? (
                 <>
                   <span
-                    className="absolute right-1 top-0.5 text-[9px] font-medium text-white/70"
+                    className="absolute right-1 top-0.5 rounded-full bg-black/40 px-1 text-[8px] font-semibold leading-tight text-white/60"
                     aria-hidden
                   >
-                    {stats!.total}
+                    {stats!.total}×
                   </span>
                   <span
-                    className="absolute bottom-0.5 left-1 right-1 truncate text-[9px] font-semibold"
-                    style={{ color: stats!.pnl >= 0 ? "#fff" : "#fff" }}
+                    className="absolute bottom-0.5 left-1 right-1 truncate text-[10px] font-bold tabular-nums"
+                    style={{ color: "#fff" }}
                     aria-hidden
                   >
-                    {stats!.pnl >= 0 ? "+" : ""}
+                    {stats!.pnl >= 0 ? "+$" : "-$"}
                     {Math.abs(stats!.pnl) >= 1000
-                      ? `${(stats!.pnl / 1000).toFixed(1)}k`
-                      : stats!.pnl.toFixed(0)}
+                      ? `${(Math.abs(stats!.pnl) / 1000).toFixed(1)}k`
+                      : Math.abs(stats!.pnl).toFixed(0)}
                   </span>
                 </>
               ) : null}

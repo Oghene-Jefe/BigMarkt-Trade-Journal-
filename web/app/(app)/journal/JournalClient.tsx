@@ -1,8 +1,6 @@
 ﻿"use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { Plus } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { TradeRow } from "@/lib/types";
 import JournalTable from "@/components/JournalTable";
@@ -86,13 +84,6 @@ export default function JournalClient({
           isFiltered={selectedDate !== null}
           filterLabel={selectedDate ? formatHuman(selectedDate) : ""}
         />
-        <Link
-          href="/journal/new"
-          className="inline-flex items-center gap-1.5 rounded-md bg-gold px-3 py-1.5 text-xs font-medium text-black hover:bg-gold/90"
-        >
-          <Plus className="h-3.5 w-3.5" aria-hidden />
-          New trade
-        </Link>
       </div>
 
       <div className="flex justify-end">
