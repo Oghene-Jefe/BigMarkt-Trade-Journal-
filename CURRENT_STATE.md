@@ -1,6 +1,6 @@
 # BigMarkt — Current State
 
-_Last updated: 2026-07-03. Update this file at the end of every session._
+_Last updated: 2026-07-05. Update this file at the end of every session._
 
 ## What BigMarkt Is
 Verified trade-journaling and social-trading platform for SMC/ICT retail traders. Live app at journal.bigmarkt.co. Broker data captured via a read-only MQL5 EA over an HMAC-signed bridge. Copy-trading and $BMT token are deliberately out of current build scope.
@@ -73,6 +73,67 @@ Next.js 15.5 / React 19 / TypeScript strict, Supabase Postgres (RLS), Tailwind, 
 - **Fix shipped**: step C now also sets `visibility: "private"` on these orphan-closed rows (can't fabricate a real result, so the trade stays honestly recorded in the owner's private journal but never surfaces incomplete on public feed/profile). Retroactively applied to the 5 existing broken rows in prod (verified: 5 rows updated).
 - **This is the argument for MetaApi**: broker-API ingestion (pulling closed-deal history server-side from the broker, not just local-terminal event listening) would close this gap at the root, since it isn't dependent on the local MT5 terminal staying online/connected to witness every close event.
 
+## In-App User Guide — SHIPPED
+- 35 pages live at /guide (journal.bigmarkt.co/guide), public route —
+  excluded from Supabase auth middleware alongside /p/ (see
+  web/middleware.ts matcher).
+- Structure: web/lib/guide/nav.ts (10 sections), web/components/guide/
+  GuideBlocks.tsx (shared content primitives: title, lead, steps, table,
+  callout, related, next-link) and GuideShell.tsx (accordion sidebar —
+  one section expanded at a time, auto-expands to the active page,
+  collapses on mobile into a drawer).
+- Every page interlinked via GuideNext — readable start-to-finish per
+  section without touching the sidebar.
+- Guide home (web/app/guide/page.tsx) is a landing page — one card per
+  section with a single "Start here" link, not a full page listing (the
+  sidebar owns full navigation).
+- Discoverable: "Guide" is the first item in the Profile dropdown
+  (DrawerNav.tsx) and mobile drawer, plus listed in EcosystemFooter.tsx.
+- Content is audited against live code, not the older master-plan doc —
+  documents only shipped features (excludes MetaApi UI, Bybit/exchanges,
+  copy-trading — none are user-facing yet). Trust badges documented:
+  auto_verified, manual, prop_firm, demo only (draft/edited exist as
+  types but are never assigned in any write path).
+- Leaderboard page includes the full scoring formula (weights, gates,
+  every component calculation) pulled directly from lib/scoring.ts.
+- Known gap found and fixed during this build: a Disputes page was
+  drafted then removed — /disputes/new exists in code but nothing in the
+  live UI links to it (no button on Following/FollowButton). Add the
+  guide page back only once a real "Raise a dispute" entry point ships.
+
+## Journal & Calculator Fixes — SHIPPED (2026-07-05)
+- **XAU/USD pipValue bug fixed**: web/lib/pip-values.ts had pipValue: 10
+  for XAU/USD; correct value (100oz/lot contract) is 1. Was overstating
+  gold risk/lot-size by 10x in both the Risk Calculator and the Trading
+  Constitution's risk-check engine (both read this same table). Verified
+  live: $10,000 balance, 1% risk, entry 4000/stop 3990 now correctly
+  recommends 0.10 lot (was previously ~0.01).
+- **Manual trade entry unified with the shared instrument table**:
+  TradeForm.tsx previously had its own hardcoded getPnlMultiplier()
+  function, disconnected from pip-values.ts — correct for gold/silver by
+  coincidence, but broken for standard forex majors (a single fallback
+  multiplier of 10 that only worked for JPY pairs, off by ~10,000x for
+  EUR/GBP/AUD-style pairs). Now uses findInstrument() from the shared
+  lib. Verified live: EURUSD BUY, entry 1.0850, exit 1.0900, 1.00 lot →
+  correctly auto-calculates to $500 P&L.
+- **Pair field now has autocomplete**: TradeForm's Pair input was plain
+  free text with no instrument list. Added a <datalist> sourced from
+  ALL_INSTRUMENTS (web/lib/pip-values.ts) — suggests known pairs while
+  still accepting free text for anything not in the list, so no existing
+  manual entries break.
+- **Heatmap cells now show trade count + P&L visibly**: previously this
+  data (already computed per-day by lib/heatmap.ts's groupTradesByDay)
+  was only shown via a native browser hover tooltip — invisible on
+  mobile. Now rendered directly on each day cell (trade count top-right,
+  abbreviated P&L bottom, e.g. "+1.2k").
+- **Calendar split onto its own page**: MonthlyHeatmap moved out of the
+  Journal page into /journal/calendar (web/app/(app)/journal/calendar/).
+  Clicking a day navigates to /journal?date=YYYY-MM-DD, which
+  JournalClient.tsx reads via a new initialDate prop to pre-filter the
+  trade table — preserves the original click-to-filter behavior across
+  the page split. Existing "Showing trades for [date] / Clear" banner
+  logic untouched.
+
 ## Key Files
 | What | Where |
 |---|---|
@@ -91,6 +152,13 @@ Next.js 15.5 / React 19 / TypeScript strict, Supabase Postgres (RLS), Tailwind, 
 | Formatters | web/lib/format.ts (uses — for em-dash) |
 | Scoring engine | web/lib/scoring.ts (ACTIVE_MIN_TRADES=30, ACTIVE_MIN_DAYS=30) |
 | EA download | web/public/downloads/BigMarkt_EA_v2.7.1.ex5 |
+| Risk calculator / instrument data | web/lib/pip-values.ts |
+| Manual trade entry form | web/components/TradeForm.tsx |
+| Heatmap day-cell aggregation | web/lib/heatmap.ts |
+| Heatmap component | web/components/heatmap/MonthlyHeatmap.tsx |
+| Calendar page (split from Journal) | web/app/(app)/journal/calendar/ |
+| Guide nav tree | web/lib/guide/nav.ts |
+| Guide shared components | web/components/guide/GuideBlocks.tsx, GuideShell.tsx |
 
 ## Trades Table — Relevant Columns
 Full anatomy exists: entry_price, exit_price, close_price, stop_loss/sl, take_profit/tp, lot_size, pnl, rr_ratio, r_multiple, return_pct, balance_at_open, equity_at_open, account_currency, open_time, close_time, chart_path, trade_thesis, return_pct, verification_tier, status, source, verified, trust_badge.
