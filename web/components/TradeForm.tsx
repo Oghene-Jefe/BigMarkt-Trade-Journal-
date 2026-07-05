@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { TradeRow } from "@/lib/types";
 import type { TradeActionState } from "@/app/(app)/actions";
 import CompressedFileInput from "./CompressedFileInput";
+import { findInstrument, ALL_INSTRUMENTS } from "@/lib/pip-values";
 
 export type TradeFormAccount = {
   id: string;
@@ -20,18 +21,6 @@ type Props = {
   accounts: TradeFormAccount[];
   defaultAccountId: string;
 };
-
-// Returns the contract-size multiplier for a given pair symbol.
-// Forex default: 100000 units × 0.0001 pip value = ×10
-function getPnlMultiplier(pair: string): number {
-  const p = pair.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (p.startsWith("XAU")) return 100;
-  if (p.startsWith("XAG")) return 5000;
-  const cryptoPrefixes = ["BTC", "ETH", "XRP", "SOL", "ADA", "DOT", "LINK", "DOGE", "MATIC", "BNB", "LTC", "AVAX", "ATOM"];
-  if (cryptoPrefixes.some((c) => p.startsWith(c))) return 1;
-  if (/^(US30|NAS100|US500|UK100|GER40|DAX|SPX500|NDX|DOW|FTSE|CAC|NIKKEI)/.test(p)) return 1;
-  return 10;
-}
 
 export default function TradeForm({ trade, existingChartUrl, action, submitLabel, accounts, defaultAccountId }: Props) {
   const [state, formAction, pending] = useActionState<TradeActionState, FormData>(action, {});
@@ -71,11 +60,14 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
     const x = parseFloat(exitP);
     const l = parseFloat(lotSize);
     if (!isNaN(e) && !isNaN(x) && !isNaN(l) && l > 0 && pair.trim()) {
-      const mult = getPnlMultiplier(pair);
-      const sign = direction === "BUY" ? 1 : -1;
-      const calculated = +(sign * (x - e) * l * mult).toFixed(2);
-      setPnl(String(calculated));
-      setResult(calculated > 0 ? "WIN" : calculated < 0 ? "LOSS" : "BE");
+      const instrument = findInstrument(pair);
+      if (instrument) {
+        const sign = direction === "BUY" ? 1 : -1;
+        const signedDiff = (x - e) * instrument.pipFactor;
+        const money = +(sign * signedDiff * instrument.pipValue * l).toFixed(2);
+        setPnl(String(money));
+        setResult(money > 0 ? "WIN" : money < 0 ? "LOSS" : "BE");
+      }
     }
   }, [entry, exitP, lotSize, direction, pair]);
 
@@ -140,7 +132,13 @@ export default function TradeForm({ trade, existingChartUrl, action, submitLabel
             value={pair}
             onChange={(e) => { touch(); setPair(e.target.value); }}
             className={coreInputCls}
+            list="pair-suggestions"
           />
+          <datalist id="pair-suggestions">
+            {ALL_INSTRUMENTS.map((i) => (
+              <option key={i.symbol} value={i.symbol.replace("/", "")} />
+            ))}
+          </datalist>
           {fe.pair ? <span className="mt-1 block text-xs text-loss">{fe.pair}</span> : null}
         </label>
 
