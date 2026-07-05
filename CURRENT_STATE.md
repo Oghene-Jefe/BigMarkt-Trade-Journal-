@@ -133,6 +133,17 @@ Next.js 15.5 / React 19 / TypeScript strict, Supabase Postgres (RLS), Tailwind, 
   trade table — preserves the original click-to-filter behavior across
   the page split. Existing "Showing trades for [date] / Clear" banner
   logic untouched.
+- **Shareable day-summary card added**: clicking a day on
+  /journal/calendar now opens a modal card (web/components/heatmap/
+  DaySummaryCard.tsx) showing that day's net P&L, trade count, and
+  wins/losses — captured and shared via the same html-to-image
+  toPng/toBlob pattern already used by ReportCardActions.tsx (Share and
+  Download buttons, no new share mechanism introduced). The card
+  includes a "View full trade list" link that routes to
+  /journal?date=... (the filtering behavior from the earlier calendar
+  split), and a Close button that dismisses without navigating.
+  CalendarClient.tsx now manages an openDate modal-visibility state
+  instead of navigating immediately on click.
 
 ## Key Files
 | What | Where |
@@ -157,6 +168,7 @@ Next.js 15.5 / React 19 / TypeScript strict, Supabase Postgres (RLS), Tailwind, 
 | Heatmap day-cell aggregation | web/lib/heatmap.ts |
 | Heatmap component | web/components/heatmap/MonthlyHeatmap.tsx |
 | Calendar page (split from Journal) | web/app/(app)/journal/calendar/ |
+| Day summary card (shareable) | web/components/heatmap/DaySummaryCard.tsx |
 | Guide nav tree | web/lib/guide/nav.ts |
 | Guide shared components | web/components/guide/GuideBlocks.tsx, GuideShell.tsx |
 
