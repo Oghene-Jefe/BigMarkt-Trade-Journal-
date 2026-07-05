@@ -57,7 +57,6 @@ export const GUIDE_NAV: GuideGroup[] = [
       { href: "/guide/reactions", label: "Reactions" },
       { href: "/guide/leaderboard", label: "Leaderboard" },
       { href: "/guide/public-profile", label: "Public Profile" },
-      { href: "/guide/disputes", label: "Disputes" },
     ],
   },
   {

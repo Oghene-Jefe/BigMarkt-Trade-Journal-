@@ -5,6 +5,7 @@ import {
   GuideSteps,
   GuideCallout,
   GuideRelated,
+  GuideNext,
 } from "@/components/guide/GuideBlocks";
 
 export const metadata: Metadata = { title: "Multi-Account Management" };
@@ -40,6 +41,8 @@ export default function MultiAccountManagementPage() {
           { href: "/guide/broker-compatibility", label: "Broker Compatibility" },
         ]}
       />
+
+      <GuideNext href="/guide/how-verification-works" label="How Verification Works" />
     </article>
   );
 }

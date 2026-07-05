@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 import { GUIDE_NAV } from "@/lib/guide/nav";
 
@@ -12,34 +12,57 @@ export default function GuideShell({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
+  const activeGroupLabel = GUIDE_NAV.find((g) =>
+    g.items.some((item) => item.href === pathname)
+  )?.label;
+
+  const [expanded, setExpanded] = useState<string | null>(activeGroupLabel ?? null);
+
   const isActive = (href: string) => pathname === href;
 
   const NavList = () => (
-    <nav className="space-y-6">
-      {GUIDE_NAV.map((group) => (
-        <div key={group.label}>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">
-            {group.label}
-          </p>
-          <ul className="space-y-1">
-            {group.items.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href as Route}
-                  onClick={() => setOpen(false)}
-                  className={`block rounded-md px-3 py-1.5 text-sm ${
-                    isActive(item.href)
-                      ? "bg-gold/10 font-medium text-gold"
-                      : "text-white/70 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+    <nav className="space-y-1">
+      {GUIDE_NAV.map((group) => {
+        const isOpen = expanded === group.label;
+        const hasActive = group.items.some((item) => item.href === pathname);
+        return (
+          <div key={group.label}>
+            <button
+              type="button"
+              onClick={() => setExpanded(isOpen ? null : group.label)}
+              className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider ${
+                hasActive ? "text-gold" : "text-muted"
+              } hover:text-white`}
+            >
+              <span>{group.label}</span>
+              <ChevronDown
+                size={14}
+                aria-hidden
+                className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+            {isOpen ? (
+              <ul className="mt-1 space-y-1 pl-3">
+                {group.items.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href as Route}
+                      onClick={() => setOpen(false)}
+                      className={`block rounded-md px-3 py-1.5 text-sm ${
+                        isActive(item.href)
+                          ? "bg-gold/10 font-medium text-gold"
+                          : "text-white/70 hover:bg-white/5 hover:text-white"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        );
+      })}
     </nav>
   );
 
