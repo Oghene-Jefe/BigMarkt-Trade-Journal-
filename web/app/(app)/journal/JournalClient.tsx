@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { TradeRow } from "@/lib/types";
 import JournalTable from "@/components/JournalTable";
-import MonthlyHeatmap from "@/components/heatmap/MonthlyHeatmap";
 import ExportButtons from "@/components/journal/ExportButtons";
 
 function toLocalDateKey(iso: string): string {
@@ -30,11 +29,13 @@ function formatHuman(date: string): string {
 export default function JournalClient({
   trades,
   violationCounts = {},
+  initialDate,
 }: {
   trades: TradeRow[];
   violationCounts?: Record<string, number>;
+  initialDate?: string | null;
 }) {
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(initialDate ?? null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [secondsAgo, setSecondsAgo] = useState(0);
   const router = useRouter();
@@ -66,14 +67,6 @@ export default function JournalClient({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border border-white/10 bg-panel p-4">
-        <MonthlyHeatmap
-          trades={trades}
-          onDayClick={setSelectedDate}
-          selectedDate={selectedDate}
-        />
-      </div>
-
       {selectedDate ? (
         <div className="flex items-center justify-between rounded-md border border-gold/30 bg-gold/5 px-3 py-2 text-sm text-gold">
           <span>Showing trades for {formatHuman(selectedDate)}</span>

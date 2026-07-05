@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Calendar } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getActiveAccount } from "@/lib/accounts";
 import JournalClient from "./JournalClient";
@@ -17,6 +17,11 @@ function parseView(v: string | string[] | undefined): View {
   return "all";
 }
 
+function parseDate(v: string | string[] | undefined): string | null {
+  const s = Array.isArray(v) ? v[0] : v;
+  return s ?? null;
+}
+
 const TABS: { key: View; label: string }[] = [
   { key: "all", label: "All" },
   { key: "my_trades", label: "My trades" },
@@ -27,10 +32,11 @@ const TABS: { key: View; label: string }[] = [
 export default async function JournalPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string | string[] }>;
+  searchParams: Promise<{ view?: string | string[]; date?: string | string[] }>;
 }) {
   const sp = await searchParams;
   const view = parseView(sp.view);
+  const initialDate = parseDate(sp.date);
 
   const sb = await supabaseServer();
 
@@ -43,9 +49,18 @@ export default async function JournalPage({
           // it depends on isn't part of the current rollout (see
           // DrawerNav comment). /journal/imports still works via
           // direct URL. See INFRASTRUCTURE.md → Hidden features.
-          <LinkButton href="/journal/new" icon={<Plus size={14} aria-hidden />}>
-            New trade
-          </LinkButton>
+          <div className="flex items-center gap-2">
+            <LinkButton
+              href="/journal/calendar"
+              variant="secondary"
+              icon={<Calendar size={14} aria-hidden />}
+            >
+              Calendar
+            </LinkButton>
+            <LinkButton href="/journal/new" icon={<Plus size={14} aria-hidden />}>
+              New trade
+            </LinkButton>
+          </div>
         }
       />
 
@@ -71,7 +86,7 @@ export default async function JournalPage({
       {view === "news" ? (
         <NewsView sb={sb} />
       ) : (
-        <TradesView sb={sb} view={view} />
+        <TradesView sb={sb} view={view} initialDate={initialDate} />
       )}
     </div>
   );
@@ -80,9 +95,11 @@ export default async function JournalPage({
 async function TradesView({
   sb,
   view,
+  initialDate,
 }: {
   sb: Awaited<ReturnType<typeof supabaseServer>>;
   view: Exclude<View, "news">;
+  initialDate: string | null;
 }) {
   const { data: { user } } = await sb.auth.getUser();
   const { activeId } = await getActiveAccount(sb, user!.id);
@@ -144,7 +161,7 @@ async function TradesView({
           performance score.
         </p>
       ) : null}
-      <JournalClient trades={trades} violationCounts={violationCounts} />
+      <JournalClient trades={trades} violationCounts={violationCounts} initialDate={initialDate} />
     </div>
   );
 }
