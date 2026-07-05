@@ -26,10 +26,10 @@ export const INSTRUMENTS: Record<string, Instrument[]> = {
   Metals: [
     {
       symbol: "XAU/USD",
-      pipValue: 10,
+      pipValue: 1,
       unit: "pips",
       pipFactor: 100,
-      hint: "1 pip = $0.01 price move (2nd decimal). $4000→$4010 = 1000 pips. At 0.01 lot: 1 pip = $0.10.",
+      hint: "1 pip = $0.01 price move (2nd decimal). $4000→$4010 = 1000 pips. At 0.01 lot: 1 pip = $0.01.",
     },
     {
       symbol: "XAG/USD",
