@@ -17,6 +17,24 @@ const ecosystem = [
   { domain: "club.bigmarkt.co", title: "The Campus Club", body: "University trading community.", href: "https://club.bigmarkt.co" },
 ];
 
+const team = [
+  {
+    name: "Jefe S.",
+    role: "Lead Operations",
+    bio: "Jefe leads operations at BigMarkt, overseeing the platform's product direction, community strategy, and day-to-day execution. He is also the founder of Free Trading Academy (FTS), the education community that anchors BigMarkt's distribution and user base across West Africa and beyond. His focus is building a trading ecosystem where transparency and verified performance — not promises — are the standard.",
+  },
+  {
+    name: "Kelvin",
+    role: "Co-Founder & Lead Engineer",
+    bio: "Kelvin leads engineering at BigMarkt, responsible for the technical architecture behind the platform's verified trade capture, data security, and infrastructure. He is focused on building a system traders can trust — one where every verified trade is broker-sourced, tamper-evident, and built to scale as the community grows.",
+  },
+  {
+    name: "Lilian",
+    role: "Lead, Trading Education",
+    bio: "Lilian leads trading education at BigMarkt, shaping the curriculum and learning experience for the FTS community. Her focus is turning trading theory into practical, disciplined skill — helping traders build the habits and risk management that a verified track record is ultimately built on.",
+  },
+];
+
 export default function AboutPage() {
   return (
     <>
@@ -75,11 +93,17 @@ export default function AboutPage() {
       </section>
 
       <section className="px-6 py-24">
-        <div className="mx-auto max-w-3xl border border-[#1f1f1f] bg-[#111111] p-8">
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-[#C9A84C]">Lead Contributor</h3>
-          <p className="mt-4 text-white/80">
-            FTS is led by Jefe S., a full-time trader and educator focused on building financial literacy across Africa and beyond. The community is the product.
-          </p>
+        <div className="mx-auto max-w-7xl">
+          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Team</h2>
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            {team.map((t) => (
+              <div key={t.name} className="border border-[#1f1f1f] bg-[#111111] p-6">
+                <h3 className="text-lg font-semibold text-white">{t.name}</h3>
+                <div className="mt-1 text-xs font-semibold uppercase tracking-widest text-[#C9A84C]">{t.role}</div>
+                <p className="mt-4 text-sm text-white/70">{t.bio}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     </>
