@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type RefObject } from "react";
-import { toPng } from "html-to-image";
+import { toBlob, toPng } from "html-to-image";
 import { Share2, Download, FileText, Loader2 } from "lucide-react";
 
 interface ReportCardActionsProps {
@@ -11,15 +11,27 @@ interface ReportCardActionsProps {
 
 type Busy = "share" | "png" | "pdf" | null;
 
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, b64] = dataUrl.split(",", 2);
+  const mime = /data:([^;]+)/.exec(header)?.[1] ?? "image/png";
+  const binary = atob(b64 ?? "");
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
 async function captureCard(node: HTMLDivElement): Promise<{ blob: Blob; dataUrl: string }> {
-  const dataUrl = await toPng(node, {
-    pixelRatio: 2,
-    backgroundColor: "#0a0a0a",
-    cacheBust: true,
-  });
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
-  return { blob, dataUrl };
+  const opts = { pixelRatio: 2, backgroundColor: "#0a0a0a", cacheBust: true };
+  const blob = await toBlob(node, opts);
+  if (blob) {
+    // Still need a dataUrl for the PDF path (jsPDF's addImage wants one) —
+    // generate it separately via toPng, this call is fine since we never
+    // fetch() it.
+    const dataUrl = await toPng(node, opts);
+    return { blob, dataUrl };
+  }
+  const dataUrl = await toPng(node, opts);
+  return { blob: dataUrlToBlob(dataUrl), dataUrl };
 }
 
 function triggerDownload(blob: Blob, name: string) {

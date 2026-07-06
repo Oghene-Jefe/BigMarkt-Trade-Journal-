@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import ReportCardActions from "@/components/reportCard/ReportCardActions";
 import type { DayStats } from "@/lib/heatmap";
 
@@ -24,8 +25,10 @@ function formatHuman(date: string): string {
 
 export default function DaySummaryCard({ date, stats, onClose, onViewList }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  return (
+  const content = (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="w-full max-w-sm space-y-4">
         <div
@@ -86,4 +89,7 @@ export default function DaySummaryCard({ date, stats, onClose, onViewList }: Pro
       </div>
     </div>
   );
+
+  if (!mounted) return null;
+  return createPortal(content, document.body);
 }
