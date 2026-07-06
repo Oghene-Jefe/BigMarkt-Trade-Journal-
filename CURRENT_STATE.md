@@ -67,6 +67,10 @@ Next.js 15.5 / React 19 / TypeScript strict, Supabase Postgres (RLS), Tailwind, 
 - This session: TradeCard.tsx enriched — chart thumbnail (contained, `object-contain`, capped height, dark background — NOT full-bleed) and trade_thesis (gold left-border, italic) now render between the trade-hero block and reactions, closed-trades-only, both null-guarded. Open positions stay slim (no chart/thesis — those RPC fields aren't populated for open state).
 - get_following_feed (0080) widened to carry entry/exit/SL/TP, lot_size, session, setup_grade, trade_thesis, chart_path — decision made to surface only chart + thesis on feed cards, NOT the full price grid (chart already shows entry/SL/TP visually; full detail lives on the profile page — feed teases, profile delivers).
 
+## Guide Docs — PARTIAL LIVE
+- `/guide` exists with a shared guide layout/nav and the first Getting Started pages: create account, onboarding, dashboard tour, and set up profile.
+- `web/lib/guide/nav.ts` already lists the intended full guide IA, but most later guide routes are not implemented yet. Treat those links as planned docs, not completed help content, until matching `web/app/guide/.../page.tsx` files exist.
+
 ## EA Reconciler Bug — FOUND AND FIXED (this session)
 - **Root cause found**: in `web/app/api/ea/ingest/route.ts`, `handleOpenSnapshot`'s step C ("CLOSE ORPHANS") marks a position `status: "closed"` the moment it vanishes from the broker's open-position snapshot — with NO attempt to look up the real close price/time first. If the EA's close-sweep (14-day rolling re-scan of broker deal history) doesn't independently catch the real close deal, the trade lands in the DB as `status: "closed"` with `exit_price: 0`, `close_price: NULL`, `pnl: 0`, `result: NULL` — a genuinely blank trade that rendered as an empty card on the public feed.
 - This is a structural gap in the local-EA-polling architecture, not account-specific test noise — confirmed via trade_events audit (all 5 affected rows were `reconcile_closed` events with null price data, meaning the close was truly never witnessed, only inferred from absence).
@@ -152,6 +156,7 @@ Next.js 15.5 / React 19 / TypeScript strict, Supabase Postgres (RLS), Tailwind, 
 | Trade card (feed) | web/components/TradeCard.tsx |
 | Feed page | web/app/(app)/feed/page.tsx |
 | Feed data layer | web/lib/actions/feed.ts |
+| Guide nav | web/lib/guide/nav.ts |
 | Discover page | web/app/(app)/discover/page.tsx |
 | Discover search component | web/components/DiscoverSearch.tsx |
 | Discover data layer | web/lib/actions/search.ts |
