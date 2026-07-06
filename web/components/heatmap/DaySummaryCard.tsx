@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 import ReportCardActions from "@/components/reportCard/ReportCardActions";
 import type { DayStats } from "@/lib/heatmap";
@@ -49,7 +50,15 @@ export default function DaySummaryCard({ date, stats, onClose, onViewList }: Pro
 
   const content = (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-sm space-y-4">
+      <div className="relative w-full max-w-sm space-y-4">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute -top-3 -right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-black text-white/70 hover:border-white/40 hover:text-white"
+        >
+          <X size={16} aria-hidden />
+        </button>
         <div
           ref={cardRef}
           style={{ backgroundColor: DARK, borderColor: `${GOLD}33` }}
@@ -97,21 +106,14 @@ export default function DaySummaryCard({ date, stats, onClose, onViewList }: Pro
 
         <ReportCardActions cardRef={cardRef} filename={`bigmarkt-${date}`} />
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-center">
           <button
             type="button"
             onClick={onViewList}
-            className="text-sm text-gold hover:underline"
+            className="text-sm hover:underline"
             style={{ color: GOLD }}
           >
             View full trade list &rarr;
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-sm text-white/60 hover:text-white"
-          >
-            Close
           </button>
         </div>
       </div>
