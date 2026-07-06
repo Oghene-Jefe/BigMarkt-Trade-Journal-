@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import Logo from "@/components/ui/Logo";
 import ReportCardActions from "@/components/reportCard/ReportCardActions";
 import type { DayStats } from "@/lib/heatmap";
 
@@ -12,15 +13,30 @@ type Props = {
   onViewList: () => void;
 };
 
+const GOLD = "#D4AF37";
+const WIN = "#22C55E";
+const LOSS = "#EF4444";
+const DARK = "#0a0a0a";
+const PANEL = "#141414";
+const MUTED = "#888888";
+
 function formatHuman(date: string): string {
   const [y, m, d] = date.split("-").map(Number);
   const dt = new Date(y!, (m ?? 1) - 1, d ?? 1);
-  return dt.toLocaleDateString(undefined, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  return dt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function StatCell({ label, value, color }: { label: string; value: string | number; color?: string }) {
+  return (
+    <div className="rounded-md p-2.5" style={{ backgroundColor: PANEL }}>
+      <div className="text-[10px] uppercase tracking-widest" style={{ color: MUTED }}>
+        {label}
+      </div>
+      <div className="mt-0.5 font-mono text-lg" style={{ color: color ?? "#FFFFFF" }}>
+        {value}
+      </div>
+    </div>
+  );
 }
 
 export default function DaySummaryCard({ date, stats, onClose, onViewList }: Props) {
@@ -28,60 +44,72 @@ export default function DaySummaryCard({ date, stats, onClose, onViewList }: Pro
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  const pnlColor = stats.pnl > 0 ? WIN : stats.pnl < 0 ? LOSS : MUTED;
+  const pnlPrefix = stats.pnl > 0 ? "+" : "";
+
   const content = (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="w-full max-w-sm space-y-4">
         <div
           ref={cardRef}
-          className="rounded-lg border border-white/10 bg-panel p-6"
+          style={{ backgroundColor: DARK, borderColor: `${GOLD}33` }}
+          className="rounded-lg border p-6 text-white"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-wider text-muted">
-              BigMarkt
+          {/* HEADER — matches TradeCard exactly */}
+          <div className="flex items-center justify-between gap-3">
+            <Logo size="sm" />
+            <span className="text-sm font-mono" style={{ color: GOLD }}>
+              DAILY SUMMARY
             </span>
-            <span className="text-xs text-muted">{formatHuman(date)}</span>
           </div>
 
-          <div className="mt-4">
+          {/* HERO */}
+          <div className="mt-5">
             <div
-              className="text-4xl font-bold tabular-nums"
-              style={{ color: stats.pnl >= 0 ? "#22c55e" : "#ef4444" }}
+              className="font-mono text-4xl font-bold tracking-wide"
+              style={{ color: pnlColor }}
             >
-              {stats.pnl >= 0 ? "+" : "-"}${Math.abs(stats.pnl).toFixed(2)}
+              {pnlPrefix}${Math.abs(stats.pnl).toFixed(2)}
             </div>
-            <div className="mt-1 text-xs text-muted">Net P&L for the day</div>
+            <div className="mt-1 text-[10px] uppercase tracking-widest" style={{ color: MUTED }}>
+              Net P&L for the day
+            </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-3 gap-3 text-center">
-            <div>
-              <div className="text-lg font-semibold text-white">{stats.total}</div>
-              <div className="text-[10px] uppercase tracking-wider text-muted">Trades</div>
-            </div>
-            <div>
-              <div className="text-lg font-semibold text-[#22c55e]">{stats.wins}</div>
-              <div className="text-[10px] uppercase tracking-wider text-muted">Wins</div>
-            </div>
-            <div>
-              <div className="text-lg font-semibold text-[#ef4444]">{stats.losses}</div>
-              <div className="text-[10px] uppercase tracking-wider text-muted">Losses</div>
-            </div>
+          {/* STATS — same bordered-cell grid as TradeCard */}
+          <div className="mt-5 grid grid-cols-3 gap-3">
+            <StatCell label="Trades" value={stats.total} />
+            <StatCell label="Wins" value={stats.wins} color={WIN} />
+            <StatCell label="Losses" value={stats.losses} color={LOSS} />
+          </div>
+
+          {/* FOOTER — matches TradeCard exactly */}
+          <div
+            className="mt-6 flex items-center justify-between border-t pt-3 text-[11px]"
+            style={{ borderColor: `${GOLD}33` }}
+          >
+            <span style={{ color: MUTED }}>{formatHuman(date)}</span>
+            <span className="font-mono tracking-wide" style={{ color: `${GOLD}AA` }}>
+              journal.bigmarkt.co
+            </span>
           </div>
         </div>
 
-        <ReportCardActions cardRef={cardRef} filename={`bigmarkt-${date}.png`} />
+        <ReportCardActions cardRef={cardRef} filename={`bigmarkt-${date}`} />
 
         <div className="flex items-center justify-between">
           <button
             type="button"
             onClick={onViewList}
             className="text-sm text-gold hover:underline"
+            style={{ color: GOLD }}
           >
             View full trade list &rarr;
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="text-sm text-muted hover:text-white"
+            className="text-sm text-white/60 hover:text-white"
           >
             Close
           </button>
