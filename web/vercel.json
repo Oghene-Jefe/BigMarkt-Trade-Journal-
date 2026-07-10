@@ -9,6 +9,10 @@
       "schedule": "0 2 * * *"
     },
     {
+      "path": "/api/cron/metaapi-sync",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/cron/cleanup",
       "schedule": "0 3 * * *"
     }

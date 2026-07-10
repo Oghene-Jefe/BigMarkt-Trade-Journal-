@@ -57,6 +57,13 @@ export function metaApiTradeKey(
   };
 }
 
+// Real trades only — MetaStats mixes DEAL_TYPE_BALANCE (deposits/withdrawals)
+// and other non-trade deals into the same feed. Journal only buy/sell.
+export function isJournalableTrade(t: { type?: string }): boolean {
+  const ty = (t.type || "").toUpperCase();
+  return ty.includes("BUY") || ty.includes("SELL");
+}
+
 // Shared, docs-confirmed fields common to open + closed MetaStats trades.
 type BaseTradeRow = {
   pair: string;
@@ -103,8 +110,8 @@ function baseRow(
 
 // ── CLOSED trade → row fields ────────────────────────────────────────────────
 // deal_entry 'out', status 'closed'. pnl = profit; result derived from profit
-// exactly like the EA path. exit_price/close_time mapped; return_pct still null
-// (no per-trade balance baseline from MetaStats — derive in the refinement pass).
+// exactly like the EA path. exit_price/close_time mapped; return_pct = gain,
+// confirmed against live MetaStats data to be the trade's percentage return.
 export function normalizeClosedTrade(
   t: MetaStatsHistoricalTrade,
 ): { error: string } | Record<string, unknown> {
@@ -119,6 +126,7 @@ export function normalizeClosedTrade(
     result: deriveEaResult(profit ?? undefined),
     deal_entry: "out",
     status: "closed",
+    return_pct: typeof t.gain === "number" && Number.isFinite(t.gain) ? t.gain : null,
   };
 }
 
