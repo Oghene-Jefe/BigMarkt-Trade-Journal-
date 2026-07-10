@@ -1,6 +1,6 @@
 # BigMarkt — Current State
 
-_Last updated: 2026-07-05. Update this file at the end of every session._
+_Last updated: 2026-07-10. Update this file at the end of every session._
 
 ## What BigMarkt Is
 Verified trade-journaling and social-trading platform for SMC/ICT retail traders. Live app at journal.bigmarkt.co. Broker data captured via a read-only MQL5 EA over an HMAC-signed bridge. Copy-trading and $BMT token are deliberately out of current build scope.
@@ -20,7 +20,7 @@ Next.js 15.5 / React 19 / TypeScript strict, Supabase Postgres (RLS), Tailwind, 
 - 0080 — get_following_feed widened: entry/exit/SL/TP, lot_size, session, setup_grade, trade_thesis, chart_path added
 - 0081 — search_profiles RPC: community/public profile search by name/username, excludes caller, min 2 chars, capped 20, is_leader flag
 - 0082 — two fixes in one migration: (1) pause now actually excludes a leader's trades from get_following_feed / get_following_open_positions (was `status <> 'cancelled'`, now `status = 'active'`); (2) get_following_open_positions no longer returns raw dollar `pnl` — swapped to `return_pct`, closing a gap the earlier privacy sweep missed
-- 0083 — MetaApi scaffolding: metaapi_connections + metaapi_sync_runs tables (both RLS self-only, FKs cascade to auth.users + broker_accounts + metaapi_connections), and trades.capture_source CHECK widened to include 'metaapi'. Verified in prod: single capture_source check constraint present, all 4 FKs cascade-correct. Next migration is 0084.
+- 0083 — MetaApi scaffolding: metaapi_connections + metaapi_sync_runs tables (both RLS self-only, FKs cascade to auth.users + broker_accounts + metaapi_connections), and trades.capture_source CHECK widened to include 'metaapi'. Verified in prod: single capture_source check constraint present, all 4 FKs cascade-correct. No new migration (0084) needed — live probe confirmed positionId present on closed trades, so MetaApi trades key on position_id exactly like the EA; no external_id column required.
 - Migrations are applied MANUALLY in the Supabase SQL Editor — never `supabase db push`.
 
 ## Engagement Layer (C4) — Status
@@ -208,12 +208,41 @@ Deriv MT5 capture note: Deriv MT5 (DMT5) is just another MT5 broker — captured
 - Max $25/mo: DEFERRED. Cap = 0 seats for now (admin-configurable, prices fixed). 4 accts × ~$9 = underwater at $25 if always-deployed; undeploy-when-idle is the fix. Do NOT onboard Max users until economics verified against real MetaApi billing.
 - MetaApi cost model confirmed from pricing page: API access FREE; hosting is what costs — deployed ~$0.0126/hr, UNDEPLOYED ~$0.00105/hr, plus $2.10/account/month to add. $10 minimum top-up + card/OTP blocked funding this session.
 
-### NOT built yet (the last mile — needs a funded+deployed MetaApi account to test)
-- Piece 4 — the cron: /api/cron/metaapi-sync, CRON_SECRET-gated, loops active connections calling syncConnection. DESIGN NOTE: build it undeploy-aware (deploy → poll → undeploy) to hit the ~$0.75/mo path.
-- Provisioning UI — the connect-your-account flow (broker server + login + investor password → metaapi_connections row).
-- Live probe (deferred, resolves 3 unknowns in one shot): (1) do CLOSED trades carry positionId? decides whether migration 0084 (external_id column) is needed; (2) `gain` field units → return_pct mapping; (3) SL/TP presence. Probe = read-only GET against one deployed MT5 account, run via Claude Code (not a shell curl), token via env var, never pasted.
-- Field refinement pass: fill sl/tp/return_pct/r_multiple once the probe confirms shapes (likely via MetaApi RPC deals API — additive, columns already exist, no schema change).
-- METAAPI_TOKEN_ENCRYPTION_KEY env var: NOT set yet — generate with `openssl rand -base64 32`, add to Vercel Production+Preview when provisioning is built.
+### PROBE COMPLETE — verified against live account 2026-07-10
+Ran read-only MetaStats probe against Jefe's real MT5 account (e6671a4e-eeb4-4e87-867f-0a9c52cf0f5e, region london, EGlobalTrade-Classic, MT5-20644000). Account funded via $5 MetaApi credit; MetaStats enabled on it (cost ~$0.00158/hr). Three unknowns RESOLVED:
+- positionId IS present on closed trades → keys on position_id like the EA. NO migration 0084 needed.
+- `gain` field IS the trade's percentage return (e.g. gain:-8.32 = -8.32%) → maps directly to return_pct (public-safe).
+- SL/TP ABSENT from MetaStats model → stay null. Refine later via RPC deals API if wanted (additive, columns exist).
+- Historical wrapper key confirmed = `trades`. Balance entries (DEAL_TYPE_BALANCE) present in history → must be filtered.
+
+### Privacy audit — get_public_trades confirmed clean; other 5 RPCs verified via migration source this session
+get_public_trades (0079, this repo) already redacts pnl→return_pct — no raw dollar value returned to anon/authenticated. Checked the other 5 named RPCs against their latest migrations in THIS repo this session (source-level check — no live pg_proc/DB session available, so this is verified against migration SQL, not a live query): get_following_feed (0082) and get_following_open_positions (0082) both return return_pct only, granted to authenticated only (not anon); get_public_profile (0046) and get_leaderboard (0047) return derived percentages only (growth_pct / win_rate / avg_rr) — pnl is consumed internally via SUM() but never returned as a column; search_profiles (0081) returns no dollar-shaped field at all, granted to authenticated only. NO raw pnl/profit/balance/equity leak found on any of the 6 in this repo. Note: an earlier audit turn this session correctly found get_public_trades DOES return raw pnl in a DIFFERENT, stale clone (C:\Users\User\bigmarkt-trade-journal) — that finding was accurate for that repo, not a false flag; the two repos share migration history through ~0047 and diverged afterward, and only this repo (bigmarkt) received the later 0077/0079 pnl→return_pct redaction. MetaApi trades inherit the redaction for free (write pnl to a private column, public RPCs surface return_pct).
+
+### Built & verified this session (all npm run build green, PUSHED)
+- web/lib/metaapi/normalize.ts UPDATED: isJournalableTrade() filter (skip DEAL_TYPE_BALANCE), gain→return_pct mapping. sl/tp/rr_ratio/r_multiple stay null.
+- web/app/api/cron/metaapi-sync/route.ts NEW: 15-min cron, CRON_SECRET-gated via verifyCronAuth, loops metaapi_connections WHERE status='active', calls syncConnection. Mirrors recalculate-scores exactly. Read-only, no deploy/undeploy orchestration.
+- web/vercel.json: added metaapi-sync cron (*/15 * * * *). Four crons total.
+
+### Cost model CONFIRMED (from live MetaApi screens)
+- Deployed 24/7: $0.0126/hr hosting + $0.00158/hr MetaStats = $0.0268/hr ≈ ~$19.60/mo per account. UNDERWATER on $15 Pro.
+- Undeployed-idle: ~$0.77/mo hosting + ~$1.15/mo MetaStats ≈ ~$2/mo per account. Healthy on $15 Pro.
+- User pays $0 extra (operator absorbs MetaApi cost). One-time: $2.10 add + $0.0756 deploy.
+- DECISION: build Option A cron simple/deployed NOW (test only, keep account undeployed between tests to save credit); add undeploy-when-idle automation as a LATER piece before real Pro users. Max tier stays deferred (cap 0).
+
+### NEXT SESSION — Provisioning UI (Option A: full auto-provision) — CHOSEN, NOT STARTED
+Provisioning API surface confirmed (mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai):
+- Create: POST /users/current/accounts {login, password(investor), server, platform:'mt5', name, magic} → {id, state}. Auto broker-detection, MAY return "retry in 60s" (ASYNC).
+- Enable MetaStats: POST /accounts/{id}/enable-account-features {metastatsApiEnabled:true}
+- Deploy: POST /accounts/{id}/deploy
+GOTCHAS: (1) async broker detection needs polling; (2) MetaApi CHARGES for excessive errors (bad auth/server/OTP) — do NOT blind-retry; (3) OTP-enabled accounts rejected — surface clearly; (4) bad server name returns suggestions in error.serversByBrokers.
+NEEDS write-scoped provisioning token stored server-side (env METAAPI_PROVISIONING_TOKEN) — privileged, server-actions only, never client. Plus METAAPI_TOKEN_ENCRYPTION_KEY (generate openssl rand -base64 32, set Vercel Prod+Preview) — NOT set yet.
+BUILD PLAN (backend-first, small bits): Bit1 provisioning client lib/metaapi/provisioning.ts (create/enable/deploy/mint-reader, async-retry + excessive-error handling); Bit2 server action provisionConnection (orchestrate, write row status='provisioning', discard password); Bit3 UI form in AddAccountModal ("Connect via cloud (Pro)"); Bit4 Vercel env vars.
+OPEN DECISION FOR NEXT SESSION: (a) fire-and-poll [Claude's rec — survives async+timeouts, cron advances provisioning→active] vs (b) synchronous. Not yet decided.
+
+### Housekeeping deferred
+- Revoke probe tokens in MetaApi API Access (read-only, low risk, but revoke).
+- Delete stale clone C:\Users\User\bigmarkt-trade-journal (do via File Explorer, verify by eye — the stale one has NO web/lib/metaapi folder).
+- Keep test account UNDEPLOYED between sessions to preserve $5 credit.
 
 ### Blocker
 - MetaApi funding: $10 minimum top-up + card OTP verification deferred. Everything through the sync writer is built and green; cron + UI + probe + refinement all want a live account to verify against. Decision when resuming: fund MetaApi and finish the last mile live in one push, OR build cron + UI blind now and test when funded.
