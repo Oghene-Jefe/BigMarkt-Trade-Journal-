@@ -258,6 +258,23 @@ Files shipped (commit 8f4f842, all npm run build green):
 - Bit 4 — Vercel env + one-time setup (NONE set yet): METAAPI_PROVISIONING_TOKEN (write-scoped, provisioning only), METAAPI_READER_TOKEN (read-scoped metastats-api + reader, narrowed once in the MetaApi web UI, long/max validity), METAAPI_MT5_PROVISIONING_PROFILE_ID (create ONE MT5 provisioning profile once, reuse for all accounts). METAAPI_TOKEN_ENCRYPTION_KEY NOT needed under Path A.
 - Live probe: fund MetaApi, provision Jefe's own account through the UI, watch the cron advance provisioning→active, confirm trades sync.
 
+### Provisioning LIVE PROBE — SUCCESS 2026-07-11 (supersedes the "REMAINING — last mile" section above)
+Full end-to-end verified in prod: UI form → provision → advance → MetaStats sync → real trades in journal, badged "Cloud".
+- Commits: 6a074a5 (Connect-via-cloud UI, admin-gated), 0b1e65a (provisioning profile made OPTIONAL), 21f9635 (createAccount now sends platform:'mt5' — REQUIRED by MetaApi in the no-profile path; this was the missing field that first blocked create), 98ea867 (journal SourceBadge: added source='metaapi' → blue "Cloud" badge; was mislabeled "Manual"). Backend 8f4f842 / doc d79d998 earlier same day.
+- NO provisioning profile needed: MetaApi auto-detects the broker from the server name (MT Profiles list is empty yet accounts work). METAAPI_MT5_PROVISIONING_PROFILE_ID stays optional/unset. createAccount MUST include platform:'mt5' when no profile is passed.
+- Env vars set in Vercel (Production+Preview), both tokens made via MetaApi → API Access → Generate token, validity UNLIMITED (so NO rotation needed — this fully resolves the Path A token-expiry concern):
+  - METAAPI_PROVISIONING_TOKEN = "Trading account management API", Read-write, all methods/all entities.
+  - METAAPI_READER_TOKEN = "MetaStats API" only, Read-only, all methods/all entities.
+  - METAAPI_TOKEN_ENCRYPTION_KEY NOT set (not needed under Path A). CRON_SECRET was rotated this session (saved separately).
+- Probe run: connected Jefe's real login 20644000 (EGlobalTrade-Classic) through the UI. Row written 'provisioning'; advanced via a MANUAL cron trigger because the Hobby cron is daily: `curl -H "Authorization: Bearer $CRON_SECRET" https://journal.bigmarkt.co/api/cron/metaapi-sync`. First runs returned activated:0 (still DEPLOYING, ~few min); then {"activated":1,"succeeded":1,"imported":38,"skipped":6,"total":1}. Trades render in the journal with the blue "Cloud" + verified badge.
+- Server-validation flow confirmed: a wrong server (EGlobalTrade-Classic-MT5) returned suggestions including the correct EGlobalTrade-Classic; picking it succeeded.
+- KNOWN (test artifact, NOT a bug): the probe used Jefe's REAL login 20644000, which already had journal data (some manual, some with charts). Sync upserts on (user_id, position_id), so colliding position_ids UPDATED pre-existing rows and re-pointed their broker_account_id to the new cloud account (chart_path/notes/thesis preserved — enrich-not-duplicate). A fresh user/login won't hit this. For a PURE-cloud re-test, clear this login's old trades or use a clean login.
+- CLEANUP PENDING: (1) delete the duplicate MetaApi account created for 20644000 (a 2nd one alongside existing e6671a4e) — undeploy/delete to save credit; (2) delete the two stray MANUAL test broker_accounts made by mistake ("EXNESS CLOUD TEST", "eglobal cloud test"); (3) revoke old read-only probe tokens.
+
+### Provisioning ENHANCEMENTS — tracked, NOT built
+- Broker/server AUTOCOMPLETE (CloudConnectModal): live as-you-type server suggestions, ADDITIVE on top of the existing free-text + submit-validation + confirm-unknown fallback (do NOT remove that). New admin-gated server action wrapping searchKnownServers; 300ms debounce + min 2–3 chars (reuse the DiscoverSearch pattern); returns a flat server-name list; clicking fills the field; auto-seed suggestions from the selected broker's name (MetaApi groups servers by broker). known-servers is a cheap GET (not billable). Fixes the "expected the server field to auto-pick" UX gap.
+- CloudConnectModal STYLING: dialog colors/design don't match the project look — restyle with the app's theme tokens (dark/gold palette used elsewhere).
+
 ### PRE-LAUNCH GATES (added 2026-07-11)
 - Swap the TEMPORARY isAdmin() gate in metaapi-actions.ts for a real Pro-entitlement check when Phase D payments ship (currently admin-only = solo testing).
 - Rate limit SHIPPED (10 provisions/hr/IP via abuse_log scope 'metaapi_provision'). Consider adding a per-user cap before broad launch.
