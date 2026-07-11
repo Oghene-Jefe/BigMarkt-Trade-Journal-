@@ -199,6 +199,7 @@ export async function createAccount(args: {
     password: args.investorPassword,
     name: args.name,
     server: args.server,
+    platform: "mt5",
     magic: 0,
     application: "MetaApi",
     type: "cloud-g2",
