@@ -1,6 +1,6 @@
 # BigMarkt — Current State
 
-_Last updated: 2026-07-10. Update this file at the end of every session._
+_Last updated: 2026-07-11. Update this file at the end of every session._
 
 ## What BigMarkt Is
 Verified trade-journaling and social-trading platform for SMC/ICT retail traders. Live app at journal.bigmarkt.co. Broker data captured via a read-only MQL5 EA over an HMAC-signed bridge. Copy-trading and $BMT token are deliberately out of current build scope.
@@ -241,15 +241,27 @@ get_public_trades (0079, this repo) already redacts pnl→return_pct — no raw 
 - User pays $0 extra (operator absorbs MetaApi cost). One-time: $2.10 add + $0.0756 deploy.
 - DECISION: build Option A cron simple/deployed NOW (test only, keep account undeployed between tests to save credit); add undeploy-when-idle automation as a LATER piece before real Pro users. Max tier stays deferred (cap 0).
 
-### NEXT SESSION — Provisioning UI (Option A: full auto-provision) — CHOSEN, NOT STARTED
-Provisioning API surface confirmed (mt-provisioning-api-v1.agiliumtrade.agiliumtrade.ai):
-- Create: POST /users/current/accounts {login, password(investor), server, platform:'mt5', name, magic} → {id, state}. Auto broker-detection, MAY return "retry in 60s" (ASYNC).
-- Enable MetaStats: POST /accounts/{id}/enable-account-features {metastatsApiEnabled:true}
-- Deploy: POST /accounts/{id}/deploy
-GOTCHAS: (1) async broker detection needs polling; (2) MetaApi CHARGES for excessive errors (bad auth/server/OTP) — do NOT blind-retry; (3) OTP-enabled accounts rejected — surface clearly; (4) bad server name returns suggestions in error.serversByBrokers.
-NEEDS write-scoped provisioning token stored server-side (env METAAPI_PROVISIONING_TOKEN) — privileged, server-actions only, never client. Plus METAAPI_TOKEN_ENCRYPTION_KEY (generate openssl rand -base64 32, set Vercel Prod+Preview) — NOT set yet.
-BUILD PLAN (backend-first, small bits): Bit1 provisioning client lib/metaapi/provisioning.ts (create/enable/deploy/mint-reader, async-retry + excessive-error handling); Bit2 server action provisionConnection (orchestrate, write row status='provisioning', discard password); Bit3 UI form in AddAccountModal ("Connect via cloud (Pro)"); Bit4 Vercel env vars.
-OPEN DECISION FOR NEXT SESSION: (a) fire-and-poll [Claude's rec — survives async+timeouts, cron advances provisioning→active] vs (b) synchronous. Not yet decided.
+### Provisioning BACKEND — SHIPPED 2026-07-11 (commit 8f4f842, fire-and-poll, Option A)
+Decisions RESOLVED this session:
+- Fire-and-poll CHOSEN: server action writes the metaapi_connections row as 'provisioning' and returns fast; the metaapi-sync cron advances provisioning→active.
+- Token model CORRECTED — Path A (ONE shared reader token) SUPERSEDES the earlier per-connection encrypted-reader-token design (any note above about minting + encrypting a token per connection is obsolete). Why: MetaApi can only mint EXPIRING narrowed tokens (24h default) and only via SDK — there is no permanent per-account REST token. Since every provisioned account lives under BigMarkt's ONE MetaApi user and MetaStats reads are scoped by accountId in the URL, a single long-lived read-scoped token (env METAAPI_READER_TOKEN, narrowed ONCE by hand in the MetaApi web UI to metastats-api + reader) reads them all. Consequences: metaapi_connections.reader_token_* columns stay NULL; web/lib/metaapi/secrets.ts is now UNUSED (left in place, harmless); METAAPI_TOKEN_ENCRYPTION_KEY is no longer needed.
+Corrected MetaApi provisioning contract (verified against live docs — earlier notes here were wrong): Create POST /users/current/accounts needs {login, password(investor), name, server, provisioningProfileId, magic:0, application:'MetaApi'} — NO 'platform' field; provisioningProfileId REQUIRED → 201 {id} only. State comes from GET /users/current/accounts/{id} → state (DEPLOYING→DEPLOYED / DEPLOY_FAILED) + connectionStatus (DISCONNECTED→CONNECTED) + region (MetaApi assigns it; we persist it) + metastatsApiEnabled. Enable: POST .../{id}/enable-account-features {metastatsApiEnabled:true} → 204 (paid, briefly stops account). Deploy: POST .../{id}/deploy → 204 (idempotent). Server validate/suggest: GET /known-mt-servers/5/search?query=.
+Files shipped (commit 8f4f842, all npm run build green):
+- web/lib/metaapi/provisioning.ts — write-scoped create/enable/deploy/readAccount/searchKnownServers client. GET-only reads; retries ONLY 429/5xx/network (never 400/401/403/404 — MetaApi bills excessive errors). Auth via METAAPI_PROVISIONING_TOKEN.
+- web/lib/metaapi/sync.ts — MODIFIED: reads shared METAAPI_READER_TOKEN (Path A); per-connection decrypt + reader_token null-guard removed; no longer imports secrets.ts.
+- web/app/(app)/accounts/metaapi-actions.ts — provisionConnectionAction: isAdmin() gate (TEMPORARY — swap for Pro entitlement in Phase D), IP rate limit (checkAndLog scope 'metaapi_provision', 10/hr, fail-closed), validate server → createAccount(investor pw) → insert broker_accounts (readonly_password NULL) → insert metaapi_connections status='provisioning' → discard pw. Rolls back the broker_account on provision failure; logs metaapiAccountId if the connection insert fails (orphan-cleanup trace). Security-reviewed: investor password never persisted or logged on any of the 3 exit paths.
+- web/lib/metaapi/advance.ts — advanceProvisioning(connId): reads account state, persists region, enables MetaStats once DEPLOYED, flips to 'active' when DEPLOYED+CONNECTED+metastatsApiEnabled; DEPLOY_FAILED→'error'; transient read failures never flip.
+- web/app/api/cron/metaapi-sync/route.ts — MODIFIED: two-phase — Phase 1 advances 'provisioning' rows, Phase 2 syncs 'active' rows (advance first so a just-activated account syncs the same run).
+
+### REMAINING — Provisioning last mile (needs MetaApi FUNDING to test live)
+- Bit 3 — UI: "Connect via cloud (Pro)" form in web/app/(app)/accounts/AddAccountModal.tsx calling provisionConnectionAction (fields: label, broker_slug, account_type, server + suggestions, login digits-only, investor password; handle serverSuggestions + confirm_unknown_server resubmit; show the 'provisioning' pending state). Gate the button to admins in the UI too (mirror the action gate) so non-admins never see it.
+- Bit 4 — Vercel env + one-time setup (NONE set yet): METAAPI_PROVISIONING_TOKEN (write-scoped, provisioning only), METAAPI_READER_TOKEN (read-scoped metastats-api + reader, narrowed once in the MetaApi web UI, long/max validity), METAAPI_MT5_PROVISIONING_PROFILE_ID (create ONE MT5 provisioning profile once, reuse for all accounts). METAAPI_TOKEN_ENCRYPTION_KEY NOT needed under Path A.
+- Live probe: fund MetaApi, provision Jefe's own account through the UI, watch the cron advance provisioning→active, confirm trades sync.
+
+### PRE-LAUNCH GATES (added 2026-07-11)
+- Swap the TEMPORARY isAdmin() gate in metaapi-actions.ts for a real Pro-entitlement check when Phase D payments ship (currently admin-only = solo testing).
+- Rate limit SHIPPED (10 provisions/hr/IP via abuse_log scope 'metaapi_provision'). Consider adding a per-user cap before broad launch.
+- (Still stands) Vercel Hobby→Pro + restore metaapi-sync cron to */15 (see PRE-LAUNCH REMINDER above).
 
 ### Housekeeping deferred
 - Revoke probe tokens in MetaApi API Access (read-only, low risk, but revoke).
