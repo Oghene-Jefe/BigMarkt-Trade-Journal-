@@ -208,6 +208,18 @@ Deriv MT5 capture note: Deriv MT5 (DMT5) is just another MT5 broker — captured
 - Max $25/mo: DEFERRED. Cap = 0 seats for now (admin-configurable, prices fixed). 4 accts × ~$9 = underwater at $25 if always-deployed; undeploy-when-idle is the fix. Do NOT onboard Max users until economics verified against real MetaApi billing.
 - MetaApi cost model confirmed from pricing page: API access FREE; hosting is what costs — deployed ~$0.0126/hr, UNDEPLOYED ~$0.00105/hr, plus $2.10/account/month to add. $10 minimum top-up + card/OTP blocked funding this session.
 
+### ⚠️ PRE-LAUNCH REMINDER — Vercel Pro + cron frequency
+Current state (testing): metaapi-sync cron is set to DAILY (`0 6 * * *`) in web/vercel.json. This is a STOPGAP forced by the Vercel HOBBY plan, which only allows once-daily crons. The original design was every 15 min (`*/15 * * * *`), which the Hobby plan REJECTED and silently blocked the main app (big-markt-trade-journal) from deploying at all on 2026-07-10 — only fixed by dropping to daily (commit d46b3ff). Three sibling site projects deployed fine because they have no vercel.json/crons.
+
+BEFORE onboarding real/public Pro users, MUST DO:
+1. Upgrade Vercel from Hobby to PRO (~$20/mo). Removes the daily-cron limit and the 2-cron-per-account cap.
+2. Change metaapi-sync schedule in web/vercel.json from `0 6 * * *` back to `*/15 * * * *` (every 15 min) — daily sync means a user's trades lag up to 24h, unacceptable for a live Pro feature.
+3. Redeploy and confirm the main app builds green with the 15-min schedule.
+
+WHY IT MATTERS: A Pro user expects trades to appear within minutes, not once a day. Daily is fine ONLY for solo testing with Jefe's own account. This is a hard pre-launch gate, tied to the Vercel Pro upgrade (not a code change beyond the one-line schedule edit).
+
+ALSO NOTE: Hobby allows only 2 cron jobs total per account; web/vercel.json currently has 4 (news-feed, recalculate-scores, metaapi-sync, cleanup). Confirm in Vercel → big-markt-trade-journal → Settings → Cron Jobs whether all 4 are actually registered or if Hobby is silently capping at 2. If capped, that's a second reason Pro is required before launch.
+
 ### PROBE COMPLETE — verified against live account 2026-07-10
 Ran read-only MetaStats probe against Jefe's real MT5 account (e6671a4e-eeb4-4e87-867f-0a9c52cf0f5e, region london, EGlobalTrade-Classic, MT5-20644000). Account funded via $5 MetaApi credit; MetaStats enabled on it (cost ~$0.00158/hr). Three unknowns RESOLVED:
 - positionId IS present on closed trades → keys on position_id like the EA. NO migration 0084 needed.
