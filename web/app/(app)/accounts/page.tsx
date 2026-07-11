@@ -7,7 +7,9 @@ import type { BrokerAccount } from "@/lib/types";
 import ConfirmButton from "@/components/ConfirmButton";
 import { StatusPill } from "@/components/ui";
 import AddAccountModal from "./AddAccountModal";
+import CloudConnectModal from "./CloudConnectModal";
 import EditAccountModal from "./EditAccountModal";
+import { isAdmin } from "@/lib/admin";
 import { toggleAccountActiveAction, deleteBrokerAccountAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +25,7 @@ const ACCOUNT_TYPE_META: Record<
 
 export default async function AccountsPage() {
   const user = await requireUser();
+  const admin = await isAdmin();
   const sb = await supabaseServer();
   const { data } = await sb
     .from("broker_accounts")
@@ -42,7 +45,10 @@ export default async function AccountsPage() {
             Manage your connected broker accounts. Each account has its own journal mode.
           </p>
         </div>
-        <AddAccountModal />
+        <div className="flex items-center gap-2">
+          {admin && <CloudConnectModal />}
+          <AddAccountModal />
+        </div>
       </div>
 
       {hasPropFirm && (
