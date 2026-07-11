@@ -190,23 +190,26 @@ export async function createAccount(args: {
   investorPassword: string;
   server: string;
   name: string;
-  provisioningProfileId: string;
+  // Optional — omit to let MetaApi auto-detect the broker from the server name
+  // (the default; a manual provisioning profile is only needed for unusual brokers).
+  provisioningProfileId?: string;
 }): Promise<ProvisioningResult<{ id: string }>> {
+  const body: Record<string, unknown> = {
+    login: args.login,
+    password: args.investorPassword,
+    name: args.name,
+    server: args.server,
+    magic: 0,
+    application: "MetaApi",
+    type: "cloud-g2",
+    reliability: "regular",
+    manualTrades: false,
+  };
+  if (args.provisioningProfileId) body.provisioningProfileId = args.provisioningProfileId;
   return provisioningRequest<{ id: string }>({
     method: "POST",
     path: `/users/current/accounts`,
-    body: {
-      login: args.login,
-      password: args.investorPassword,
-      name: args.name,
-      server: args.server,
-      provisioningProfileId: args.provisioningProfileId,
-      magic: 0,
-      application: "MetaApi",
-      type: "cloud-g2",
-      reliability: "regular",
-      manualTrades: false,
-    },
+    body,
     shape: (json) => {
       const id = (json as Record<string, unknown>)?.id;
       if (typeof id !== "string") throw new Error("create response missing id");

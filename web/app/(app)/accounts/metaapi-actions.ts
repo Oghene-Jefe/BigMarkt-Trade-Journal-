@@ -102,13 +102,13 @@ export async function provisionConnectionAction(
   }
   const input = parsed.data;
 
-  const profileId = process.env.METAAPI_MT5_PROVISIONING_PROFILE_ID;
-  if (!profileId) {
-    return {
-      ok: false,
-      error: "Cloud connect isn't configured yet (missing MT5 provisioning profile). Please contact support.",
-    };
+  // The write-scoped provisioning token is required. A provisioning profile is
+  // NOT — MetaApi auto-detects the broker from the server name in most cases;
+  // METAAPI_MT5_PROVISIONING_PROFILE_ID is optional, only for unusual brokers.
+  if (!process.env.METAAPI_PROVISIONING_TOKEN) {
+    return { ok: false, error: "Cloud connect isn't configured yet. Please contact support." };
   }
+  const profileId = process.env.METAAPI_MT5_PROVISIONING_PROFILE_ID;
 
   // Burst/abuse guard: provisioning triggers billable MetaApi calls, and MetaApi
   // charges for excessive errors. Cap attempts per IP (fail-closed). email:null
