@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Share2, Zap, ShieldCheck, Pencil } from "lucide-react";
+import { Share2, Zap, ShieldCheck, Pencil, Cloud } from "lucide-react";
 import type { TradeRow } from "@/lib/types";
 import { fmtDate, fmtDateTime, fmtMoney } from "@/lib/format";
 import { chartProxyUrl } from "@/lib/chart-url";
@@ -325,6 +325,15 @@ function SourceBadge({
         <Zap className="h-3 w-3" aria-hidden />
         EA
         {verified ? <ShieldCheck className="h-3 w-3 text-green-300" aria-hidden /> : null}
+      </span>
+    );
+  }
+  if (source === "metaapi") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium bg-sky-500/15 text-sky-400 border border-sky-500/20">
+        <Cloud className="h-3 w-3" aria-hidden />
+        Cloud
+        {verified ? <ShieldCheck className="h-3 w-3 text-sky-300" aria-hidden /> : null}
       </span>
     );
   }
