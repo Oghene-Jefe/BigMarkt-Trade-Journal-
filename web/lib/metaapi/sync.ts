@@ -17,7 +17,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { decryptReaderToken, type EncryptedReaderToken } from "@/lib/metaapi/secrets";
 import { getHistoricalTrades, getOpenTrades } from "@/lib/metaapi/client";
 import { metaApiTradeKey, normalizeClosedTrade, normalizeOpenTrade } from "@/lib/metaapi/normalize";
 
@@ -32,11 +31,21 @@ type ConnectionRow = {
   metaapi_account_id: string;
   region: string | null;
   status: string;
-  reader_token_ciphertext: string | null;
-  reader_token_iv: string | null;
-  reader_token_tag: string | null;
-  reader_token_key_version: number | null;
 };
+
+// Shared READ-scoped MetaApi token (Path A). One token reads every account under
+// BigMarkt's MetaApi user — each request is scoped by the accountId in the
+// MetaStats URL, so no per-connection token is stored. Never logged.
+function readerToken(): string {
+  const t = process.env.METAAPI_READER_TOKEN;
+  if (!t) {
+    throw new Error(
+      "METAAPI_READER_TOKEN is not set. Add a READ-scoped MetaApi token " +
+        "(metastats-api + reader role) to the server env (Vercel Production + Preview).",
+    );
+  }
+  return t;
+}
 
 export type SyncOutcome = {
   ok: boolean;
@@ -122,10 +131,7 @@ export async function syncConnection(connectionId: string): Promise<SyncOutcome>
   // 1. Load the connection.
   const { data: conn, error: connErr } = await supabase
     .from("metaapi_connections")
-    .select(
-      "id, user_id, broker_account_id, metaapi_account_id, region, status, " +
-        "reader_token_ciphertext, reader_token_iv, reader_token_tag, reader_token_key_version",
-    )
+    .select("id, user_id, broker_account_id, metaapi_account_id, region, status")
     .eq("id", connectionId)
     .maybeSingle();
 
@@ -139,10 +145,6 @@ export async function syncConnection(connectionId: string): Promise<SyncOutcome>
   }
   if (!c.region) {
     return { ok: false, connectionId, imported: 0, skipped: 0, error: "connection has no region" };
-  }
-  if (!c.reader_token_ciphertext || !c.reader_token_iv || !c.reader_token_tag
-      || c.reader_token_key_version == null) {
-    return { ok: false, connectionId, imported: 0, skipped: 0, error: "connection has no reader token" };
   }
 
   // 2. Open a sync-run row (running).
@@ -193,18 +195,12 @@ export async function syncConnection(connectionId: string): Promise<SyncOutcome>
     return { ok: status !== "failed", connectionId, imported, skipped, error: errorMessage };
   };
 
-  // 3. Decrypt the reader token (in memory only; never logged).
+  // 3. Load the shared read-scoped token (Path A). In memory only; never logged.
   let token: string;
   try {
-    const blob: EncryptedReaderToken = {
-      ciphertext: c.reader_token_ciphertext,
-      iv: c.reader_token_iv,
-      tag: c.reader_token_tag,
-      keyVersion: c.reader_token_key_version,
-    };
-    token = decryptReaderToken(blob, c.user_id, c.metaapi_account_id);
-  } catch {
-    return finish("failed", 0, 0, "reader token decrypt failed");
+    token = readerToken();
+  } catch (e) {
+    return finish("failed", 0, 0, e instanceof Error ? e.message : "reader token unavailable");
   }
 
   // 4. Resolve broker account type for trust_badge.
