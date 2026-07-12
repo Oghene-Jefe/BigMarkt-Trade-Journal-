@@ -277,6 +277,13 @@ Full end-to-end verified in prod: UI form → provision → advance → MetaStat
 - Prop-firm CLOUD journaling ENABLED (commit 36f52ff): provisionConnectionAction sets journal_mode='automated' for ALL cloud connections incl. prop firms; is_prop_firm stays true (keeps prop_firm badge + deferred copy-execution lock). Hard Rules clarified. Prop-firm reassurance note in CloudConnectModal (593970b).
 - Broker/server AUTOCOMPLETE — SHIPPED (commit d899c77): searchServersAction (admin-gated, wraps searchKnownServers, deduped/capped 12) + CloudConnectModal live debounced (300ms, min 2 chars) dropdown on MT5 Server, auto-seeded from the picked broker's name. The free-text + submit-validation + confirm-unknown fallback stays intact.
 
+### Cloud feature COMPLETIONS — SHIPPED 2026-07-12 (post-autocomplete)
+- Admin trade oversight: Source column + filter (Manual/EA/Cloud) on /admin/trades — distinguishes broker-verified (EA/cloud) from self-reported (manual). Commit 83f21be.
+- Accounts page: per-account Cloud connection status pill (Cloud · Live / Provisioning… / Error / Paused), driven by a metaapi_connections lookup keyed on broker_account_id. Commit 2e611b6.
+- ScoreCard tier badges brand-aligned (pro->gold, active->win; were blue/emerald). Commit 6256d7e — resolves the earlier "ScoreCard STILL BLUE" note.
+- "Sync now" button on cloud account cards (web/app/(app)/accounts/CloudSyncButton.tsx + syncNowAction in metaapi-actions.ts): owner-checked via RLS-scoped read; advances a 'provisioning' connection or syncs an 'active' one on demand — removes the wait for the daily Hobby cron / curl+CRON_SECRET. Reports "Synced — N imported". Commit 31c73e3.
+Cloud feature is now end-to-end: provision (UI, admin-gated) -> fire-and-poll advance -> MetaStats sync -> status pill + Cloud badge + admin source visibility -> one-click Sync now. Remaining: undeploy-when-idle cost automation (deferred); Vercel Hobby->Pro + restore 15-min cron (pre-launch gate, still open).
+
 ### PRE-LAUNCH GATES (added 2026-07-11)
 - Swap the TEMPORARY isAdmin() gate in metaapi-actions.ts for a real Pro-entitlement check when Phase D payments ship (currently admin-only = solo testing).
 - Rate limit SHIPPED (10 provisions/hr/IP via abuse_log scope 'metaapi_provision'). Consider adding a per-user cap before broad launch.
