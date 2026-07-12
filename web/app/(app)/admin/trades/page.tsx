@@ -17,6 +17,7 @@ type Trade = {
   pnl: number | null;
   rr_ratio: number | null;
   created_at: string;
+  source: string | null;
 };
 
 export default async function AdminTradesPage({
@@ -26,6 +27,7 @@ export default async function AdminTradesPage({
     pair?: string | string[];
     result?: string | string[];
     user?: string | string[];
+    source?: string | string[];
   }>;
 }) {
   await requireAdmin();
@@ -33,16 +35,19 @@ export default async function AdminTradesPage({
   const pairFilter = (Array.isArray(sp.pair) ? sp.pair[0] : sp.pair) ?? "";
   const resultFilter = (Array.isArray(sp.result) ? sp.result[0] : sp.result) ?? "";
   const userFilter = (Array.isArray(sp.user) ? sp.user[0] : sp.user) ?? "";
+  const sourceFilter = (Array.isArray(sp.source) ? sp.source[0] : sp.source) ?? "";
 
   const sb = await supabaseServer();
   let q = sb
     .from("trades")
-    .select("id, user_id, pair, direction, result, pnl, rr_ratio, created_at")
+    .select("id, user_id, pair, direction, result, pnl, rr_ratio, created_at, source")
     .order("created_at", { ascending: false })
     .limit(100);
   if (pairFilter) q = q.ilike("pair", `%${pairFilter}%`);
   if (resultFilter) q = q.eq("result", resultFilter);
   if (userFilter) q = q.eq("user_id", userFilter);
+  if (sourceFilter === "manual") q = q.or("source.eq.manual,source.is.null");
+  else if (sourceFilter) q = q.eq("source", sourceFilter);
 
   const { data } = await q;
   const trades = (data ?? []) as Trade[];
@@ -105,6 +110,19 @@ export default async function AdminTradesPage({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-muted">
+          Source
+          <select
+            name="source"
+            defaultValue={sourceFilter}
+            className="rounded-md border border-white/10 bg-bg px-3 py-1.5 text-sm text-white"
+          >
+            <option value="">Any</option>
+            <option value="manual">Manual</option>
+            <option value="ea">EA</option>
+            <option value="metaapi">Cloud</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted">
           User ID
           <input
             type="text"
@@ -130,6 +148,7 @@ export default async function AdminTradesPage({
               <th className="px-3 py-2 text-left">Pair</th>
               <th className="px-3 py-2 text-left">Dir</th>
               <th className="px-3 py-2 text-left">Result</th>
+              <th className="px-3 py-2 text-left">Source</th>
               <th className="px-3 py-2 text-right">P&amp;L</th>
               <th className="px-3 py-2 text-right">R:R</th>
               <th className="px-3 py-2 text-left">Date</th>
@@ -139,7 +158,7 @@ export default async function AdminTradesPage({
           <tbody>
             {trades.length === 0 ? (
               <tr>
-                <td colSpan={8} className="p-6 text-center text-sm text-muted">
+                <td colSpan={9} className="p-6 text-center text-sm text-muted">
                   No trades match.
                 </td>
               </tr>
@@ -190,6 +209,15 @@ export default async function AdminTradesPage({
                       >
                         {t.result ?? "—"}
                       </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      {t.source === "ea" ? (
+                        <span className="rounded border border-win/30 bg-win/15 px-2 py-0.5 text-xs text-win">EA</span>
+                      ) : t.source === "metaapi" ? (
+                        <span className="rounded border border-gold/30 bg-gold/15 px-2 py-0.5 text-xs text-gold">Cloud</span>
+                      ) : (
+                        <span className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-muted">Manual</span>
+                      )}
                     </td>
                     <td
                       className={`px-3 py-2 text-right tabular-nums ${
