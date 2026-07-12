@@ -8,6 +8,7 @@ import ConfirmButton from "@/components/ConfirmButton";
 import { StatusPill } from "@/components/ui";
 import AddAccountModal from "./AddAccountModal";
 import CloudConnectModal from "./CloudConnectModal";
+import CloudSyncButton from "./CloudSyncButton";
 import EditAccountModal from "./EditAccountModal";
 import { isAdmin } from "@/lib/admin";
 import { toggleAccountActiveAction, deleteBrokerAccountAction } from "./actions";
@@ -50,11 +51,11 @@ export default async function AccountsPage() {
   // Cloud (MetaApi) connection status per broker account, for the status pill.
   const { data: connData } = await sb
     .from("metaapi_connections")
-    .select("broker_account_id, status")
+    .select("id, broker_account_id, status")
     .eq("user_id", user.id);
-  const cloudByAccount = new Map<string, string>();
-  for (const c of (connData ?? []) as { broker_account_id: string; status: string }[]) {
-    cloudByAccount.set(c.broker_account_id, c.status);
+  const cloudByAccount = new Map<string, { id: string; status: string }>();
+  for (const c of (connData ?? []) as { id: string; broker_account_id: string; status: string }[]) {
+    cloudByAccount.set(c.broker_account_id, { id: c.id, status: c.status });
   }
 
   return (
@@ -88,9 +89,9 @@ export default async function AccountsPage() {
             const broker = BROKERS.find((b) => b.id === account.broker_slug);
             const brokerName = broker?.name ?? account.broker_slug;
             const typeMeta = ACCOUNT_TYPE_META[account.account_type];
-            const cloudStatus = cloudByAccount.get(account.id);
-            const cloudMeta = cloudStatus
-              ? CLOUD_STATUS_META[cloudStatus] ?? { label: "Cloud", tone: "neutral" as const }
+            const cloud = cloudByAccount.get(account.id);
+            const cloudMeta = cloud
+              ? CLOUD_STATUS_META[cloud.status] ?? { label: "Cloud", tone: "neutral" as const }
               : null;
 
             return (
@@ -133,6 +134,7 @@ export default async function AccountsPage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                    {cloud && <CloudSyncButton connectionId={cloud.id} />}
                     <form action={toggleAccountActiveAction as unknown as (fd: FormData) => void}>
                       <input type="hidden" name="id" value={account.id} />
                       <input type="hidden" name="is_active" value={(!account.is_active).toString()} />

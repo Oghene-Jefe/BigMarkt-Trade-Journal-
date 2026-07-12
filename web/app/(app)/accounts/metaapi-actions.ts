@@ -9,6 +9,8 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { callerIp, checkAndLog } from "@/lib/abuse";
 import { safeDbError } from "@/lib/db-error";
 import { createAccount, searchKnownServers } from "@/lib/metaapi/provisioning";
+import { syncConnection } from "@/lib/metaapi/sync";
+import { advanceProvisioning } from "@/lib/metaapi/advance";
 
 // Full auto-provision server action (fire-and-poll). Creates a MetaApi cloud
 // account from a broker server + login + INVESTOR (read-only) password, records
@@ -248,4 +250,49 @@ export async function searchServersAction(query: string): Promise<string[]> {
     .flat()
     .filter((s): s is string => typeof s === "string");
   return Array.from(new Set(all)).slice(0, 12);
+}
+
+export type SyncNowResult =
+  | { ok: true; message: string }
+  | { ok: false; error: string };
+
+// Owner-triggered manual sync/advance for a cloud connection. Lets a user (or
+// admin) pull fresh trades immediately instead of waiting for the daily cron.
+// Ownership is enforced by the RLS-scoped read below.
+export async function syncNowAction(connectionId: string): Promise<SyncNowResult> {
+  const user = await requireUser();
+  const sb = await supabaseServer();
+  const { data: conn } = await sb
+    .from("metaapi_connections")
+    .select("id, status")
+    .eq("id", connectionId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!conn) return { ok: false, error: "Connection not found." };
+
+  const status = (conn as { status: string }).status;
+
+  if (status === "provisioning") {
+    const adv = await advanceProvisioning(connectionId);
+    if (adv.status === "active") {
+      const s = await syncConnection(connectionId);
+      revalidatePath("/accounts");
+      revalidatePath("/journal");
+      return { ok: true, message: `Connected — imported ${s.imported} trade${s.imported === 1 ? "" : "s"}.` };
+    }
+    revalidatePath("/accounts");
+    return adv.status === "error"
+      ? { ok: false, error: "Connection failed — check the account details and reconnect." }
+      : { ok: true, message: "Still setting up… give it a minute and try again." };
+  }
+
+  if (status === "active") {
+    const s = await syncConnection(connectionId);
+    revalidatePath("/accounts");
+    revalidatePath("/journal");
+    if (!s.ok) return { ok: false, error: s.error ?? "Sync failed. Try again shortly." };
+    return { ok: true, message: `Synced — ${s.imported} imported${s.skipped ? `, ${s.skipped} skipped` : ""}.` };
+  }
+
+  return { ok: false, error: `This connection is ${status} and can't sync right now.` };
 }
