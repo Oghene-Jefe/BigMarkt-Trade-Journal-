@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { X, Cloud } from "lucide-react";
 import { BROKERS } from "@/lib/brokers";
-import { provisionConnectionAction, type ProvisionResult } from "./metaapi-actions";
+import { provisionConnectionAction, searchServersAction, type ProvisionResult } from "./metaapi-actions";
 
 type AccountType = "live" | "demo" | "prop_firm";
 
@@ -30,6 +30,8 @@ export default function CloudConnectModal() {
   const [suggestions, setSuggestions] = useState<string[] | null>(null);
   // When equal to the current server on submit, bypass the known-server check.
   const [confirmServer, setConfirmServer] = useState<string | null>(null);
+  const [liveSuggestions, setLiveSuggestions] = useState<string[]>([]);
+  const [serverFocused, setServerFocused] = useState(false);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -51,11 +53,25 @@ export default function CloudConnectModal() {
     setSearch(""); setBrokerSlug(""); setBrokerError(null);
     setLabel(""); setAccountType("live"); setServer(""); setLogin(""); setInvestorPassword("");
     setError(null); setSuggestions(null); setConfirmServer(null); setDone(false);
+    setLiveSuggestions([]); setServerFocused(false);
   }
   function close() { reset(); setOpen(false); }
 
+  // Live server autocomplete (debounced). Additive — the submit-time validation
+  // and confirm-unknown fallback still apply. Cheap admin-gated GET lookup.
+  useEffect(() => {
+    const q = server.trim();
+    if (q.length < 2) { setLiveSuggestions([]); return; }
+    const t = setTimeout(() => {
+      searchServersAction(q).then(setLiveSuggestions).catch(() => setLiveSuggestions([]));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [server]);
+
   function pickBroker(id: string, name: string) {
     setBrokerSlug(id); setSearch(name); setBrokerError(null);
+    const seed = name.split(/[^A-Za-z0-9]/)[0] || name;
+    searchServersAction(seed).then((r) => { if (r.length) setLiveSuggestions(r); }).catch(() => {});
   }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -184,8 +200,27 @@ export default function CloudConnectModal() {
 
                 <div>
                   <label className="mb-1 block text-sm text-white/80">MT5 Server</label>
-                  <input value={server} onChange={(e) => setServer(e.target.value)} required maxLength={120}
-                    placeholder="e.g. ICMarketsSC-MT5" className={inputCls} />
+                  <div className="relative">
+                    <input value={server}
+                      onChange={(e) => setServer(e.target.value)}
+                      onFocus={() => setServerFocused(true)}
+                      onBlur={() => setTimeout(() => setServerFocused(false), 150)}
+                      required maxLength={120} autoComplete="off"
+                      placeholder="Start typing to search servers…" className={inputCls} />
+                    {serverFocused && liveSuggestions.length > 0 && (
+                      <ul className="absolute z-10 mt-1 max-h-44 w-full overflow-y-auto rounded-md border border-white/10 bg-panel shadow-xl">
+                        {liveSuggestions.map((s) => (
+                          <li key={s}>
+                            <button type="button"
+                              onMouseDown={(e) => { e.preventDefault(); setServer(s); setLiveSuggestions([]); setServerFocused(false); setSuggestions(null); setConfirmServer(null); setError(null); }}
+                              className="block w-full px-3 py-2 text-left text-sm text-white/80 hover:bg-white/10">
+                              {s}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                   {suggestions && suggestions.length > 0 && (
                     <div className="mt-2">
                       <p className="mb-1 text-[11px] text-white/50">Did you mean:</p>

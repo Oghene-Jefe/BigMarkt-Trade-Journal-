@@ -234,3 +234,18 @@ export async function provisionConnectionAction(
   revalidatePath("/accounts");
   return { ok: true, connectionId: conn.id };
 }
+
+// Live server autocomplete for the Connect-via-cloud form. Admin-gated (same as
+// provisioning). Wraps the cheap GET known-servers lookup; returns a flat,
+// deduped, capped list of server names. Never throws to the client.
+export async function searchServersAction(query: string): Promise<string[]> {
+  if (!(await isAdmin())) return [];
+  const q = query.trim();
+  if (q.length < 2) return [];
+  const res = await searchKnownServers({ version: 5, query: q });
+  if (!res.ok) return [];
+  const all = Object.values(res.data)
+    .flat()
+    .filter((s): s is string => typeof s === "string");
+  return Array.from(new Set(all)).slice(0, 12);
+}
