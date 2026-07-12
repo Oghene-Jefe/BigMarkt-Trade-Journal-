@@ -53,7 +53,7 @@ export default function EditAccountModal({ account }: { account: BrokerAccount }
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-white/10 bg-gray-900 p-6">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-white/10 bg-panel p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-white">Edit Broker Account</h2>
               <button
@@ -76,7 +76,7 @@ export default function EditAccountModal({ account }: { account: BrokerAccount }
                   onChange={(e) => setLabel(e.target.value)}
                   required
                   maxLength={50}
-                  className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+                  className="w-full rounded-md border border-white/10 bg-bg px-3 py-2 text-sm text-white"
                 />
               </div>
 
@@ -86,7 +86,7 @@ export default function EditAccountModal({ account }: { account: BrokerAccount }
                   name="account_type"
                   value={accountType}
                   onChange={(e) => setAccountType(e.target.value as AccountType)}
-                  className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+                  className="w-full rounded-md border border-white/10 bg-bg px-3 py-2 text-sm text-white"
                 >
                   <option value="live">Live</option>
                   <option value="demo">Demo</option>
@@ -104,7 +104,7 @@ export default function EditAccountModal({ account }: { account: BrokerAccount }
                   <select
                     value={journalMode}
                     onChange={(e) => setJournalMode(e.target.value as JournalMode)}
-                    className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+                    className="w-full rounded-md border border-white/10 bg-bg px-3 py-2 text-sm text-white"
                   >
                     <option value="manual">Manual</option>
                     <option value="automated">Automated</option>
@@ -120,7 +120,7 @@ export default function EditAccountModal({ account }: { account: BrokerAccount }
                   onChange={(e) => setAccountNumber(e.target.value)}
                   maxLength={60}
                   placeholder="e.g. 12345678"
-                  className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+                  className="w-full rounded-md border border-white/10 bg-bg px-3 py-2 text-sm text-white"
                 />
               </div>
 
@@ -133,7 +133,7 @@ export default function EditAccountModal({ account }: { account: BrokerAccount }
                   onChange={(e) => setReadonlyPassword(e.target.value)}
                   maxLength={200}
                   placeholder="Investor/read-only password only — never your master password"
-                  className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+                  className="w-full rounded-md border border-white/10 bg-bg px-3 py-2 text-sm text-white"
                 />
                 <p className="mt-1 text-[11px] text-amber-400">
                   Never enter your master trading password. Read-only password only.

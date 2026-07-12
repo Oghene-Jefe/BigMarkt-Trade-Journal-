@@ -330,10 +330,10 @@ function SourceBadge({
   }
   if (source === "metaapi") {
     return (
-      <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium bg-sky-500/15 text-sky-400 border border-sky-500/20">
+      <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium bg-gold/15 text-gold border border-gold/30">
         <Cloud className="h-3 w-3" aria-hidden />
         Cloud
-        {verified ? <ShieldCheck className="h-3 w-3 text-sky-300" aria-hidden /> : null}
+        {verified ? <ShieldCheck className="h-3 w-3 text-gold" aria-hidden /> : null}
       </span>
     );
   }
