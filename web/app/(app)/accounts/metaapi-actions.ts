@@ -8,7 +8,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { callerIp, checkAndLog } from "@/lib/abuse";
 import { safeDbError } from "@/lib/db-error";
-import { createAccount, searchKnownServers } from "@/lib/metaapi/provisioning";
+import { createAccount, searchKnownServers, readAccount, deployAccount, undeployAccount } from "@/lib/metaapi/provisioning";
 import { syncConnection } from "@/lib/metaapi/sync";
 import { advanceProvisioning } from "@/lib/metaapi/advance";
 
@@ -252,47 +252,59 @@ export async function searchServersAction(query: string): Promise<string[]> {
   return Array.from(new Set(all)).slice(0, 12);
 }
 
-export type SyncNowResult =
-  | { ok: true; message: string }
+export type CloudSyncStep =
+  | { ok: true; done: false; phase: "deploying" | "connecting" | "provisioning" }
+  | { ok: true; done: true; imported: number; skipped: number }
   | { ok: false; error: string };
 
-// Owner-triggered manual sync/advance for a cloud connection. Lets a user (or
-// admin) pull fresh trades immediately instead of waiting for the daily cron.
-// Ownership is enforced by the RLS-scoped read below.
-export async function syncNowAction(connectionId: string): Promise<SyncNowResult> {
+// One idempotent step of the on-demand, cost-safe sync cycle. The client polls
+// this every few seconds. Flow: advance a still-provisioning connection; deploy
+// an undeployed account; once DEPLOYED + CONNECTED, sync then UNDEPLOY (back to
+// the cheap idle state). Owner-checked via the RLS-scoped read. Read-only
+// capture — deploy/undeploy only control whether the cloud server runs.
+export async function cloudSyncStep(connectionId: string): Promise<CloudSyncStep> {
   const user = await requireUser();
   const sb = await supabaseServer();
   const { data: conn } = await sb
     .from("metaapi_connections")
-    .select("id, status")
+    .select("id, status, metaapi_account_id")
     .eq("id", connectionId)
     .eq("user_id", user.id)
     .maybeSingle();
   if (!conn) return { ok: false, error: "Connection not found." };
+  const c = conn as { status: string; metaapi_account_id: string };
+  if (c.status === "revoked") return { ok: false, error: "This connection has been revoked." };
 
-  const status = (conn as { status: string }).status;
-
-  if (status === "provisioning") {
+  // Still provisioning: advance it (enables MetaStats, deploys, activates).
+  if (c.status === "provisioning") {
     const adv = await advanceProvisioning(connectionId);
-    if (adv.status === "active") {
-      const s = await syncConnection(connectionId);
-      revalidatePath("/accounts");
-      revalidatePath("/journal");
-      return { ok: true, message: `Connected — imported ${s.imported} trade${s.imported === 1 ? "" : "s"}.` };
-    }
-    revalidatePath("/accounts");
-    return adv.status === "error"
-      ? { ok: false, error: "Connection failed — check the account details and reconnect." }
-      : { ok: true, message: "Still setting up… give it a minute and try again." };
+    if (adv.status === "error") return { ok: false, error: "Connection failed — check the details and reconnect." };
+    if (adv.status !== "active") return { ok: true, done: false, phase: "provisioning" };
+    // just activated → fall through; the account is deployed, sync below.
   }
 
-  if (status === "active") {
+  const acct = await readAccount(c.metaapi_account_id);
+  if (!acct.ok) return { ok: false, error: `Couldn't reach MetaApi (${acct.error}).` };
+  const state = acct.data.state ?? "";
+  const connected = acct.data.connectionStatus === "CONNECTED";
+
+  if (state === "DEPLOY_FAILED") return { ok: false, error: "Deployment failed — reconnect the account." };
+
+  if (state === "DEPLOYED" && connected) {
     const s = await syncConnection(connectionId);
+    await undeployAccount(c.metaapi_account_id); // back to cheap idle state
     revalidatePath("/accounts");
     revalidatePath("/journal");
     if (!s.ok) return { ok: false, error: s.error ?? "Sync failed. Try again shortly." };
-    return { ok: true, message: `Synced — ${s.imported} imported${s.skipped ? `, ${s.skipped} skipped` : ""}.` };
+    return { ok: true, done: true, imported: s.imported, skipped: s.skipped };
   }
 
-  return { ok: false, error: `This connection is ${status} and can't sync right now.` };
+  if (state === "UNDEPLOYED" || state === "UNDEPLOYING") {
+    const d = await deployAccount(c.metaapi_account_id);
+    if (!d.ok) return { ok: false, error: `Couldn't deploy (${d.error}).` };
+    return { ok: true, done: false, phase: "deploying" };
+  }
+
+  // DEPLOYING, or DEPLOYED-but-not-yet-connected → keep waiting.
+  return { ok: true, done: false, phase: state === "DEPLOYED" ? "connecting" : "deploying" };
 }

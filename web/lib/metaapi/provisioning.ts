@@ -242,6 +242,19 @@ export async function deployAccount(
   });
 }
 
+// ── public: undeploy (idempotent — stops the API server + terminal to save
+//    hosting cost; ignored if already undeployed). Read-only capture is
+//    unaffected — this only controls whether the cloud server is running. ──
+export async function undeployAccount(
+  accountId: string,
+): Promise<ProvisioningResult<void>> {
+  return provisioningRequest<void>({
+    method: "POST",
+    path: `/users/current/accounts/${encodeURIComponent(accountId)}/undeploy`,
+    expect204: true,
+  });
+}
+
 // ── public: read account (fire-and-poll state source) ─────────────────────────
 export async function readAccount(
   accountId: string,
