@@ -7,8 +7,8 @@ import { recalculateAccountScore } from "@/lib/actions/scores";
 import type { AccountScore } from "@/lib/types";
 
 const TIER_META = {
-  pro: { label: "Verified pro", classes: "bg-blue-500/10 text-blue-400 border-blue-500/30" },
-  active: { label: "Active leader", classes: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" },
+  pro: { label: "Verified pro", classes: "bg-gold/10 text-gold border-gold/30" },
+  active: { label: "Active leader", classes: "bg-win/10 text-win border-win/30" },
   none: { label: "Unranked", classes: "bg-white/5 text-white/60 border-white/10" },
 } as const;
 
