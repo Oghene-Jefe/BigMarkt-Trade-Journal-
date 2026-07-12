@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bot, PenLine } from "lucide-react";
+import { Bot, PenLine, Cloud } from "lucide-react";
 import { requireUser } from "@/lib/auth/require-user";
 import { supabaseServer } from "@/lib/supabase/server";
 import { BROKERS } from "@/lib/brokers";
@@ -23,6 +23,17 @@ const ACCOUNT_TYPE_META: Record<
   prop_firm: { label: "Prop firm", tone: "warn" },
 };
 
+const CLOUD_STATUS_META: Record<
+  string,
+  { label: string; tone: "info" | "warn" | "error" | "neutral" }
+> = {
+  active: { label: "Cloud · Live", tone: "info" },
+  provisioning: { label: "Cloud · Provisioning…", tone: "warn" },
+  error: { label: "Cloud · Error", tone: "error" },
+  paused: { label: "Cloud · Paused", tone: "neutral" },
+  revoked: { label: "Cloud · Revoked", tone: "neutral" },
+};
+
 export default async function AccountsPage() {
   const user = await requireUser();
   const admin = await isAdmin();
@@ -35,6 +46,16 @@ export default async function AccountsPage() {
 
   const accounts: BrokerAccount[] = (data ?? []) as BrokerAccount[];
   const hasPropFirm = accounts.some((a) => a.is_prop_firm);
+
+  // Cloud (MetaApi) connection status per broker account, for the status pill.
+  const { data: connData } = await sb
+    .from("metaapi_connections")
+    .select("broker_account_id, status")
+    .eq("user_id", user.id);
+  const cloudByAccount = new Map<string, string>();
+  for (const c of (connData ?? []) as { broker_account_id: string; status: string }[]) {
+    cloudByAccount.set(c.broker_account_id, c.status);
+  }
 
   return (
     <div className="min-h-screen bg-bg -mx-4 -my-6 px-4 py-6">
@@ -67,6 +88,10 @@ export default async function AccountsPage() {
             const broker = BROKERS.find((b) => b.id === account.broker_slug);
             const brokerName = broker?.name ?? account.broker_slug;
             const typeMeta = ACCOUNT_TYPE_META[account.account_type];
+            const cloudStatus = cloudByAccount.get(account.id);
+            const cloudMeta = cloudStatus
+              ? CLOUD_STATUS_META[cloudStatus] ?? { label: "Cloud", tone: "neutral" as const }
+              : null;
 
             return (
               <div
@@ -94,6 +119,11 @@ export default async function AccountsPage() {
                       ) : (
                         <StatusPill tone="neutral" icon={<PenLine size={12} aria-hidden />}>
                           Manual
+                        </StatusPill>
+                      )}
+                      {cloudMeta && (
+                        <StatusPill tone={cloudMeta.tone} icon={<Cloud size={12} aria-hidden />}>
+                          {cloudMeta.label}
                         </StatusPill>
                       )}
                       {!account.is_active && (
