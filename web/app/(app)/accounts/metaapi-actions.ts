@@ -152,7 +152,13 @@ export async function provisionConnectionAction(
   const sb = await supabaseServer();
 
   // 2. Create the broker_accounts row (RLS self). Investor password NOT stored.
-  const journalMode = input.account_type === "prop_firm" ? "manual" : "automated";
+  // Cloud connections are ALWAYS automated journaling — the cron captures trades
+  // server-side. Prop firms ARE allowed automated journaling here (unlike the
+  // EA/manual path): cloud capture is READ-ONLY (investor password + GET-only
+  // MetaStats), so nothing ever executes on the prop account. is_prop_firm is
+  // still set below, which keeps the prop_firm trust badge and the (deferred)
+  // copy-execution lock in force. Journaling is allowed; copy execution is not.
+  const journalMode = "automated";
   const { data: acct, error: acctErr } = await sb
     .from("broker_accounts")
     .insert({
