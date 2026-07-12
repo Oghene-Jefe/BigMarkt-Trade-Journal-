@@ -37,7 +37,7 @@ export default async function AccountDetailPage({
   const score = (scoreRow as AccountScore | null) ?? null;
 
   return (
-    <div className="min-h-screen bg-gray-900 -mx-4 -my-6 px-4 py-6">
+    <div className="min-h-screen bg-bg -mx-4 -my-6 px-4 py-6">
       <div className="mb-6">
         <Link
           href="/accounts"

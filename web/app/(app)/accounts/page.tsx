@@ -37,7 +37,7 @@ export default async function AccountsPage() {
   const hasPropFirm = accounts.some((a) => a.is_prop_firm);
 
   return (
-    <div className="min-h-screen bg-gray-900 -mx-4 -my-6 px-4 py-6">
+    <div className="min-h-screen bg-bg -mx-4 -my-6 px-4 py-6">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-white">My Accounts</h1>
