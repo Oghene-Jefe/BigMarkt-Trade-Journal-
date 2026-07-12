@@ -175,6 +175,11 @@ export default function CloudConnectModal() {
                     <option value="demo">Demo</option>
                     <option value="prop_firm">Prop firm</option>
                   </select>
+                  {accountType === "prop_firm" && (
+                    <p className="mt-1 text-[11px] text-win">
+                      Read-only journaling only — copy execution stays disabled, so this is safe under prop-firm rules.
+                    </p>
+                  )}
                 </div>
 
                 <div>
