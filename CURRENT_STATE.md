@@ -284,6 +284,13 @@ Full end-to-end verified in prod: UI form → provision → advance → MetaStat
 - "Sync now" button on cloud account cards (web/app/(app)/accounts/CloudSyncButton.tsx + syncNowAction in metaapi-actions.ts): owner-checked via RLS-scoped read; advances a 'provisioning' connection or syncs an 'active' one on demand — removes the wait for the daily Hobby cron / curl+CRON_SECRET. Reports "Synced — N imported". Commit 31c73e3.
 Cloud feature is now end-to-end: provision (UI, admin-gated) -> fire-and-poll advance -> MetaStats sync -> status pill + Cloud badge + admin source visibility -> one-click Sync now. Remaining: undeploy-when-idle cost automation (deferred); Vercel Hobby->Pro + restore 15-min cron (pre-launch gate, still open).
 
+### Undeploy-when-idle — SHIPPED 2026-07-12 (commit 679ec65)
+Cost model concluded. MetaApi accounts now sit UNDEPLOYED by default (~$2/mo idle vs ~$19.60/mo deployed-24/7). On-demand cycle: the Sync now button (CloudSyncButton.tsx) polls cloudSyncStep (metaapi-actions.ts) every 5s → deploys the account → waits for DEPLOYED+CONNECTED → syncConnection → undeployAccount (back to idle). Button shows Deploying… / Connecting… / Syncing… / "Synced — N imported". New primitive undeployAccount() in provisioning.ts. Old syncNowAction REMOVED (superseded by cloudSyncStep).
+Daily cron (api/cron/metaapi-sync) reworked: Phase 1 advance provisioning; Phase 2 COST-CLEANUP only — undeploys any 'active' account left DEPLOYED (just-activated or abandoned Sync-now). It NO LONGER syncs (a cron invocation can't wait the 1–3 min a deploy takes).
+CONSEQUENCE: automatic scheduled sync is OFF on Hobby — data freshness is ON-DEMAND ONLY (user clicks Sync now) until Vercel Pro.
+DEFERRED to Vercel Pro (pre-launch gate): the ~6h scheduled auto-sweep (a frequent cron drives the deploy→sync→undeploy state machine so users don't have to click). Pairs with the existing Hobby→Pro + restore-15-min-cron gate.
+Edge/safety: if a user abandons a Sync mid-deploy, the account stays deployed until the daily cron's Phase 2 undeploys it — fine on Hobby; a deploying_since guard + frequent cleanup arrive with Pro.
+
 ### PRE-LAUNCH GATES (added 2026-07-11)
 - Swap the TEMPORARY isAdmin() gate in metaapi-actions.ts for a real Pro-entitlement check when Phase D payments ship (currently admin-only = solo testing).
 - Rate limit SHIPPED (10 provisions/hr/IP via abuse_log scope 'metaapi_provision'). Consider adding a per-user cap before broad launch.
