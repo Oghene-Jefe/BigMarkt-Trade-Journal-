@@ -21,9 +21,11 @@ import { getHistoricalTrades, getOpenTrades, getMetrics } from "@/lib/metaapi/cl
 import { metaApiTradeKey, normalizeClosedTrade, normalizeOpenTrade } from "@/lib/metaapi/normalize";
 import { recalculateAccountScoreWithClient } from "@/lib/scoring-recalculate";
 
-// How far back each poll re-scans closed trades. A rolling window (like the EA's
-// ReconcileDays) so a close missed during a gap still gets picked up next poll.
-const HISTORY_WINDOW_DAYS = 30;
+// How far back each sync scans closed trades. Set wide to capture the account's
+// FULL history into the journal (the leaderboard separately counts only trades
+// closed after the user joined — see scoring-recalculate.ts). Upserts dedupe on
+// position_id, so re-scanning the full range each sync is safe.
+const HISTORY_WINDOW_DAYS = 3650; // ~10 years
 
 type ConnectionRow = {
   id: string;
