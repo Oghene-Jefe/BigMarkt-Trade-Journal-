@@ -81,16 +81,20 @@ export default async function DashboardPage() {
     acctCurrentBal = (acctRow?.current_balance as number | null) ?? null;
     acctCurrency = (acctRow?.account_currency as string | null) ?? null;
   }
-  let cloudGain: number | null = null;
+  let isCloud = false;
+  let cloudDeposits: number | null = null;
   let cloudBalance: number | null = null;
   if (activeId) {
     const { data: connMetrics } = await sb
       .from("metaapi_connections")
-      .select("gain, balance")
+      .select("deposits, balance")
       .eq("broker_account_id", activeId)
       .maybeSingle();
-    cloudGain = (connMetrics?.gain as number | null) ?? null;
-    cloudBalance = (connMetrics?.balance as number | null) ?? null;
+    if (connMetrics) {
+      isCloud = true;
+      cloudDeposits = (connMetrics.deposits as number | null) ?? null;
+      cloudBalance = (connMetrics.balance as number | null) ?? null;
+    }
   }
   const startBal = acctStartBal ?? profileData?.starting_balance ?? null;
   const journalMode = (profileData?.journal_mode ?? null) as
@@ -118,16 +122,21 @@ export default async function DashboardPage() {
   // Cloud accounts: use MetaStats' deposit/withdrawal-correct gain% (the same
   // number the account detail card shows) instead of the naive balance-vs-start,
   // which misreads deposits/withdrawals.
+  // Cloud accounts: show TRADING return (trade P&L / deposited capital) — skill,
+  // independent of deposits/withdrawals — so it stays consistent with Net P&L.
+  // Non-cloud accounts keep the EA/manual balance-vs-start logic.
   const growth =
-    cloudGain != null
-      ? cloudGain
+    isCloud
+      ? cloudDeposits && cloudDeposits > 0
+        ? (totalPnl / cloudDeposits) * 100
+        : null
       : acctCurrentBal != null && acctStartBal != null && acctStartBal !== 0
         ? ((acctCurrentBal - acctStartBal) / acctStartBal) * 100
         : startBal && startBal > 0
           ? (totalPnl / startBal) * 100
           : null;
   const growthSubline =
-    cloudGain != null
+    isCloud
       ? cloudBalance != null
         ? `Balance ${fmtMoney(cloudBalance, acctCurrency)}`
         : null
