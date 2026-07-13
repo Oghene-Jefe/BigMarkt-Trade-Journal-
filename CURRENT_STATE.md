@@ -291,6 +291,12 @@ CONSEQUENCE: automatic scheduled sync is OFF on Hobby — data freshness is ON-D
 DEFERRED to Vercel Pro (pre-launch gate): the ~6h scheduled auto-sweep (a frequent cron drives the deploy→sync→undeploy state machine so users don't have to click). Pairs with the existing Hobby→Pro + restore-15-min-cron gate.
 Edge/safety: if a user abandons a Sync mid-deploy, the account stays deployed until the daily cron's Phase 2 undeploys it — fine on Hobby; a deploying_since guard + frequent cleanup arrive with Pro.
 
+### Referral leader dashboard — SHIPPED 2026-07-12 (commit caed44a; migration 0084)
+- migration 0084 get_referral_list() RPC — SECURITY DEFINER, takes NO param (derives the caller's own code from auth.uid() base64, so no cross-user enumeration), granted to authenticated. Returns per referred profile: display_name, username (only when that profile is public, else null), is_public, joined_at, is_active (has >=1 trade). Applied + pg_proc-verified in prod (prosecdef=true, pronargs=0).
+- profile/page.tsx fetches get_referral_list in its Promise.all; Referrals.tsx renders a "Who joined" list (name — linked if public, join date, Active/Joined badge) below the existing signup count, plus a "earn 5% when they go Pro" teaser.
+- Referral CAPTURE already existed (0032/0064/0065 + refCodeFromId + get_referral_stats). This session adds the leader VISIBILITY layer only.
+- PAYMENT-GATED (Phase D, NOT built): the actual 5% revenue-share payout — needs a subscription/plan model (which referral went Pro) + a referral_earnings ledger + payout via Paystack/Flutterwave. Same dependency as B3 pay-gating. Design paper-only when ready; wire when D1 payments land.
+
 ### PRE-LAUNCH GATES (added 2026-07-11)
 - Swap the TEMPORARY isAdmin() gate in metaapi-actions.ts for a real Pro-entitlement check when Phase D payments ship (currently admin-only = solo testing).
 - Rate limit SHIPPED (10 provisions/hr/IP via abuse_log scope 'metaapi_provision'). Consider adding a per-user cap before broad launch.
