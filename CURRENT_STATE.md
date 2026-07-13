@@ -297,6 +297,12 @@ Edge/safety: if a user abandons a Sync mid-deploy, the account stays deployed un
 - Referral CAPTURE already existed (0032/0064/0065 + refCodeFromId + get_referral_stats). This session adds the leader VISIBILITY layer only.
 - PAYMENT-GATED (Phase D, NOT built): the actual 5% revenue-share payout — needs a subscription/plan model (which referral went Pro) + a referral_earnings ledger + payout via Paystack/Flutterwave. Same dependency as B3 pay-gating. Design paper-only when ready; wire when D1 payments land.
 
+### Pro entitlement WIRED (B3-lite) — SHIPPED 2026-07-12 (commit 33c8932)
+- The plan model (migration 0068: profiles.plan / plan_status / plan_renews_at / plan_source + lib/plan.ts isPro/requirePro/requireProForAction/isProForUser) was previously built-but-wired-to-nothing. Now wired.
+- Admin can COMP Pro: grantProAction / revokeProAction (admin/actions.ts, service-role write, requireAdminForAction) set plan='pro' / plan_status='comp' / plan_source='admin_comp' (revoke → free/active/admin_revoke). UI: Grant Pro / Revoke Pro button + gold "Pro" badge on /admin/users. 'comp' is always-entitled per lib/plan.ts — no payment needed. Use for founding leaders / testing.
+- Cloud connect gate changed from admin-ONLY to Pro-OR-admin: provisionConnectionAction, searchServersAction, and the CloudConnectModal render on /accounts all check isAdmin() || isPro(). Real B3 enforcement — MetaApi is now the Pro differentiator. RESOLVES the earlier "swap the TEMP admin gate for Pro entitlement" pre-launch item. (cloudSyncStep stays owner-checked only.)
+- Still PAYMENT-GATED (Phase D): self-serve upgrade (Paystack/Flutterwave writes plan='pro' on successful payment). /upgrade is currently just a Pro waitlist (pro_interest_at). The referral 5% payout also waits on this.
+
 ### PRE-LAUNCH GATES (added 2026-07-11)
 - Swap the TEMPORARY isAdmin() gate in metaapi-actions.ts for a real Pro-entitlement check when Phase D payments ship (currently admin-only = solo testing).
 - Rate limit SHIPPED (10 provisions/hr/IP via abuse_log scope 'metaapi_provision'). Consider adding a per-user cap before broad launch.
