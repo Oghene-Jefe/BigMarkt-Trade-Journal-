@@ -68,6 +68,17 @@ export async function recalculateAccountScoreWithClient(
     .maybeSingle();
   const resetBoundary = lastReset?.created_at as string | undefined;
 
+  // Leaderboard integrity: only trades that CLOSED after the user joined
+  // BigMarkt count toward the score. Pre-join history (e.g. backfilled cloud
+  // trades from before the account was tracked) stays in the journal but never
+  // verifies a trader into Active/Pro.
+  const { data: joinRow } = await sb
+    .from("profiles")
+    .select("created_at")
+    .eq("id", userId)
+    .maybeSingle();
+  const joinDate = joinRow?.created_at as string | undefined;
+
   let tradesQuery = sb
     .from("trades")
     .select(
@@ -87,6 +98,9 @@ export async function recalculateAccountScoreWithClient(
     .or("status.eq.closed,status.is.null");
   if (resetBoundary) {
     tradesQuery = tradesQuery.gt("created_at", resetBoundary);
+  }
+  if (joinDate) {
+    tradesQuery = tradesQuery.gt("close_time", joinDate);
   }
   const { data: tradeRows, error: tradesErr } = await tradesQuery.order("created_at", {
     ascending: true,
