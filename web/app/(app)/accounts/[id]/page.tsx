@@ -85,7 +85,7 @@ export default async function AccountDetailPage({
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Metric label="Balance" value={fmtNum(conn.balance)} />
               <Metric
-                label="Growth"
+                label="Account gain"
                 value={conn.gain != null ? `${conn.gain >= 0 ? "+" : ""}${conn.gain.toFixed(2)}%` : "—"}
                 tone={conn.gain == null ? "neutral" : conn.gain >= 0 ? "win" : "loss"}
               />
