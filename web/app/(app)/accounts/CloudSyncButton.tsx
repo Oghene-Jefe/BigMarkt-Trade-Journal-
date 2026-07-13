@@ -56,6 +56,7 @@ export default function CloudSyncButton({ connectionId }: { connectionId: string
         type="button"
         onClick={run}
         disabled={busy}
+        title="Pulls your latest trades from the broker. Deploys briefly then sleeps to save cost — about a minute."
         className="inline-flex items-center gap-1 rounded-md border border-white/20 px-3 py-1 text-xs text-white hover:bg-white/10 disabled:opacity-50"
       >
         <RefreshCw size={12} className={busy ? "animate-spin" : ""} aria-hidden />
