@@ -303,6 +303,14 @@ Edge/safety: if a user abandons a Sync mid-deploy, the account stays deployed un
 - Cloud connect gate changed from admin-ONLY to Pro-OR-admin: provisionConnectionAction, searchServersAction, and the CloudConnectModal render on /accounts all check isAdmin() || isPro(). Real B3 enforcement — MetaApi is now the Pro differentiator. RESOLVES the earlier "swap the TEMP admin gate for Pro entitlement" pre-launch item. (cloudSyncStep stays owner-checked only.)
 - Still PAYMENT-GATED (Phase D): self-serve upgrade (Paystack/Flutterwave writes plan='pro' on successful payment). /upgrade is currently just a Pro waitlist (pro_interest_at). The referral 5% payout also waits on this.
 
+### Cloud balance/growth + leaderboard inclusion — SHIPPED 2026-07-12
+- Cloud trades now COUNT toward the leaderboard: scoring-recalculate.ts filter changed .eq('source','ea') -> .in('source',['ea','metaapi']) (both broker-verified; manual never counts). syncConnection triggers recalculateAccountScoreWithClient after every cloud sync. Commit 189a207.
+- MetaStats getMetrics() added to client.ts (GET-only) — returns balance/equity/deposits/profit/gain/absoluteGain. Commit 3890cbe.
+- migration 0085: metrics snapshot columns on metaapi_connections (balance, equity, deposits, profit, gain, metrics_updated_at). Applied + verified in prod (6 cols). Repo record commit 8b6bfb9.
+- syncConnection captures the getMetrics snapshot (best-effort, non-fatal) into those columns on every sync. MetaApiConnectionRow type extended. Commit 3890cbe.
+- Account detail page (/accounts/[id]) shows a "Cloud account" card: Balance / Growth% / Deposits / Profit + "Updated ..." (or a Sync-now prompt when unpopulated). Commit d9625ff.
+- DESIGN: v1 uses the MetaStats account-level snapshot for headline numbers (EA stamps per-trade balance_at_open; MetaStats gives aggregates directly). The equity curve still runs on per-trade P&L (unchanged). DEFERRED: per-trade balance_at_open reconstruction for a real-balance equity curve; dashboard-level surfacing (currently on the account detail page only). Resolves the earlier "cloud balance/growth tracking" parked item.
+
 ### PRE-LAUNCH GATES (added 2026-07-11)
 - Swap the TEMPORARY isAdmin() gate in metaapi-actions.ts for a real Pro-entitlement check when Phase D payments ship (currently admin-only = solo testing).
 - Rate limit SHIPPED (10 provisions/hr/IP via abuse_log scope 'metaapi_provision'). Consider adding a per-user cap before broad launch.
