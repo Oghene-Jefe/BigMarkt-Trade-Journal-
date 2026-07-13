@@ -223,3 +223,46 @@ export async function getOpenTrades(args: {
     shape: (json) => coerceArray(json, ["openTrades"]) as MetaStatsOpenTrade[],
   });
 }
+
+// ── documented metrics shape (subset we use) ─────────────────────────────────
+// Full model: https://metaapi.cloud/docs/metastats/models/metrics/ . An index
+// signature keeps undocumented extras. All fields optional — a fresh account may
+// omit them until it has data.
+export type MetaStatsMetrics = {
+  balance?: number;
+  equity?: number;
+  deposits?: number;
+  withdrawals?: number;
+  profit?: number;
+  gain?: number;          // overall account growth %
+  absoluteGain?: number;
+  trades?: number;
+  [k: string]: unknown;
+};
+
+// ── public: account metrics ──────────────────────────────────────────────────
+// Aggregate account figures (balance / equity / deposits / profit / gain).
+// GET-only. The REST response wraps the object under `metrics`; accept either
+// the wrapped or a bare object defensively.
+export async function getMetrics(args: {
+  region: string;
+  token: string;
+  accountId: string;
+}): Promise<MetaStatsResult<MetaStatsMetrics>> {
+  const host = metaStatsHost(args.region);
+  const url =
+    `${host}/users/current/accounts/${encodeURIComponent(args.accountId)}/metrics`;
+
+  return metaStatsGet<MetaStatsMetrics>({
+    url,
+    token: args.token,
+    shape: (json) => {
+      if (json && typeof json === "object") {
+        const m = (json as Record<string, unknown>).metrics;
+        if (m && typeof m === "object") return m as MetaStatsMetrics;
+        return json as MetaStatsMetrics;
+      }
+      return {};
+    },
+  });
+}

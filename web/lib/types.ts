@@ -393,6 +393,13 @@ export type MetaApiConnectionRow = {
   status: MetaApiConnectionStatus;
   last_sync_at: string | null;
   last_error: string | null;
+  // Account-level metrics snapshot from MetaStats getMetrics (migration 0085).
+  balance: number | null;
+  equity: number | null;
+  deposits: number | null;
+  profit: number | null;
+  gain: number | null;
+  metrics_updated_at: string | null;
   created_at: string;
   updated_at: string;
 };

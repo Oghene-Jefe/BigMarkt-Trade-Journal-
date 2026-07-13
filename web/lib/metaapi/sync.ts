@@ -17,7 +17,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { getHistoricalTrades, getOpenTrades } from "@/lib/metaapi/client";
+import { getHistoricalTrades, getOpenTrades, getMetrics } from "@/lib/metaapi/client";
 import { metaApiTradeKey, normalizeClosedTrade, normalizeOpenTrade } from "@/lib/metaapi/normalize";
 import { recalculateAccountScoreWithClient } from "@/lib/scoring-recalculate";
 
@@ -266,6 +266,32 @@ export async function syncConnection(connectionId: string): Promise<SyncOutcome>
       row,
     });
     if (r === "error") hadError = true; else imported++;
+  }
+
+  // Account-level metrics snapshot (balance / equity / deposits / profit / gain)
+  // from MetaStats — powers the cloud Balance/Growth display. Best-effort.
+  try {
+    const metrics = await getMetrics({ region: c.region, token, accountId: c.metaapi_account_id });
+    if (metrics.ok) {
+      const m = metrics.data;
+      const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+      await supabase
+        .from("metaapi_connections")
+        .update({
+          balance: num(m.balance),
+          equity: num(m.equity),
+          deposits: num(m.deposits),
+          profit: num(m.profit),
+          gain: num(m.gain),
+          metrics_updated_at: new Date().toISOString(),
+        })
+        .eq("id", c.id);
+    }
+  } catch (e) {
+    console.error("metaapi sync: metrics fetch failed", {
+      connectionId,
+      error: e instanceof Error ? e.message : String(e),
+    });
   }
 
   // Cloud trades count toward the leaderboard (broker-verified) — recompute the
