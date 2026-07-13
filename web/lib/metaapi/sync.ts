@@ -295,7 +295,6 @@ export async function syncConnection(connectionId: string): Promise<SyncOutcome>
         .update({
           current_balance: num(m.balance),
           current_equity: num(m.equity),
-          starting_balance: num(m.deposits),
         })
         .eq("id", c.broker_account_id)
         .eq("user_id", c.user_id);

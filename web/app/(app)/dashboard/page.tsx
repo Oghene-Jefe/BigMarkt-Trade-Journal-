@@ -81,6 +81,17 @@ export default async function DashboardPage() {
     acctCurrentBal = (acctRow?.current_balance as number | null) ?? null;
     acctCurrency = (acctRow?.account_currency as string | null) ?? null;
   }
+  let cloudGain: number | null = null;
+  let cloudBalance: number | null = null;
+  if (activeId) {
+    const { data: connMetrics } = await sb
+      .from("metaapi_connections")
+      .select("gain, balance")
+      .eq("broker_account_id", activeId)
+      .maybeSingle();
+    cloudGain = (connMetrics?.gain as number | null) ?? null;
+    cloudBalance = (connMetrics?.balance as number | null) ?? null;
+  }
   const startBal = acctStartBal ?? profileData?.starting_balance ?? null;
   const journalMode = (profileData?.journal_mode ?? null) as
     | "automated"
@@ -104,17 +115,25 @@ export default async function DashboardPage() {
   const totalPnl = closedTrades.reduce((s, t) => s + (t.pnl ?? 0), 0);
   // Balance-based growth when we have a real live balance + baseline; otherwise
   // fall back to the P&L proxy (totalPnl / starting balance).
+  // Cloud accounts: use MetaStats' deposit/withdrawal-correct gain% (the same
+  // number the account detail card shows) instead of the naive balance-vs-start,
+  // which misreads deposits/withdrawals.
   const growth =
-    acctCurrentBal != null && acctStartBal != null && acctStartBal !== 0
-      ? ((acctCurrentBal - acctStartBal) / acctStartBal) * 100
-      : startBal && startBal > 0
-        ? (totalPnl / startBal) * 100
-        : null;
-  // Live-balance subline — only when the EA has reported a real balance.
+    cloudGain != null
+      ? cloudGain
+      : acctCurrentBal != null && acctStartBal != null && acctStartBal !== 0
+        ? ((acctCurrentBal - acctStartBal) / acctStartBal) * 100
+        : startBal && startBal > 0
+          ? (totalPnl / startBal) * 100
+          : null;
   const growthSubline =
-    acctCurrentBal != null
-      ? `${fmtMoney(acctCurrentBal, acctCurrency)} · start ${fmtMoney(acctStartBal, acctCurrency)}`
-      : null;
+    cloudGain != null
+      ? cloudBalance != null
+        ? `Balance ${fmtMoney(cloudBalance, acctCurrency)}`
+        : null
+      : acctCurrentBal != null
+        ? `${fmtMoney(acctCurrentBal, acctCurrency)} · start ${fmtMoney(acctStartBal, acctCurrency)}`
+        : null;
   const recent = closedTrades.slice(0, 5);
 
   const nowForPulse = new Date();
