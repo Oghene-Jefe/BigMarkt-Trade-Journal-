@@ -286,6 +286,19 @@ export async function syncConnection(connectionId: string): Promise<SyncOutcome>
           metrics_updated_at: new Date().toISOString(),
         })
         .eq("id", c.id);
+
+      // Also seed the broker_accounts balance fields the dashboard Growth tile
+      // reads (the same fields the EA seeds), so cloud accounts show Growth too.
+      // starting_balance = total deposits (the account's baseline capital).
+      await supabase
+        .from("broker_accounts")
+        .update({
+          current_balance: num(m.balance),
+          current_equity: num(m.equity),
+          starting_balance: num(m.deposits),
+        })
+        .eq("id", c.broker_account_id)
+        .eq("user_id", c.user_id);
     }
   } catch (e) {
     console.error("metaapi sync: metrics fetch failed", {
