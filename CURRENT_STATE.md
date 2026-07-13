@@ -311,6 +311,13 @@ Edge/safety: if a user abandons a Sync mid-deploy, the account stays deployed un
 - Account detail page (/accounts/[id]) shows a "Cloud account" card: Balance / Growth% / Deposits / Profit + "Updated ..." (or a Sync-now prompt when unpopulated). Commit d9625ff.
 - DESIGN: v1 uses the MetaStats account-level snapshot for headline numbers (EA stamps per-trade balance_at_open; MetaStats gives aggregates directly). The equity curve still runs on per-trade P&L (unchanged). DEFERRED: per-trade balance_at_open reconstruction for a real-balance equity curve; dashboard-level surfacing (currently on the account detail page only). Resolves the earlier "cloud balance/growth tracking" parked item.
 
+### Cloud growth semantics + full-history + post-join leaderboard — SHIPPED 2026-07-12
+- FULL HISTORY: sync.ts HISTORY_WINDOW_DAYS 30 -> 3650 (~10y) — cloud sync now pulls the account's full closed-trade history into the journal (dedup on position_id). Commit 4d15145. Heavier first sync for old accounts; refinement = full-first-then-narrow if it hits the ~5min CloudSyncButton poll ceiling.
+- LEADERBOARD BOUNDARY (integrity): scoring-recalculate.ts counts only trades whose close_time is AFTER the user's join date (profiles.created_at) via .gt("close_time", joinDate). Pre-join history is journaled/shown but NEVER verifies a trader into Active/Pro. Uses close_time (not created_at) because backfilled trades all get a recent insert-time created_at. Commit 5dfa66b. Alt considered: account-connection date (stricter); chose join date per Jefe.
+- DASHBOARD GROWTH = trading return: for cloud accounts the dashboard Growth tile = totalPnl / deposits * 100 (skill, deposit/withdrawal-independent, consistent with Net P&L + leaderboard). NOT MetaStats gain (dominated by cash flows). Commit 5c74baf. Learned via test account: deposits ~$917, balance $0.38, 38 trades netting only -$11.47 — the -97.8% gain was WITHDRAWALS, not trading loss; trading return ~ -1.25%.
+- ACCOUNT DETAIL card shows the raw account-money snapshot: Balance / "Account gain" (MetaStats gain%) / Deposits / Profit — distinct label from the dashboard's trading-return "Growth". Commit 42c1b6f.
+- KEY: MetaStats `gain` includes deposits/withdrawals — it is NOT a pure trading return. Use trade P&L / deposits for skill metrics; show gain only as the account snapshot.
+
 ### PRE-LAUNCH GATES (added 2026-07-11)
 - Swap the TEMPORARY isAdmin() gate in metaapi-actions.ts for a real Pro-entitlement check when Phase D payments ship (currently admin-only = solo testing).
 - Rate limit SHIPPED (10 provisions/hr/IP via abuse_log scope 'metaapi_provision'). Consider adding a per-user cap before broad launch.
