@@ -78,14 +78,13 @@ export default async function AccountsPage() {
 
       {hasPropFirm && (
         <div className="mb-6 rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-300">
-          Prop firm accounts are journal-only — BigMarkt never executes or copies trades onto them. Automated cloud sync (read-only) is allowed for journaling; only copy-execution is disabled.
+          Prop firm accounts are journal-only — we read and log your trades, never trade on your account.
         </div>
       )}
 
       {hasCloud && (
         <div className="mb-6 rounded-md border border-white/10 bg-panel p-3 text-xs text-muted">
-          Cloud-connected accounts sleep between syncs to keep costs low. Click{" "}
-          <span className="text-gold">Sync now</span> on a cloud account to pull your latest trades — it takes about a minute.
+          Click <span className="text-gold">Sync now</span> on a cloud account to pull your latest trades — it takes about a minute.
         </div>
       )}
 
