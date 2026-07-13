@@ -10,7 +10,23 @@ function refCodeFromId(id: string): string {
   return btoa(id).replace(/=/g, "").substring(0, 12);
 }
 
-export default function Referrals({ userId, count }: { userId: string; count: number }) {
+type ReferralRow = {
+  display_name: string | null;
+  username: string | null;
+  is_public: boolean;
+  joined_at: string;
+  is_active: boolean;
+};
+
+export default function Referrals({
+  userId,
+  count,
+  referrals = [],
+}: {
+  userId: string;
+  count: number;
+  referrals?: ReferralRow[];
+}) {
   const code = refCodeFromId(userId);
   const link =
     typeof window !== "undefined"
@@ -59,6 +75,43 @@ export default function Referrals({ userId, count }: { userId: string; count: nu
           <p className="text-xs uppercase tracking-wider text-muted">Signups via your link</p>
           <p className="mt-1 text-3xl font-semibold text-gold tabular-nums">{count}</p>
         </div>
+
+        {referrals.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-wider text-muted">Who joined</p>
+            <ul className="divide-y divide-white/5 rounded-md border border-white/10">
+              {referrals.map((r, i) => {
+                const name = r.display_name?.trim() || (r.is_public && r.username ? r.username : "Trader");
+                const joined = new Date(r.joined_at).toLocaleDateString(undefined, {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                });
+                return (
+                  <li key={i} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                    <span className="min-w-0 truncate">
+                      {r.is_public && r.username ? (
+                        <a href={`/${r.username}`} className="text-white hover:text-gold">{name}</a>
+                      ) : (
+                        <span className="text-white/80">{name}</span>
+                      )}
+                    </span>
+                    <span className="flex items-center gap-3 whitespace-nowrap">
+                      <span className="text-xs text-muted">{joined}</span>
+                      <span className={`rounded-md border px-2 py-0.5 text-xs ${r.is_active ? "border-win/40 text-win" : "border-white/15 text-muted"}`}>
+                        {r.is_active ? "Active" : "Joined"}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        <p className="text-[11px] text-gold/80">
+          You&apos;ll earn 5% when your referrals go Pro — revenue share arrives with payments.
+        </p>
       </div>
     </section>
   );

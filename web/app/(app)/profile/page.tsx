@@ -20,10 +20,11 @@ export default async function ProfilePage() {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
   const refCode = refCodeFromId(user!.id);
-  const [{ data: profileData }, { data: resetsData }, refStats, { data: followCounts }, { count: privateVerifiedCount }] = await Promise.all([
+  const [{ data: profileData }, { data: resetsData }, refStats, refList, { data: followCounts }, { count: privateVerifiedCount }] = await Promise.all([
     sb.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
     sb.from("balance_resets").select("*").order("created_at", { ascending: false }).limit(20),
     sb.rpc("get_referral_stats", { ref_code: refCode }),
+    sb.rpc("get_referral_list"),
     sb.rpc("get_follow_counts", { profile_id: user!.id }),
     sb.from("trades")
       .select("id", { count: "exact", head: true })
@@ -46,6 +47,14 @@ export default async function ProfilePage() {
   const referralCount = typeof rs === "number"
     ? rs
     : (rs?.count ?? rs?.total ?? rs?.active ?? 0);
+
+  const referrals = (refList.data ?? []) as {
+    display_name: string | null;
+    username: string | null;
+    is_public: boolean;
+    joined_at: string;
+    is_active: boolean;
+  }[];
 
   return (
     <div className="space-y-6">
@@ -77,7 +86,7 @@ export default async function ProfilePage() {
         <ShareableLink username={profile.username ?? null} profileId={profile.id} />
       ) : null}
 
-      <Referrals userId={user!.id} count={referralCount} />
+      <Referrals userId={user!.id} count={referralCount} referrals={referrals} />
 
       <section className="space-y-3">
         <h2 className="font-display text-xl tracking-widest text-gold">BALANCE RESET</h2>
