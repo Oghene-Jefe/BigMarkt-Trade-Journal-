@@ -32,7 +32,7 @@ export default function CloudSyncButton({ connectionId }: { connectionId: string
       if (!res.ok) { setIsError(true); setLabel(res.error); setBusy(false); return; }
       if (res.done) {
         setIsError(false);
-        setLabel(`Synced — ${res.imported} imported${res.skipped ? `, ${res.skipped} skipped` : ""}.`);
+        setLabel(`Synced — ${res.imported} trade${res.imported === 1 ? "" : "s"} imported.`);
         setBusy(false);
         return;
       }
