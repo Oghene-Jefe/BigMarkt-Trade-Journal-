@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/require-user";
 import { isAdmin } from "@/lib/admin";
+import { isPro } from "@/lib/plan";
 import { supabaseServer } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { callerIp, checkAndLog } from "@/lib/abuse";
@@ -90,12 +91,10 @@ export async function provisionConnectionAction(
 ): Promise<ProvisionResult> {
   const user = await requireUser();
 
-  // TEMPORARY entitlement gate. Each cloud provision costs real MetaApi money
-  // per account and Pro/payments (Phase D) aren't live yet — so restrict to
-  // admins during testing. Replace with a Pro-entitlement check when Phase D
-  // ships. See CURRENT_STATE "MetaApi Integration".
-  if (!(await isAdmin())) {
-    return { ok: false, error: "Cloud connect is currently limited to admins during testing." };
+  // Entitlement: cloud connect is a Pro feature (admins always allowed). Each
+  // provision costs real MetaApi money, so gate on Pro entitlement OR admin.
+  if (!(await isAdmin()) && !(await isPro())) {
+    return { ok: false, error: "Cloud connect is a Pro feature. Upgrade to connect a broker via the cloud." };
   }
 
   const parsed = provisionSchema.safeParse(formToObject(formData));
@@ -241,7 +240,7 @@ export async function provisionConnectionAction(
 // provisioning). Wraps the cheap GET known-servers lookup; returns a flat,
 // deduped, capped list of server names. Never throws to the client.
 export async function searchServersAction(query: string): Promise<string[]> {
-  if (!(await isAdmin())) return [];
+  if (!(await isAdmin()) && !(await isPro())) return [];
   const q = query.trim();
   if (q.length < 2) return [];
   const res = await searchKnownServers({ version: 5, query: q });

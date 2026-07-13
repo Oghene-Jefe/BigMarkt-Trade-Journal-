@@ -436,3 +436,36 @@ export async function resolveDisputeAction(fd: FormData) {
 
   revalidatePath("/admin/disputes");
 }
+
+const proIdSchema = z.object({ id: z.string().uuid() });
+
+// Comp a user to Pro (admin-granted). plan_status 'comp' is always entitled per
+// lib/plan.ts, so this grants full Pro without a payment. Used for founding
+// leaders / comps / testing before payments (Phase D) exist. Service-role write
+// (cross-user), gated by requireAdminForAction.
+export async function grantProAction(fd: FormData) {
+  await requireAdminForAction();
+  const parsed = proIdSchema.safeParse({ id: fd.get("id") });
+  if (!parsed.success) return;
+  const sbAdmin = supabaseAdmin();
+  const { error } = await sbAdmin
+    .from("profiles")
+    .update({ plan: "pro", plan_status: "comp", plan_source: "admin_comp", plan_renews_at: null })
+    .eq("id", parsed.data.id);
+  if (error) console.error("grantProAction failed", { code: error.code, message: error.message });
+  revalidatePath("/admin/users");
+}
+
+// Revoke a comped/Pro user back to free.
+export async function revokeProAction(fd: FormData) {
+  await requireAdminForAction();
+  const parsed = proIdSchema.safeParse({ id: fd.get("id") });
+  if (!parsed.success) return;
+  const sbAdmin = supabaseAdmin();
+  const { error } = await sbAdmin
+    .from("profiles")
+    .update({ plan: "free", plan_status: "active", plan_source: "admin_revoke", plan_renews_at: null })
+    .eq("id", parsed.data.id);
+  if (error) console.error("revokeProAction failed", { code: error.code, message: error.message });
+  revalidatePath("/admin/users");
+}

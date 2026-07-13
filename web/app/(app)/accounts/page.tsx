@@ -11,6 +11,7 @@ import CloudConnectModal from "./CloudConnectModal";
 import CloudSyncButton from "./CloudSyncButton";
 import EditAccountModal from "./EditAccountModal";
 import { isAdmin } from "@/lib/admin";
+import { isPro } from "@/lib/plan";
 import { toggleAccountActiveAction, deleteBrokerAccountAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,7 @@ const CLOUD_STATUS_META: Record<
 export default async function AccountsPage() {
   const user = await requireUser();
   const admin = await isAdmin();
+  const canCloud = admin || (await isPro());
   const sb = await supabaseServer();
   const { data } = await sb
     .from("broker_accounts")
@@ -68,7 +70,7 @@ export default async function AccountsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {admin && <CloudConnectModal />}
+          {canCloud && <CloudConnectModal />}
           <AddAccountModal />
         </div>
       </div>

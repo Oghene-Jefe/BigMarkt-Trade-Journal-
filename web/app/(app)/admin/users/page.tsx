@@ -3,7 +3,7 @@ import type { Route } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/admin";
 import { fmtMoney } from "@/lib/format";
-import { banUserAction, unbanUserAction } from "../actions";
+import { banUserAction, unbanUserAction, grantProAction, revokeProAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,8 @@ type ProfileRow = {
   created_at: string | null;
   is_banned: boolean | null;
   banned_reason: string | null;
+  plan: string | null;
+  plan_status: string | null;
 };
 
 type Filter = "all" | "banned" | "verified";
@@ -54,7 +56,7 @@ export default async function AdminUsersPage({
   let q = sb
     .from("profiles")
     .select(
-      "id, email, username, display_name, created_at, is_banned, banned_reason",
+      "id, email, username, display_name, created_at, is_banned, banned_reason, plan, plan_status",
       { count: "exact" },
     )
     .order("created_at", { ascending: false });
@@ -175,6 +177,7 @@ export default async function AdminUsersPage({
                 const display = u.username || u.display_name || u.email?.split("@")[0] || "Trader";
                 const initial = display.charAt(0).toUpperCase();
                 const banned = !!u.is_banned;
+                const isProUser = u.plan === "pro" && (u.plan_status === "active" || u.plan_status === "comp");
                 return (
                   <tr key={u.id} className="border-t border-white/5">
                     <td className="px-3 py-2">
@@ -217,6 +220,11 @@ export default async function AdminUsersPage({
                       >
                         {banned ? "Banned" : "Active"}
                       </span>
+                      {isProUser ? (
+                        <span className="ml-1 rounded border border-gold/30 bg-gold/15 px-2 py-0.5 text-[10px] uppercase tracking-wider text-gold">
+                          Pro
+                        </span>
+                      ) : null}
                       {banned && u.banned_reason ? (
                         <div className="mt-1 text-[10px] text-muted">{u.banned_reason}</div>
                       ) : null}
@@ -247,6 +255,19 @@ export default async function AdminUsersPage({
                             }`}
                           >
                             {banned ? "Unban" : "Ban"}
+                          </button>
+                        </form>
+                        <form action={isProUser ? revokeProAction : grantProAction}>
+                          <input type="hidden" name="id" value={u.id} />
+                          <button
+                            type="submit"
+                            className={`rounded border px-2 py-1 text-xs ${
+                              isProUser
+                                ? "border-white/20 text-muted hover:bg-white/5"
+                                : "border-gold/40 text-gold hover:bg-gold/10"
+                            }`}
+                          >
+                            {isProUser ? "Revoke Pro" : "Grant Pro"}
                           </button>
                         </form>
                         <ImpersonateButton id={u.id} />
