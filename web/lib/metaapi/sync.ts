@@ -19,6 +19,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getHistoricalTrades, getOpenTrades } from "@/lib/metaapi/client";
 import { metaApiTradeKey, normalizeClosedTrade, normalizeOpenTrade } from "@/lib/metaapi/normalize";
+import { recalculateAccountScoreWithClient } from "@/lib/scoring-recalculate";
 
 // How far back each poll re-scans closed trades. A rolling window (like the EA's
 // ReconcileDays) so a close missed during a gap still gets picked up next poll.
@@ -265,6 +266,17 @@ export async function syncConnection(connectionId: string): Promise<SyncOutcome>
       row,
     });
     if (r === "error") hadError = true; else imported++;
+  }
+
+  // Cloud trades count toward the leaderboard (broker-verified) — recompute the
+  // account's score now that trades changed. Non-fatal on error.
+  try {
+    await recalculateAccountScoreWithClient(supabase, c.user_id, c.broker_account_id);
+  } catch (e) {
+    console.error("metaapi sync: score recalc failed", {
+      connectionId,
+      error: e instanceof Error ? e.message : String(e),
+    });
   }
 
   return finish(hadError ? "partial" : "success", imported, skipped);

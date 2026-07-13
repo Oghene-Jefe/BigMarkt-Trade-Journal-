@@ -75,8 +75,9 @@ export async function recalculateAccountScoreWithClient(
     )
     .eq("broker_account_id", accountId)
     .eq("user_id", userId)
-    // Only verified EA trades count toward leaderboard scores.
-    .eq("source", "ea")
+    // Verified EA + cloud (MetaApi) trades count toward leaderboard scores —
+    // both are broker-verified. Manual trades never count.
+    .in("source", ["ea", "metaapi"])
     .eq("verified", true)
     // visibility = 'exclude' drops a trade from the leaderboard score (per-trade
     // visibility spec). visibility is NOT NULL default 'private'.
