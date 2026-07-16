@@ -1,6 +1,6 @@
 # BigMarkt — Product Roadmap (Pre-Launch, UK/EU-ready)
 
-_Last updated: 9 June 2026. Supersedes the original 26-session plan where they conflict._
+_Last updated: 16 July 2026. Supersedes the original 26-session plan where they conflict._
 
 ## Positioning
 Pre-launch product is a regulatory-clean verified trading journal + analytics, supported by
@@ -20,17 +20,26 @@ pricing until payments ship. Acquisition-first.
 - M5 — single dominant CTA per surface (marketing/fts signup-first, club own-join)
 - M6 — this roadmap
 
-## Next — pre-launch feature builds (spec, then build)
-1. Trading Constitution — declare trading rules up front; the journal flags trades that
-   break them. The lead-innovation claim; currently unbuilt.
-2. Signal fan-out — leader's EA/auto-captured trades only, real-time to followers' Signals
-   tab, framed as a verified-transparency feed (not advice).
-3. Clean journaling/verification polish from the original Phase 0–2 not already live.
+## Shipped since the cleanup track
+
+- Trading Constitution with rule declaration, adherence checks, and journal integration.
+- Verified social layer: following feed, open-position visibility, reactions, discovery, and public trade theses.
+- In-app guide covering the shipped journal workflows.
+- Pro entitlement wiring and read-only MetaApi cloud capture, including on-demand deploy, sync, and undeploy.
+- Referral visibility, cloud account metrics, and broker-verified leaderboard inclusion with a post-join scoring boundary.
+
+## Next — pre-launch work
+
+1. Payments and self-serve Pro upgrades; admin-comped Pro exists, but billing does not.
+2. Restore frequent cloud-sync orchestration when the production Vercel plan supports it; on Hobby, cloud sync remains user-triggered and the daily cron performs cleanup.
+3. Leader content access and eventual payment gating.
+4. Admin-configurable scoring gates and final launch-readiness verification.
+5. Onboard founding leaders and expand evidence-backed marketing content.
 
 ## Reclassified — POST-AUTHORISATION (do not build or market pre-launch)
 - Copy execution protocol (orig. Sessions 13–18) — FCA / MiFID II regulated. UI gated; infra dormant.
 - $BMT token (orig. Sessions 19–22) — MiCA / FCA regulated. Labelled "planned"; build post-authorisation only.
-- Crypto-exchange integration (part of orig. Session 23) — MiCA-adjacent; defer regulated parts.
+- Trade execution and regulated crypto features remain deferred. Read-only Bybit history ingestion exists in code but does not place trades or move funds.
 
 ## Deferred / tracked
 - Marketing stats block → wire to live data once user numbers are meaningful.

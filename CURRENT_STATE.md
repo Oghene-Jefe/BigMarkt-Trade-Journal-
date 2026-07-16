@@ -1,6 +1,6 @@
 # BigMarkt — Current State
 
-_Last updated: 2026-07-11. Update this file at the end of every session._
+_Last updated: 2026-07-18. Update this file at the end of every session._
 
 ## What BigMarkt Is
 Verified trade-journaling and social-trading platform for SMC/ICT retail traders. Live app at journal.bigmarkt.co. Broker data captured via a read-only MQL5 EA over an HMAC-signed bridge. Copy-trading and $BMT token are deliberately out of current build scope.
@@ -15,12 +15,14 @@ Verified trade-journaling and social-trading platform for SMC/ICT retail traders
 Next.js 15.5 / React 19 / TypeScript strict, Supabase Postgres (RLS), Tailwind, Vercel (auto-deploy on push to main). App code in `web/`. Supabase project ref: awvrylniqppybwaiwzse (eu-west-1). Repo: Oghene-Jefe/BigMarkt-Trade-Journal-, local clone C:\Users\User\bigmarkt.
 
 ## Migration State
-- Applied in prod: 0001–0082 (0078 is an unused gap — never committed, harmless)
+- Applied in prod: 0001–0085 (0078 is an unused gap — never committed, harmless)
 - 0079 — get_public_trades widened: trade_thesis added
 - 0080 — get_following_feed widened: entry/exit/SL/TP, lot_size, session, setup_grade, trade_thesis, chart_path added
 - 0081 — search_profiles RPC: community/public profile search by name/username, excludes caller, min 2 chars, capped 20, is_leader flag
 - 0082 — two fixes in one migration: (1) pause now actually excludes a leader's trades from get_following_feed / get_following_open_positions (was `status <> 'cancelled'`, now `status = 'active'`); (2) get_following_open_positions no longer returns raw dollar `pnl` — swapped to `return_pct`, closing a gap the earlier privacy sweep missed
-- 0083 — MetaApi scaffolding: metaapi_connections + metaapi_sync_runs tables (both RLS self-only, FKs cascade to auth.users + broker_accounts + metaapi_connections), and trades.capture_source CHECK widened to include 'metaapi'. Verified in prod: single capture_source check constraint present, all 4 FKs cascade-correct. No new migration (0084) needed — live probe confirmed positionId present on closed trades, so MetaApi trades key on position_id exactly like the EA; no external_id column required.
+- 0083 — MetaApi scaffolding: metaapi_connections + metaapi_sync_runs tables (both RLS self-only, FKs cascade to auth.users + broker_accounts + metaapi_connections), and trades.capture_source CHECK widened to include 'metaapi'. Verified in prod: single capture_source check constraint present and all 4 FKs cascade-correct. No additional trade-key migration was needed: MetaApi positionId keys on position_id like the EA.
+- 0084 — get_referral_list RPC for caller-scoped referral visibility.
+- 0085 — MetaApi connection balance, equity, deposits, profit, gain, and metrics timestamp snapshot columns.
 - Migrations are applied MANUALLY in the Supabase SQL Editor — never `supabase db push`.
 
 ## Engagement Layer (C4) — Status
@@ -90,8 +92,8 @@ Next.js 15.5 / React 19 / TypeScript strict, Supabase Postgres (RLS), Tailwind, 
 - Discoverable: "Guide" is the first item in the Profile dropdown
   (DrawerNav.tsx) and mobile drawer, plus listed in EcosystemFooter.tsx.
 - Content is audited against live code, not the older master-plan doc —
-  documents only shipped features (excludes MetaApi UI, Bybit/exchanges,
-  copy-trading — none are user-facing yet). Trust badges documented:
+  documents only shipped, supported user workflows. Copy-trading remains
+  excluded because it is not user-facing. Trust badges documented:
   auto_verified, manual, prop_firm, demo only (draft/edited exist as
   types but are never assigned in any write path).
 - Leaderboard page includes the full scoring formula (weights, gates,
@@ -182,7 +184,7 @@ Full anatomy exists: entry_price, exit_price, close_price, stop_loss/sl, take_pr
 - Orphan-closed trades (no real close data) are now private-only by design — see EA Reconciler Bug section above. Not a bug anymore, but still a data gap that MetaApi-style ingestion could close at the root.
 - Discover results don't reflect real-time follow state for people you already follow (always shows "Follow" even if following — clicking again is harmless/idempotent via unique constraint, but not visually accurate). Low priority; would need a batch subscription fetch like the leaderboard does.
 
-## MetaApi Integration — ENGINE BUILT (this session), last mile pending funding
+## MetaApi Integration — SHIPPED END TO END
 
 Deriv MT5 capture note: Deriv MT5 (DMT5) is just another MT5 broker — captured via the SAME MetaApi path (investor-password stream) or the EA. No separate Deriv build exists or is needed for DMT5. Deriv NATIVE app contracts (Boom/Crash / synthetics / options in the Deriv app, not MT5) would need a separate first-party `profit_table` build — PARKED, only worth it if the community trades in the native app rather than DMT5. cTrader out of scope.
 
@@ -318,8 +320,8 @@ Edge/safety: if a user abandons a Sync mid-deploy, the account stays deployed un
 - ACCOUNT DETAIL card shows the raw account-money snapshot: Balance / "Account gain" (MetaStats gain%) / Deposits / Profit — distinct label from the dashboard's trading-return "Growth". Commit 42c1b6f.
 - KEY: MetaStats `gain` includes deposits/withdrawals — it is NOT a pure trading return. Use trade P&L / deposits for skill metrics; show gain only as the account snapshot.
 
-### PRE-LAUNCH GATES (added 2026-07-11)
-- Swap the TEMPORARY isAdmin() gate in metaapi-actions.ts for a real Pro-entitlement check when Phase D payments ship (currently admin-only = solo testing).
+### PRE-LAUNCH GATES (updated 2026-07-16)
+- Pro entitlement is enforced for cloud connection; self-serve payment for Pro remains unbuilt.
 - Rate limit SHIPPED (10 provisions/hr/IP via abuse_log scope 'metaapi_provision'). Consider adding a per-user cap before broad launch.
 - (Still stands) Vercel Hobby→Pro + restore metaapi-sync cron to */15 (see PRE-LAUNCH REMINDER above).
 
@@ -328,14 +330,11 @@ Edge/safety: if a user abandons a Sync mid-deploy, the account stays deployed un
 - Delete stale clone C:\Users\User\bigmarkt-trade-journal (do via File Explorer, verify by eye — the stale one has NO web/lib/metaapi folder).
 - Keep test account UNDEPLOYED between sessions to preserve $5 credit.
 
-### Blocker
-- MetaApi funding: $10 minimum top-up + card OTP verification deferred. Everything through the sync writer is built and green; cron + UI + probe + refinement all want a live account to verify against. Decision when resuming: fund MetaApi and finish the last mile live in one push, OR build cron + UI blind now and test when funded.
-
 ## Build Queue (priority order)
-1. **MetaApi integration — last mile** (engine built this session, see MetaApi Integration section above). Remaining: fund account → cron (piece 4, undeploy-aware) → provisioning UI → live probe → field refinement. Blocked only on MetaApi funding.
-2. C4c leader content layer (biggest remaining C4 piece; pay-gating waits on Phase D)
-3. B3 plan enforcement — deferred until MetaApi gives Pro a real feature
-4. Phase D — Payments + MetaApi (D1 Paystack/Flutterwave, D2 MetaApi ingestion, D3 native Deriv/cTrader)
+1. Phase D payments and self-serve Pro upgrade; admin comps and Pro feature enforcement already work.
+2. C4c leader content layer (pay-gating waits on Phase D).
+3. Frequent scheduled cloud-sync orchestration after Vercel Hobby → Pro; on-demand sync is live now.
+4. Native Deriv/cTrader integrations remain deferred.
 5. Admin-configurable scoring gates
 6. More blog posts (crypto/stock/SMC/funded-trader keyword clusters)
 7. Onboard founding leaders (non-code GTM step)

@@ -1,5 +1,11 @@
 # Session 5 — Complete ✅
 
+> Historical session record, not current operational documentation. WebSocket
+> trade ingestion and the separate status port described below were later
+> retired. The service now provides presence/status only on one port, and all
+> trade ingest uses the signed HTTP endpoint. See
+> `websocket-server/RAILWAY_DEPLOY.md` and `CURRENT_STATE.md` for current behavior.
+
 ## Delivered
 - websocket-server/ — standalone Node.js WebSocket server (port 8080) with:
   - Bearer token auth via SHA-256 hash check against ea_tokens table

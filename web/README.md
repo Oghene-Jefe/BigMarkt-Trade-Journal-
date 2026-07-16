@@ -1,127 +1,56 @@
-# BigMarkt Trade Journal — Web (rebuild)
+# BigMarkt journal web app
 
-Next.js + Supabase rebuild of the static HTML/JS journal in the repo root.
-This directory is **parallel** to the old app — nothing in `../js/`, `../css/`,
-or `../index.html` is touched. Cutover happens once Slices 1–N are verified.
+The production Next.js 15 / React 19 journal served at [journal.bigmarkt.co](https://journal.bigmarkt.co). It provides authentication and onboarding, manual and broker-verified journaling, analytics, the Trading Constitution, public profiles, feeds and reactions, leaderboards, referrals, admin tools, and the in-app guide.
 
-## What's in this slice (Slice 1 — security foundation)
+Broker capture supports the self-hosted MT5 EA and Pro cloud capture through MetaApi. Bybit connection code is present as a read-only integration; its credential model is documented in [`docs/EXCHANGE_SECURITY.md`](docs/EXCHANGE_SECURITY.md).
 
-- Versioned Supabase schema in [`../supabase/migrations/`](../supabase/migrations/).
-- Strict RLS: anon clients can read **nothing** from base tables.
-- `admin_users` table replaces the old client-side `ADMIN_EMAILS` allowlist.
-- Sanitized `get_leaderboard` / `get_public_profile` RPCs (no email leakage,
-  respect profile visibility).
-- Private storage buckets (`avatars`, `trade-charts`) — public sharing is
-  signed-URL only, minted server-side.
-- Cookie-based auth via `@supabase/ssr` so RLS works in Server Components.
-- Email + password login / signup / reset, all through server actions with
-  Zod validation.
-- Privacy + rendering test suites (`vitest`).
+## Requirements
 
-UI pages beyond auth + an empty dashboard land in Slice 2.
+- Node.js 20 or newer
+- npm
+- A Supabase project for authenticated flows
 
 ## Setup
 
 ```bash
-cd web
-cp .env.example .env.local       # fill in Supabase URL + anon key
-npm install
-npm run dev                      # http://localhost:3000
+cp .env.example .env.local
+npm ci
+npm run dev
 ```
 
-### Apply migrations
+Open [http://localhost:3000](http://localhost:3000). The minimum browser configuration is `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`; server-side ingestion, cron, encryption, and cloud features require the additional secrets described in `.env.example`.
 
-The migrations are written to be idempotent and additive against the existing
-production schema, but **run them on a staging project first**.
-
-Using the Supabase CLI:
+## Commands
 
 ```bash
-# from repo root
-supabase link --project-ref YOUR_PROJECT_REF
-supabase db push
+npm run dev             # local Next.js server with Turbopack
+npm run lint            # ESLint
+npm run typecheck       # CI TypeScript configuration
+npm run typecheck:full  # full TypeScript configuration
+npm test                # Vitest suite
+npm run build           # production build
+npm run start           # serve a completed production build
 ```
 
-Or paste each `supabase/migrations/000N_*.sql` file into the dashboard SQL
-editor in order.
+The privacy integration tests need `SUPABASE_SERVICE_ROLE_KEY` and must only be run against a disposable non-production Supabase project. Tests that do not have the service key self-skip that integration coverage.
 
-### Grant admin
+## Database changes
 
-```sql
-insert into public.admin_users (user_id, note)
-values ('00000000-0000-0000-0000-000000000000', 'manually granted 2026-05-09');
-```
+Create an additive, reviewable SQL file in `../supabase/migrations/`. Production migrations are applied manually through the Supabase SQL Editor and then verified against the live schema; never use `supabase db push` against production. See [`../docs/database-migrations.md`](../docs/database-migrations.md).
 
-Never grant admin via the API — `admin_users` has no INSERT policy by design.
+Administrators are granted by inserting the user's UUID into `public.admin_users` through an authorized database administration channel. There is intentionally no client-side or public insert path.
 
-### Run privacy tests
+## Architecture
 
-The tests need a service-role key to spin up disposable users. **Use a
-non-production project.**
+- `app/` — App Router pages, server actions, API and cron routes
+- `components/` — shared journal and guide UI
+- `lib/` — domain logic, scoring, Supabase access, capture integrations, and security helpers
+- `tests/` — Vitest unit, rendering, privacy, and ingestion coverage
+- `public/downloads/` — versioned EA downloads
+- `../supabase/migrations/` — database schema history
 
-```bash
-SUPABASE_SERVICE_ROLE_KEY=... npm test
-```
+The retired static application is isolated in `../archive/legacy-static-app/` and is not a deployment target.
 
-## Migration notes from the static app
+## Deployment
 
-| Old behaviour                                                | New behaviour                                                  |
-|--------------------------------------------------------------|----------------------------------------------------------------|
-| `ADMIN_EMAILS` array in `js/state.js`                        | `public.admin_users` table + `is_admin()` SQL function         |
-| `_sb.from('profiles').select('*')` from admin panel           | `admin_list_users()` RPC, gated by `is_admin(auth.uid())`      |
-| Leaderboard reads raw trades + emails from browser            | `get_leaderboard()` RPC; emails never leave the database       |
-| `getPublicUrl` on public `trade-charts` / `avatars` buckets   | Private buckets + per-request signed URLs (Slice 3)            |
-| `innerHTML` rendering with manual `escHtml`                   | React text rendering by default; `rendering.spec.tsx` pins it  |
-| `localStorage` Supabase tokens (default v2)                   | Cookie-based session via `@supabase/ssr`                       |
-| Profile email exposed to anon reads                           | RLS blocks anon SELECT on `profiles` entirely                  |
-| Schema lived only in the dashboard                            | `supabase/migrations/000N_*.sql` in version control            |
-
-### Data migration
-
-Existing rows in `profiles` and `trades` keep working. The migrations only
-**add** columns (`visibility`, `display_name`, `updated_at`) with safe
-defaults. No destructive changes. After applying:
-
-1. Existing profiles default to `visibility = 'private'` — they vanish from
-   the leaderboard until users opt in. This is the correct default per the
-   privacy brief.
-2. Existing trades default to `visibility = 'private'`.
-3. Existing storage objects in the now-private buckets stay accessible to
-   their owner. Old `getPublicUrl` links break — Slice 3 generates signed
-   URLs in their place. Communicate this to active users before cutover.
-
-## Project layout
-
-```
-web/
-  app/
-    (auth)/                  # login, signup, reset, reset/confirm, actions.ts
-    auth/callback/           # email-link redirect handler
-    dashboard/               # placeholder, filled in Slice 2
-    layout.tsx, page.tsx, globals.css
-  lib/
-    supabase/
-      client.ts              # browser client
-      server.ts              # server component / action client
-      middleware.ts          # session refresh
-    schemas.ts               # Zod schemas (shared client + server)
-  tests/
-    privacy.spec.ts          # RLS + sanitization tests
-    rendering.spec.tsx       # XSS-safe rendering pins
-  middleware.ts              # wires lib/supabase/middleware.ts
-
-../supabase/
-  migrations/
-    0001_baseline_schema.sql
-    0002_rls_policies.sql
-    0003_leaderboard_rpc.sql
-    0004_storage_policies.sql
-```
-
-## What's next
-
-- **Slice 2**: trades CRUD + JournalTable + TradeForm.
-- **Slice 3**: signed-URL flow for chart screenshots + avatars.
-- **Slice 4**: leaderboard UI + public profile pages.
-- **Slice 5**: server-only admin panel.
-- **Slice 6**: challenges, referrals, balance resets, analytics.
+The journal Vercel project uses `web/` as its Root Directory and deploys from `main`. Its scheduled routes are declared in `vercel.json`. The EA presence server is deployed separately from `../websocket-server/`.

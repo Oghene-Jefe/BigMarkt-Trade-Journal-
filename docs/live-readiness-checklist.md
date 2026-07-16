@@ -1,8 +1,8 @@
 # BigMarkt Live Readiness Checklist
 
-Generated: May 17, 2026
+Last reviewed: July 18, 2026
 
-Current readiness score: 96/100
+Readiness status: requires a fresh production sign-off using this checklist.
 
 BigMarkt is ready for a controlled beta / live pilot. Before a full public launch, complete and sign off the checks below.
 
@@ -15,9 +15,18 @@ Required Vercel variables:
 - NEXT_PUBLIC_SUPABASE_URL
 - NEXT_PUBLIC_SUPABASE_ANON_KEY
 - SUPABASE_SERVICE_ROLE_KEY
+- NEXT_PUBLIC_SITE_URL
+- NEXT_PUBLIC_TURNSTILE_SITE_KEY
+- TURNSTILE_SECRET_KEY
 - CRON_SECRET
+- EA_SIGNING_SECRET_ENCRYPTION_KEY
+- MIGRATIONS_APPLIED (`true` after the documented EA migrations are present)
 - WS_STATUS_URL
 - WS_STATUS_SECRET
+- METAAPI_PROVISIONING_TOKEN (Pro cloud capture)
+- METAAPI_READER_TOKEN (Pro cloud capture)
+- METAAPI_MT5_PROVISIONING_PROFILE_ID (only where the broker requires it)
+- EXCHANGE_CREDENTIAL_ENCRYPTION_KEY (only while the read-only exchange integration is enabled)
 
 Required Railway WebSocket variables:
 
@@ -28,6 +37,10 @@ Required Railway WebSocket variables:
 Acceptance criteria:
 
 - CRON_SECRET is present and strong.
+- NEXT_PUBLIC_SITE_URL is the canonical HTTPS journal origin used for auth redirects.
+- Turnstile site and secret keys are present and signup verification fails closed.
+- EA and integration encryption keys decode to at least 32 bytes and remain server-only.
+- MetaApi provisioning and reader tokens use the minimum scopes required by their separate clients.
 - WS_STATUS_SECRET is present on both Vercel and Railway and values match.
 - WS_STATUS_URL points to the deployed Railway `/status` endpoint.
 - Service-role keys exist only in server-side environments.

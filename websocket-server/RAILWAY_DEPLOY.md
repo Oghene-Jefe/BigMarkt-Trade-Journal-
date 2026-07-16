@@ -11,8 +11,9 @@ Trade ingest is **HTTP-only**. The MT5 EA POSTs every trade to
 `https://journal.bigmarkt.co/api/ea/ingest` using the v2 envelope
 (HMAC-signed, replay-protected). The WebSocket server does NOT accept
 trade events; it returns a `trade_ingest_disabled` error pointing clients
-at the HTTP endpoint. See `docs/claude-websocket-protocol-decision.md`
-(codex-approved Option A) for the rationale.
+at the HTTP endpoint. This keeps all accepted trade payloads on the HMAC-signed,
+replay-protected v2 ingest path; the decision and its security rationale are
+recorded alongside the implementation in `src/server.ts`.
 
 Both WebSocket upgrades and HTTP requests share **one port** (Railway's
 `PORT` env var), so no special networking config is needed.
@@ -129,7 +130,7 @@ card shows it live.
 ```bash
 cd websocket-server
 cp .env.example .env   # fill in SUPABASE_URL, SERVICE_ROLE_KEY, WS_STATUS_SECRET
-npm install
+npm ci
 npm run dev            # tsx watch, port 8080
 ```
 
