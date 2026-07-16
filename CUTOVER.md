@@ -1,86 +1,33 @@
-# Cutover: static `index.html` → Next.js app at `web/`
+# Journal deployment topology
 
-The Next.js rebuild lives at `web/`. Vercel needs to know to build from
-that subdirectory rather than treating the repo root as a static site.
+The static-to-Next.js cutover is complete. The production journal deploys from `web/`; the retired static application lives in `archive/legacy-static-app/` and is reference material only.
 
-## One-time Vercel setup (do this in the dashboard)
+## Vercel project
 
-1. Open the BigMarkt project on https://vercel.com/dashboard
-2. **Settings → General → Root Directory** → set to `web` → Save
-   (Vercel will auto-detect Next.js once this is set.)
-3. **Settings → Environment Variables** → add for **Production**, **Preview**, and **Development**:
+- Root Directory: `web`
+- Framework: Next.js
+- Production branch: `main`
+- Domain: `journal.bigmarkt.co`
+- Scheduled routes: `web/vercel.json`
 
-   | Name | Value |
-   |---|---|
-   | `NEXT_PUBLIC_SUPABASE_URL` | `https://<your-project-ref>.supabase.co` (from Supabase dashboard → Settings → API → Project URL) |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the anon JWT (Supabase dashboard → Settings → API → anon public key) |
+Environment variables must be configured for the environments that exercise their features. Start from `web/.env.example`; at minimum, normal application rendering requires the public Supabase URL and anon key. Server-side ingestion and administrative operations use the service-role key, while EA signing, exchange credentials, cron routes, WebSocket status, and MetaApi cloud capture have separate secrets.
 
-   **Do not** add `SUPABASE_SERVICE_ROLE_KEY` to Vercel. It's never imported
-   from `app/` or `components/`; only the test suite needs it.
-4. **Deployments → … on the latest deployment → Redeploy** (or push any
-   commit; the next one will build with the new settings).
+Do not expose server-only variables through `NEXT_PUBLIC_*` names or client components.
 
-## Verifying the deploy
+## Deployment verification
 
-After deploy completes:
+After a deployment:
 
 ```bash
-curl -sS https://YOUR-DOMAIN/login | grep -i "ENTER THE MARKET" | head -1
-curl -sS https://YOUR-DOMAIN/p/3485fd85-4a07-46ab-80f1-0395d0137b67 | grep -i "PUBLIC TRADES"
+curl -fsS https://journal.bigmarkt.co/login >/dev/null
+curl -fsS https://journal.bigmarkt.co/guide >/dev/null
+curl -fsS https://journal.bigmarkt.co/api/public/platform-stats >/dev/null
 ```
 
-Both should return matches. The first proves the auth pages render; the
-second proves the public share-page route works for an existing community
-profile (jefe).
+Then smoke-test login, dashboard, journal, accounts, leaderboard, profile, and the public guide. Admin routes should only be visible and accessible to users recorded in `public.admin_users`.
 
-In the browser:
-- `/login` → email/password form
-- Log in with an existing user → `/dashboard`
-- Click through Journal / Leaderboard / Profile
-- For any user whose row exists in `public.admin_users`: the Admin nav
-  link appears and `/admin` renders the management panel. (Promote a
-  user via the admin RPC; do not hard-code email addresses in docs —
-  this file is in a public repo.)
+The Railway WebSocket presence/status service deploys independently from `websocket-server/`. Its configuration and health checks are in `websocket-server/RAILWAY_DEPLOY.md`.
 
-## What changes for users
+## Rollback
 
-| | Before (static `index.html`) | After (Next.js at root URL) |
-|---|---|---|
-| URL | `/index.html` (single SPA) | `/login`, `/dashboard`, `/journal`, `/leaderboard`, `/profile`, `/admin`, `/p/[id]` |
-| Auth | localStorage tokens | HTTP-only cookies (more secure, survives tab reload identically) |
-| Profile reads | Anon could read all emails | Anon reads return `[]`; emails never in HTML |
-| Admin | Frontend email allowlist | Server-side `admin_users` table |
-| Charts | Permanent public URLs | Signed URLs, 1h TTL, regenerated each render |
-| Avatars | Permanent public URLs | Same private-bucket pattern as charts |
-
-## Compatibility window
-
-The old static files (`index.html`, `css/`, `js/`) **stay in the repo for
-now** but are **not deployed** once Vercel's Root Directory is set to
-`web/`. Vercel only sees that subdirectory.
-
-If you need an emergency rollback: change Root Directory back to `/` (or
-unset it) and the static app deploys again.
-
-The legacy schema columns (`trades.image_url`, `trades.trade_visibility`,
-`profiles.avatar_url`) are still populated on every write so the old app
-keeps working if rolled back. They get dropped in a follow-up migration
-once cutover is confirmed stable for ~1 week.
-
-## After ~1 week of stable cutover
-
-1. Delete `index.html`, `css/`, `js/`, `manifest.json`, `assets/` from the
-   repo root.
-2. Apply migration `0011_drop_legacy_columns.sql` (TBD, see plan in plan
-   docs) — drops `trade_visibility`, `image_url`, `avatar_url`.
-3. Update writes in `web/app/(app)/actions.ts` to stop mirroring into the
-   legacy columns.
-
-## Domain
-
-If the project is on a custom domain (e.g. `journal.bigmarkt.co`), nothing
-to change — the Root Directory setting affects only the build, not the
-domain mapping. `*.vercel.app` preview URLs work the same way.
-
-If the project was on `bigmarkt-trade-journal.vercel.app` (auto-assigned),
-that URL keeps working too.
+Rollback should use a known-good Vercel deployment of the `web/` app. Do not repoint production to the archived static application: its authentication, schema assumptions, and privacy model are obsolete.
