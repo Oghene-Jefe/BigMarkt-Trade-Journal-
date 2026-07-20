@@ -1,6 +1,6 @@
 # BigMarkt — Current State
 
-_Last updated: 2026-07-11. Update this file at the end of every session._
+_Last updated: 2026-07-18. Update this file at the end of every session._
 
 ## What BigMarkt Is
 Verified trade-journaling and social-trading platform for SMC/ICT retail traders. Live app at journal.bigmarkt.co. Broker data captured via a read-only MQL5 EA over an HMAC-signed bridge. Copy-trading and $BMT token are deliberately out of current build scope.
@@ -15,12 +15,18 @@ Verified trade-journaling and social-trading platform for SMC/ICT retail traders
 Next.js 15.5 / React 19 / TypeScript strict, Supabase Postgres (RLS), Tailwind, Vercel (auto-deploy on push to main). App code in `web/`. Supabase project ref: awvrylniqppybwaiwzse (eu-west-1). Repo: Oghene-Jefe/BigMarkt-Trade-Journal-, local clone C:\Users\User\bigmarkt.
 
 ## Migration State
-- Applied in prod: 0001–0082 (0078 is an unused gap — never committed, harmless)
+- Latest applied production migration: `0085_metaapi_connection_metrics.sql`.
+  The history has intentional numeric gaps and colliding sequence prefixes;
+  identify and apply migrations by full filename, not by assuming one file per
+  integer.
 - 0079 — get_public_trades widened: trade_thesis added
 - 0080 — get_following_feed widened: entry/exit/SL/TP, lot_size, session, setup_grade, trade_thesis, chart_path added
 - 0081 — search_profiles RPC: community/public profile search by name/username, excludes caller, min 2 chars, capped 20, is_leader flag
 - 0082 — two fixes in one migration: (1) pause now actually excludes a leader's trades from get_following_feed / get_following_open_positions (was `status <> 'cancelled'`, now `status = 'active'`); (2) get_following_open_positions no longer returns raw dollar `pnl` — swapped to `return_pct`, closing a gap the earlier privacy sweep missed
-- 0083 — MetaApi scaffolding: metaapi_connections + metaapi_sync_runs tables (both RLS self-only, FKs cascade to auth.users + broker_accounts + metaapi_connections), and trades.capture_source CHECK widened to include 'metaapi'. Verified in prod: single capture_source check constraint present, all 4 FKs cascade-correct. No new migration (0084) needed — live probe confirmed positionId present on closed trades, so MetaApi trades key on position_id exactly like the EA; no external_id column required.
+- 0083 — MetaApi scaffolding: metaapi_connections + metaapi_sync_runs tables (both RLS self-only, FKs cascade to auth.users + broker_accounts + metaapi_connections), and trades.capture_source CHECK widened to include 'metaapi'. Verified in prod: single capture_source check constraint present, all 4 FKs cascade-correct. No follow-up external-id migration was needed — a live probe confirmed positionId on closed trades, so MetaApi trades key on position_id exactly like the EA.
+- 0084 — authenticated `get_referral_list()` RPC for the referral dashboard.
+- 0085 — MetaApi account metrics snapshot columns (`balance`, `equity`,
+  `deposits`, `profit`, `gain`, `metrics_updated_at`).
 - Migrations are applied MANUALLY in the Supabase SQL Editor — never `supabase db push`.
 
 ## Engagement Layer (C4) — Status
