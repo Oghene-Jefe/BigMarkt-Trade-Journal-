@@ -1,6 +1,7 @@
 // Server-side helper for Pro entitlement. Mirrors the structure of
-// web/lib/admin.ts: the profiles row (columns added in migration 0068)
-// is the single source of truth; this just wraps reading it.
+// web/lib/admin.ts: the profiles row is the single source of truth; this just
+// wraps reading it. Keep docs/database-migrations.md in sync with the tracked
+// migration/baseline status for these columns.
 //
 // IMPORTANT: this module only READS entitlement. As of this commit it is
 // wired to nothing — no page or action calls it yet. Gating comes later.
@@ -71,8 +72,7 @@ export async function isPro(): Promise<boolean> {
 
 /**
  * Page-render variant of the Pro gate. Redirects non-Pro users to
- * /upgrade. That route doesn't exist yet (B2 builds it); referencing it
- * here is harmless — it 404s until then. Mirrors requireAdmin().
+ * /upgrade. Mirrors requireAdmin().
  */
 export async function requirePro(): Promise<void> {
   if (!(await isPro())) redirect("/upgrade");
