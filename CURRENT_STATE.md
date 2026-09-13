@@ -358,7 +358,7 @@ Findings, priority order:
 4. **The only live RLS test never runs.** privacy.spec.ts self-skips without SUPABASE_SERVICE_ROLE_KEY and CI never sets one. Needs a staging Supabase project.
 5. **CI covers web/ only.** websocket-server/ (has tests, holds the service-role key), sites/club, sites/fts, sites/marketing are never typechecked, built or tested.
 6. **Guard workflows pass silently.** schema-drift.yml and supabase-policy-guard.yml exit green with a warning when their secrets are missing. Not confirmed whether the secrets are set; if drift really ran, #3 would fail it.
-7. **To check in the Supabase dashboard:** Turnstile runs inside the Next.js signup/reset server actions, but the public anon key can call Supabase Auth signUp directly. Confirm Auth → Bot and Abuse Protection (captcha) is ON, otherwise the bot check can be skipped. Matters for mobile too.
+7. **Bot check can be skipped — do NOT fix by flipping the dashboard switch.** Turnstile runs only inside the Next.js signup/reset server actions; the public anon key can call Supabase Auth signUp directly. Supabase's own captcha setting (Auth → Bot and Abuse Protection) would close this, but `signupAction` does not pass a `captchaToken` to `auth.signUp`, so turning it on would BREAK live web signup. Needs a coordinated web change first. Matters for mobile too.
 8. Low: an old anon JWT and the project ref are in git history (js/config.js). Anon keys are public by design and the current tree is clean — nothing to do beyond keeping RLS correct.
 9. Low: the middleware `/@slug` rewrite turns `/@api/...` into `/api/...`, sidestepping the matcher's exclusions. Harmless today (API routes check their own auth) — don't add auth gating to middleware without closing this.
 10. Low: broker_submissions allows anonymous INSERT with no rate limit (spam risk).
@@ -367,10 +367,11 @@ Findings, priority order:
 Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-sync` branches (Jun 27–Jul 20, 1 commit each, touching web/README.md, web/.env.example, docs/database-migrations.md, RAILWAY_DEPLOY.md) — review or delete. `feat/activation-flow` and `feat/security-hardening-batch-1` are fully merged — safe to delete.
 
 ## Mobile App — KICKOFF 2026-09-13
-- Local project folder: C:\Users\AEGEAN AJENO\Desktop\bigmarkt-mobile (README.md = brief, docs/backend-surface.md = what the app can call). Not on GitHub yet.
-- Stack NOT decided. Working assumption: Expo (React Native) + TypeScript + @supabase/supabase-js against the SAME Supabase project (awvrylniqppybwaiwzse).
+- Local project folder: C:\Users\AEGEAN AJENO\Desktop\bigmarkt-mobile (README.md = brief, docs/PLAN.md = phases, docs/backend-surface.md = what the app can call). Separate git repo, not on GitHub yet.
+- **TOP RULE (owner, 2026-09-13): mobile work must never affect the live web product.** No pushes to this repo's `main` for mobile work (every push to `main` redeploys production — no Vercel ignore step), no web code changes, no migrations or Supabase Auth/dashboard changes without explicit approval.
+- DECIDED 2026-09-13: Expo (React Native) + TypeScript + @supabase/supabase-js against the SAME Supabase project (awvrylniqppybwaiwzse); separate repo, shared web logic copied not imported; signup/password reset open the website (login native); Phase 1 is read-only against live with private test accounts; a staging Supabase project is required before any write feature.
 - Main backend constraint: the web app's writes go through Next.js server actions (27 "use server" files), which a mobile app cannot call. Mobile can use supabase-js directly for RLS-protected tables, the public RPCs and storage (avatars, trade-charts). Anything that needs Turnstile, abuse_log rate limits, the service role or third-party secrets (MetaApi, EA tokens, admin) needs server endpoints — likely `web/app/api/mobile/*` route handlers that authenticate with the user's Supabase access token.
-- Open decisions: stack; separate repo vs a `mobile/` folder in this monorepo (a monorepo could share lib/pip-values.ts, lib/scoring.ts, lib/types.ts); v1 screen scope.
+- Still open: whether to create a GitHub repo for mobile; Apple/Google developer accounts; manual trade entry on mobile skips the service-role constitution-violation recompute (accept for v1 or add a server function later).
 - Web privacy rules carry over unchanged: never show raw `pnl` on public/social surfaces (use return_pct / rr_ratio); the service-role key never ships in the app.
 
 ## Hard Rules
