@@ -1,6 +1,6 @@
 # BigMarkt — Current State
 
-_Last updated: 2026-07-11. Update this file at the end of every session._
+_Last updated: 2026-09-13 (repo audit + mobile app kickoff; previous update 2026-07-12). Update this file at the end of every session._
 
 ## What BigMarkt Is
 Verified trade-journaling and social-trading platform for SMC/ICT retail traders. Live app at journal.bigmarkt.co. Broker data captured via a read-only MQL5 EA over an HMAC-signed bridge. Copy-trading and $BMT token are deliberately out of current build scope.
@@ -12,15 +12,16 @@ Verified trade-journaling and social-trading platform for SMC/ICT retail traders
 - club.bigmarkt.co — club
 
 ## Stack
-Next.js 15.5 / React 19 / TypeScript strict, Supabase Postgres (RLS), Tailwind, Vercel (auto-deploy on push to main). App code in `web/`. Supabase project ref: awvrylniqppybwaiwzse (eu-west-1). Repo: Oghene-Jefe/BigMarkt-Trade-Journal-, local clone C:\Users\User\bigmarkt.
+Next.js 15.5 / React 19 / TypeScript strict, Supabase Postgres (RLS), Tailwind, Vercel (auto-deploy on push to main). App code in `web/`. Supabase project ref: awvrylniqppybwaiwzse (eu-west-1). Repo: Oghene-Jefe/BigMarkt-Trade-Journal- (PUBLIC). Local clones: C:\Users\User\bigmarkt (main dev machine); no permanent clone on the AEGEAN AJENO laptop yet. Mobile app project (local, not yet on GitHub): C:\Users\AEGEAN AJENO\Desktop\bigmarkt-mobile — see "Mobile App" below.
 
 ## Migration State
-- Applied in prod: 0001–0082 (0078 is an unused gap — never committed, harmless)
+- Applied in prod: 0001–0085 per session notes (0078 is an unused gap — never committed, harmless). 0083 MetaApi tables, 0084 get_referral_list, 0085 MetaApi metrics columns — details below and in the MetaApi section.
+- ⚠️ `public.notifications` is NOT created by any migration — it was made by hand before 0024; 0024/0030/0031/0034 only ALTER its CHECK constraint. A fresh/staging database cannot be rebuilt from supabase/migrations alone. See Repo Audit #3.
 - 0079 — get_public_trades widened: trade_thesis added
 - 0080 — get_following_feed widened: entry/exit/SL/TP, lot_size, session, setup_grade, trade_thesis, chart_path added
 - 0081 — search_profiles RPC: community/public profile search by name/username, excludes caller, min 2 chars, capped 20, is_leader flag
 - 0082 — two fixes in one migration: (1) pause now actually excludes a leader's trades from get_following_feed / get_following_open_positions (was `status <> 'cancelled'`, now `status = 'active'`); (2) get_following_open_positions no longer returns raw dollar `pnl` — swapped to `return_pct`, closing a gap the earlier privacy sweep missed
-- 0083 — MetaApi scaffolding: metaapi_connections + metaapi_sync_runs tables (both RLS self-only, FKs cascade to auth.users + broker_accounts + metaapi_connections), and trades.capture_source CHECK widened to include 'metaapi'. Verified in prod: single capture_source check constraint present, all 4 FKs cascade-correct. No new migration (0084) needed — live probe confirmed positionId present on closed trades, so MetaApi trades key on position_id exactly like the EA; no external_id column required.
+- 0083 — MetaApi scaffolding: metaapi_connections + metaapi_sync_runs tables (both RLS self-only, FKs cascade to auth.users + broker_accounts + metaapi_connections), and trades.capture_source CHECK widened to include 'metaapi'. Verified in prod: single capture_source check constraint present, all 4 FKs cascade-correct. No MetaApi-specific follow-up migration needed (the 0084 number was later used for get_referral_list) — live probe confirmed positionId present on closed trades, so MetaApi trades key on position_id exactly like the EA; no external_id column required.
 - Migrations are applied MANUALLY in the Supabase SQL Editor — never `supabase db push`.
 
 ## Engagement Layer (C4) — Status
@@ -209,6 +210,8 @@ Deriv MT5 capture note: Deriv MT5 (DMT5) is just another MT5 broker — captured
 - MetaApi cost model confirmed from pricing page: API access FREE; hosting is what costs — deployed ~$0.0126/hr, UNDEPLOYED ~$0.00105/hr, plus $2.10/account/month to add. $10 minimum top-up + card/OTP blocked funding this session.
 
 ### ⚠️ PRE-LAUNCH REMINDER — Vercel Pro + cron frequency
+> UPDATE (checked 2026-09-13): since undeploy-when-idle (commit 679ec65) the metaapi-sync cron no longer syncs trades — it only advances provisioning and undeploys idle accounts. Restoring `*/15` on its own will NOT bring back automatic sync; the scheduled deploy→sync→undeploy sweep must also be built. web/vercel.json still has 4 crons with metaapi-sync at `0 6 * * *`.
+
 Current state (testing): metaapi-sync cron is set to DAILY (`0 6 * * *`) in web/vercel.json. This is a STOPGAP forced by the Vercel HOBBY plan, which only allows once-daily crons. The original design was every 15 min (`*/15 * * * *`), which the Hobby plan REJECTED and silently blocked the main app (big-markt-trade-journal) from deploying at all on 2026-07-10 — only fixed by dropping to daily (commit d46b3ff). Three sibling site projects deployed fine because they have no vercel.json/crons.
 
 BEFORE onboarding real/public Pro users, MUST DO:
@@ -233,7 +236,7 @@ get_public_trades (0079, this repo) already redacts pnl→return_pct — no raw 
 ### Built & verified this session (all npm run build green, PUSHED)
 - web/lib/metaapi/normalize.ts UPDATED: isJournalableTrade() filter (skip DEAL_TYPE_BALANCE), gain→return_pct mapping. sl/tp/rr_ratio/r_multiple stay null.
 - web/app/api/cron/metaapi-sync/route.ts NEW: 15-min cron, CRON_SECRET-gated via verifyCronAuth, loops metaapi_connections WHERE status='active', calls syncConnection. Mirrors recalculate-scores exactly. Read-only, no deploy/undeploy orchestration.
-- web/vercel.json: added metaapi-sync cron (*/15 * * * *). Four crons total.
+- web/vercel.json: added metaapi-sync cron (*/15 * * * *). Four crons total. — SUPERSEDED: dropped to daily `0 6 * * *` for the Hobby plan (commit d46b3ff), and since 679ec65 the cron no longer syncs.
 
 ### Cost model CONFIRMED (from live MetaApi screens)
 - Deployed 24/7: $0.0126/hr hosting + $0.00158/hr MetaStats = $0.0268/hr ≈ ~$19.60/mo per account. UNDERWATER on $15 Pro.
@@ -319,7 +322,7 @@ Edge/safety: if a user abandons a Sync mid-deploy, the account stays deployed un
 - KEY: MetaStats `gain` includes deposits/withdrawals — it is NOT a pure trading return. Use trade P&L / deposits for skill metrics; show gain only as the account snapshot.
 
 ### PRE-LAUNCH GATES (added 2026-07-11)
-- Swap the TEMPORARY isAdmin() gate in metaapi-actions.ts for a real Pro-entitlement check when Phase D payments ship (currently admin-only = solo testing).
+- RESOLVED 2026-07-12 (commit 33c8932): the TEMPORARY isAdmin() gate in metaapi-actions.ts is now Pro-or-admin. Self-serve paid Pro still waits on Phase D.
 - Rate limit SHIPPED (10 provisions/hr/IP via abuse_log scope 'metaapi_provision'). Consider adding a per-user cap before broad launch.
 - (Still stands) Vercel Hobby→Pro + restore metaapi-sync cron to */15 (see PRE-LAUNCH REMINDER above).
 
@@ -328,18 +331,47 @@ Edge/safety: if a user abandons a Sync mid-deploy, the account stays deployed un
 - Delete stale clone C:\Users\User\bigmarkt-trade-journal (do via File Explorer, verify by eye — the stale one has NO web/lib/metaapi folder).
 - Keep test account UNDEPLOYED between sessions to preserve $5 credit.
 
-### Blocker
-- MetaApi funding: $10 minimum top-up + card OTP verification deferred. Everything through the sync writer is built and green; cron + UI + probe + refinement all want a live account to verify against. Decision when resuming: fund MetaApi and finish the last mile live in one push, OR build cron + UI blind now and test when funded.
+### Blocker — RESOLVED 2026-07-11
+- MetaApi was funded and the live provisioning probe succeeded end to end (see "Provisioning LIVE PROBE — SUCCESS"). No open MetaApi blocker.
 
 ## Build Queue (priority order)
-1. **MetaApi integration — last mile** (engine built this session, see MetaApi Integration section above). Remaining: fund account → cron (piece 4, undeploy-aware) → provisioning UI → live probe → field refinement. Blocked only on MetaApi funding.
+0. **ACTIVE (2026-09-13): Mobile app** — kickoff, see "Mobile App" section. Ordering of the items below vs mobile not yet decided.
+1. ~~MetaApi integration — last mile~~ DONE 2026-07-11/12 (live probe, cloud UI, Sync now, undeploy-when-idle, Pro gate). Remaining: scheduled auto-sweep + Vercel Pro (pre-launch gate).
 2. C4c leader content layer (biggest remaining C4 piece; pay-gating waits on Phase D)
-3. B3 plan enforcement — deferred until MetaApi gives Pro a real feature
+3. B3 plan enforcement — LITE version WIRED 2026-07-12 (admin comp + cloud gated Pro-or-admin); self-serve upgrade waits on Phase D payments
+3a. Repo Audit fixes (2026-09-12) — see "Repo Audit" section; #1–#3 are quick and should go before public launch
 4. Phase D — Payments + MetaApi (D1 Paystack/Flutterwave, D2 MetaApi ingestion, D3 native Deriv/cTrader)
 5. Admin-configurable scoring gates
 6. More blog posts (crypto/stock/SMC/funded-trader keyword clusters)
 7. Onboard founding leaders (non-code GTM step)
 8. **Verified Trade Replay** (PARKED roadmap — post-launch, post-MetaApi last mile). Scope = #1 ONLY: replay a user's OWN logged trades on-chart — plot verified entry/exit/SL/TP + timestamps over historical candles, step through the price action. NOT #2 (bar-by-bar practice backtester like Forex Tester — separate heavy product, deferred indefinitely) and NOT #3 (rule/algo strategy backtesting — wrong audience, out of scope). Why it fits BigMarkt specifically: trades are broker-VERIFIED, so replay becomes a trust artifact, not just self-reflection — a leader's public profile could let followers replay a verified trade on the real chart, which no screenshot-based competitor can match. Leans directly into the "verified, not self-reported" thesis. Dependency: a historical CANDLE-DATA source (trades store entry/exit/SL/TP + times but NOT surrounding price bars). Synergy worth noting — MetaApi CAN return historical candles, so the same integration being built could feed replay (no separate data vendor needed). Open decisions when scoped: (a) candle source (MetaApi historical bars vs a free candle API); (b) where it lives — private journal enrichment (reflection) vs public profile (trust/social); the public/leader-profile version is the differentiated one. Rendering = a charting lib (e.g. Lightweight Charts) plotting trade markers over fetched candles. Moderate build, one external data dependency. NOT a pre-launch need.
+
+## Repo Audit — 2026-09-12 (fresh clone at 774234d; all items OPEN)
+Verified green: `npm run typecheck` clean, `npm test` 180 passed / 9 skipped (all 9 = privacy.spec.ts), `npm run build` green.
+
+Solid — keep as is: RLS enabled on all 33 tables created in migrations; all 35 current SECURITY DEFINER functions set search_path; envelope encryption in lib/ea/secrets.ts (AES-256-GCM, HKDF bound to user+token, key versions); supabaseAdmin guarded by `server-only`; history scan found no service-role key or private API key committed.
+
+Findings, priority order:
+1. **CUTOVER.md is wrong about the service-role key.** Step 3 says do NOT add SUPABASE_SERVICE_ROLE_KEY to Vercel because it is "never imported". It is used by password reset and signup rate limiting ((auth)/actions.ts), the onboarding username check, admin actions, manual-trade violation recompute, all 4 crons, EA ingest and MetaApi sync. Prod clearly has it set (those features work) — fix the doc so nobody follows it on a new deploy.
+2. **Dependencies.** `npm audit --omit=dev`: 6 vulns (1 critical, 3 high). next@15.5.18 — GHSA-2xp9-vwfh-vxw4 (Image Optimization AVIF RCE) applies on Vercel; GHSA-p293-qw3h-jr36 (the "critical") is Windows-hosted only. sharp 0.34.5 (libvips/libheif CVEs). `web/package.json` `overrides.postcss: "8.5.10"` pins a vulnerable postcss (fixed in ≥8.5.28) and blocks `npm audit fix`.
+3. **notifications table not in migrations** (see Migration State). Capture its DDL + RLS policies + triggers from prod as a new migration.
+4. **The only live RLS test never runs.** privacy.spec.ts self-skips without SUPABASE_SERVICE_ROLE_KEY and CI never sets one. Needs a staging Supabase project.
+5. **CI covers web/ only.** websocket-server/ (has tests, holds the service-role key), sites/club, sites/fts, sites/marketing are never typechecked, built or tested.
+6. **Guard workflows pass silently.** schema-drift.yml and supabase-policy-guard.yml exit green with a warning when their secrets are missing. Not confirmed whether the secrets are set; if drift really ran, #3 would fail it.
+7. **To check in the Supabase dashboard:** Turnstile runs inside the Next.js signup/reset server actions, but the public anon key can call Supabase Auth signUp directly. Confirm Auth → Bot and Abuse Protection (captcha) is ON, otherwise the bot check can be skipped. Matters for mobile too.
+8. Low: an old anon JWT and the project ref are in git history (js/config.js). Anon keys are public by design and the current tree is clean — nothing to do beyond keeping RLS correct.
+9. Low: the middleware `/@slug` rewrite turns `/@api/...` into `/api/...`, sidestepping the matcher's exclusions. Harmless today (API routes check their own auth) — don't add auth gating to middleware without closing this.
+10. Low: broker_submissions allows anonymous INSERT with no rate limit (spam risk).
+11. Low: web/app/api/ea/ingest/route.ts is 1,687 lines — split it next time it's touched.
+
+Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-sync` branches (Jun 27–Jul 20, 1 commit each, touching web/README.md, web/.env.example, docs/database-migrations.md, RAILWAY_DEPLOY.md) — review or delete. `feat/activation-flow` and `feat/security-hardening-batch-1` are fully merged — safe to delete.
+
+## Mobile App — KICKOFF 2026-09-13
+- Local project folder: C:\Users\AEGEAN AJENO\Desktop\bigmarkt-mobile (README.md = brief, docs/backend-surface.md = what the app can call). Not on GitHub yet.
+- Stack NOT decided. Working assumption: Expo (React Native) + TypeScript + @supabase/supabase-js against the SAME Supabase project (awvrylniqppybwaiwzse).
+- Main backend constraint: the web app's writes go through Next.js server actions (27 "use server" files), which a mobile app cannot call. Mobile can use supabase-js directly for RLS-protected tables, the public RPCs and storage (avatars, trade-charts). Anything that needs Turnstile, abuse_log rate limits, the service role or third-party secrets (MetaApi, EA tokens, admin) needs server endpoints — likely `web/app/api/mobile/*` route handlers that authenticate with the user's Supabase access token.
+- Open decisions: stack; separate repo vs a `mobile/` folder in this monorepo (a monorepo could share lib/pip-values.ts, lib/scoring.ts, lib/types.ts); v1 screen scope.
+- Web privacy rules carry over unchanged: never show raw `pnl` on public/social surfaces (use return_pct / rr_ratio); the service-role key never ships in the app.
 
 ## Hard Rules
 - PROP FIRM + CLOUD (clarified 2026-07-11): the "prop firm = journal-only" rule means copy EXECUTION is permanently disabled on prop accounts — it does NOT ban journaling. Automated READ-ONLY journaling via cloud/MetaApi (investor password + GET-only MetaStats) IS permitted for prop firms — provisionConnectionAction sets journal_mode='automated' for ALL cloud connections; is_prop_firm stays true, keeping the prop_firm badge + the deferred copy-execution lock in force. The EA/manual path still forces prop firms to manual (EAs can violate prop-firm rules; cloud read-only capture does not).
