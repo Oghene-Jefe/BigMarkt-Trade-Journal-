@@ -1,6 +1,6 @@
 # BigMarkt — Current State
 
-_Last updated: 2026-09-13 (repo audit + mobile app kickoff; previous update 2026-07-12). Update this file at the end of every session._
+_Last updated: 2026-09-14 (mobile app: login + tabs + read-only Home; 2026-09-13 repo audit + mobile kickoff; previous update 2026-07-12). Update this file at the end of every session._
 
 ## What BigMarkt Is
 Verified trade-journaling and social-trading platform for SMC/ICT retail traders. Live app at journal.bigmarkt.co. Broker data captured via a read-only MQL5 EA over an HMAC-signed bridge. Copy-trading and $BMT token are deliberately out of current build scope.
@@ -12,7 +12,7 @@ Verified trade-journaling and social-trading platform for SMC/ICT retail traders
 - club.bigmarkt.co — club
 
 ## Stack
-Next.js 15.5 / React 19 / TypeScript strict, Supabase Postgres (RLS), Tailwind, Vercel (auto-deploy on push to main). App code in `web/`. Supabase project ref: awvrylniqppybwaiwzse (eu-west-1). Repo: Oghene-Jefe/BigMarkt-Trade-Journal- (PUBLIC). Local clones: C:\Users\User\bigmarkt (main dev machine); no permanent clone on the AEGEAN AJENO laptop yet. Mobile app project (local, not yet on GitHub): C:\Users\AEGEAN AJENO\Desktop\bigmarkt-mobile — see "Mobile App" below.
+Next.js 15.5 / React 19 / TypeScript strict, Supabase Postgres (RLS), Tailwind, Vercel (auto-deploy on push to main). App code in `web/`. Supabase project ref: awvrylniqppybwaiwzse (eu-west-1). Repo: Oghene-Jefe/BigMarkt-Trade-Journal- (PUBLIC). Local clones: C:\Users\User\bigmarkt (main dev machine); no permanent clone on the AEGEAN AJENO laptop yet. Mobile app (private repo Oghene-Jefe/bigmarkt-mobile): C:\Users\AEGEAN AJENO\Desktop\bigmarkt-mobile — see "Mobile App" below.
 
 ## Migration State
 - Applied in prod: 0001–0085 per session notes (0078 is an unused gap — never committed, harmless). 0083 MetaApi tables, 0084 get_referral_list, 0085 MetaApi metrics columns — details below and in the MetaApi section.
