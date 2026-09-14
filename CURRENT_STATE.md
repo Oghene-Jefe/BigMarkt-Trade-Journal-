@@ -367,11 +367,20 @@ Findings, priority order:
 Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-sync` branches (Jun 27–Jul 20, 1 commit each, touching web/README.md, web/.env.example, docs/database-migrations.md, RAILWAY_DEPLOY.md) — review or delete. `feat/activation-flow` and `feat/security-hardening-batch-1` are fully merged — safe to delete.
 
 ## Mobile App — KICKOFF 2026-09-13
-- Local project folder: C:\Users\AEGEAN AJENO\Desktop\bigmarkt-mobile (README.md = brief, docs/PLAN.md = phases, docs/backend-surface.md = what the app can call). Separate git repo, not on GitHub yet.
+- Local project folder: C:\Users\AEGEAN AJENO\Desktop\bigmarkt-mobile (README.md = brief, docs/PLAN.md = phases + screen list, docs/backend-surface.md = what the app can call). Private GitHub repo: https://github.com/Oghene-Jefe/bigmarkt-mobile.
+- No app store yet (owner, 2026-09-14): build and test locally only. Store IDs / Apple + Google developer accounts deferred.
 - **TOP RULE (owner, 2026-09-13): mobile work must never affect the live web product.** No pushes to this repo's `main` for mobile work (every push to `main` redeploys production — no Vercel ignore step), no web code changes, no migrations or Supabase Auth/dashboard changes without explicit approval.
 - DECIDED 2026-09-13: Expo (React Native) + TypeScript + @supabase/supabase-js against the SAME Supabase project (awvrylniqppybwaiwzse); separate repo, shared web logic copied not imported; signup/password reset open the website (login native); Phase 1 is read-only against live with private test accounts; a staging Supabase project is required before any write feature.
 - Main backend constraint: the web app's writes go through Next.js server actions (27 "use server" files), which a mobile app cannot call. Mobile can use supabase-js directly for RLS-protected tables, the public RPCs and storage (avatars, trade-charts). Anything that needs Turnstile, abuse_log rate limits, the service role or third-party secrets (MetaApi, EA tokens, admin) needs server endpoints — likely `web/app/api/mobile/*` route handlers that authenticate with the user's Supabase access token.
-- Still open: whether to create a GitHub repo for mobile; Apple/Google developer accounts; manual trade entry on mobile skips the service-role constitution-violation recompute (accept for v1 or add a server function later).
+- Still open: manual trade entry on mobile skips the service-role constitution-violation recompute (accept for v1 or add a server function later); Sync now for cloud accounts needs a server endpoint (web change, needs approval); user self-serve Delete account (check what exists on web before release).
+
+### Mobile progress — 2026-09-14
+- **Phase 0 DONE.** Expo SDK 57 + TypeScript + expo-router (`src/` layout), Supabase client (publishable key only, in gitignored `.env.local`; verified HTTP 200 against auth settings), shared web logic copied from web @ 774234d (`pip-values`, `format`, `heatmap`, `types`). Typecheck clean, expo-doctor 21/21.
+- **Expo account linked.** CLI logged in as `bigmarkt`; project linked to expo.dev project `bigmarkt` under `bigmarkts-team` (projectId b276f723-e5f0-4a3b-bba0-06b8079ff5d7); app.json slug `bigmarkt`, owner `bigmarkts-team`. Note: `npx expo login --browser` crashes on Windows (Expo CLI passes the login URL unquoted to `cmd start`); use plain `npx expo login` (email + password) instead.
+- **Mockups approved.** 22-screen design canvas (phone + tablet, 4 tabs / 11 screens + share trade card + loading/empty/offline states), audited and updated: https://claude.ai/code/artifact/6fd54c2f-2844-4410-8b3d-a89d1d730b51 (generator: `design/build-mockups.mjs`).
+- **Phase 1 started: login flow built.** Session context, login screen (email/password, show/hide, generic error, Create account / Forgot password open the website), signed-in route group with guard, temporary signed-in screen with log out. Verified in the PC web preview (Expo web on localhost:8081); not yet tested with a real login or on a phone.
+- **PC preview:** Expo web build (web output `single`; browser localStorage for the session on web, encrypted SecureStore on phones). Phone testing via Expo Go is pending.
+- **Next:** owner logs in with a dedicated private test account; then bottom tab bar + real Home (read-only), then Journal, Community, Me.
 - Web privacy rules carry over unchanged: never show raw `pnl` on public/social surfaces (use return_pct / rr_ratio); the service-role key never ships in the app.
 
 ## Hard Rules
