@@ -380,7 +380,10 @@ Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-syn
 - **Mockups approved.** 22-screen design canvas (phone + tablet, 4 tabs / 11 screens + share trade card + loading/empty/offline states), audited and updated: https://claude.ai/code/artifact/6fd54c2f-2844-4410-8b3d-a89d1d730b51 (generator: `design/build-mockups.mjs`).
 - **Phase 1 started: login flow built.** Session context, login screen (email/password, show/hide, generic error, Create account / Forgot password open the website), signed-in route group with guard, temporary signed-in screen with log out. Verified in the PC web preview (Expo web on localhost:8081); not yet tested with a real login or on a phone.
 - **PC preview:** Expo web build (web output `single`; browser localStorage for the session on web, encrypted SecureStore on phones). Phone testing via Expo Go is pending.
-- **Next:** owner logs in with a dedicated private test account; then bottom tab bar + real Home (read-only), then Journal, Community, Me.
+- **Test account login verified (2026-09-14)** in the PC preview; the session persists across reloads.
+- **Bottom tabs + Home built (read-only).** Home mirrors the web dashboard: active account read from profiles.active_broker_account_id with an in-memory fallback (never writes, unlike web getActiveAccount, which creates a default account and persists the choice); Net P&L, Growth (web cloud vs balance rules), Win rate, Total trades; open positions; recent trades; Cloud "Updated … ago"; local-only account picker; pull-to-refresh. Queries use explicit column lists (never broker_accounts.readonly_password or metaapi token columns). Journal and Community are placeholders; Me has log out. Typecheck clean.
+- **Verified only against the empty test account** (all zero/empty states). A few trades on the test account are needed to check real numbers.
+- **Next:** Journal (list + calendar + trade detail), then Community, then Me.
 - Web privacy rules carry over unchanged: never show raw `pnl` on public/social surfaces (use return_pct / rr_ratio); the service-role key never ships in the app.
 
 ## Hard Rules
