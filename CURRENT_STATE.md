@@ -1,6 +1,6 @@
 # BigMarkt — Current State
 
-_Last updated: 2026-09-14 (mobile app: login + tabs + read-only Home; 2026-09-13 repo audit + mobile kickoff; previous update 2026-07-12). Update this file at the end of every session._
+_Last updated: 2026-09-15 (mobile app: Journal Stats, flat design, edit profile + photo; 2026-09-14 mobile app: login + tabs + read-only Home; 2026-09-13 repo audit + mobile kickoff; previous update 2026-07-12). Update this file at the end of every session._
 
 ## What BigMarkt Is
 Verified trade-journaling and social-trading platform for SMC/ICT retail traders. Live app at journal.bigmarkt.co. Broker data captured via a read-only MQL5 EA over an HMAC-signed bridge. Copy-trading and $BMT token are deliberately out of current build scope.
@@ -408,9 +408,20 @@ Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-syn
 - **Owner decisions 2026-09-14:** share trade card first; verified Cloud (metaapi) trades should appear in the following feed (applied to staging via bigmarkt-mobile staging/06-feed-include-cloud-trades.sql; the same change goes to the web repo as a migration on a branch and needs owner approval before live); shared images show % and R only, never dollar P&L; Cloud accounts are still connected on the website (no mobile MetaApi endpoint yet).
 - **Share trade image built, 2026-09-14.** Compact Bybit/Binance-style card from trade detail (closed trades): pair, direction, result pill, a headline of the trade's saved return % (else its R:R), facts that exist (R:R, grade, session), entry → exit, SL/TP when set, up to 3 chips, source · date and profile link. No dollar P&L or lot size. Captured with react-native-view-shot, shared via expo-sharing; the web build uses a no-op capture so html2canvas stays out of the web bundle. Works on live too (no writes). First phone test found a broken "↑" glyph (rendered "ij") and a card that was too tall with empty boxes; both fixed. The owner confirmed the web pip table / risk calculator is correct, so the card no longer computes pips itself; its numbers come from the journal.
 - **Return % for manual trades:** Add / Edit trade has an optional "Account balance at open" (pre-filled from the account's current, else starting balance); saving stores balance_at_open and return_pct = P&L ÷ balance × 100, the EA ingest formula. Web's manual form doesn't have the field; web shows the saved return_pct.
-- **Analytics built, 2026-09-14.** Mirrors web analytics (lib/analytics.ts and lib/reportCard.ts copied verbatim): weekly / monthly report cards with Share report (image without dollar amounts; net P&L, best/worst trade and best/worst day stay on the private screen), equity curve and drawdown (react-native-svg), win rate by pair, session and setup grade, psychology (best/worst mindset, emotion table, insights). All trades across accounts minus "exclude", like web. Linked from Home.
+- **Analytics built, 2026-09-14.** Mirrors web analytics (lib/analytics.ts and lib/reportCard.ts copied verbatim): weekly / monthly report cards with Share report (image without dollar amounts; net P&L, best/worst trade and best/worst day stay on the private screen), equity curve and drawdown (react-native-svg), win rate by pair, session and setup grade, psychology (best/worst mindset, emotion table, insights).
+- **Analytics moved into Journal as "Stats", 2026-09-15.** Home was getting crowded, so analytics now lives in Journal (List / Calendar / Stats). Owner decision: Stats covers only the account selected in Journal (web analytics covers all accounts minus "exclude"). Tapping a Home metric opens Journal Stats.
+- **Flat design, 2026-09-15 (owner decision).** No faded green / red / gold fills anywhere in the app. Panels are solid with a thin border; colour appears only on text, icons, borders and a 3px left accent bar. Pills are outline-only, selected states get a gold border, and share images have no glow shapes.
+- **Edit profile + photo built (staging only), 2026-09-15.** Me > Profile > Edit profile, mirroring web profile/actions.ts updateProfileAction and ProfileForm:
+  - display name (1–40)
+  - @username (3–30 letters / numbers / underscores, saved lower-case; a taken name shows an error)
+  - visibility (private / community / public)
+  - starting balance
+  - auto-share verified trades
+  - square photo, 512px JPEG, 2 MB cap, magic-byte check, uploaded to the private avatars bucket, old file removed
+
+  Journal mode stays on the website, because web asks for the automation terms first. A save was verified on staging from the PC preview; the photo upload needs a phone test.
 - **Web findings (not changed):** web share card and report cards show dollar P&L on shareable images; following a second trader from the same account replaces the first follow (upsert on broker_account_id+mode); web EA-visibility toggle compares to "community".
-- **Next options:** profile edit + photo; risk calculator; delete trade + remember the chosen account; empty / loading / offline states; then website approvals (Cloud-in-feed migration, repo catch-up migration, server endpoints for violations / streaks / notifications, account deletion) and release prep; then more of the write phase, which needs a staging Supabase project first (see docs/PLAN.md Phase 2) and decisions on the server endpoints (Sync now, manual-trade violation recompute).
+- **Next options:** risk calculator; delete trade + remember the chosen account; empty / loading / offline states; then website approvals (Cloud-in-feed migration, repo catch-up migration, server endpoints for violations / streaks / notifications, account deletion) and release prep; then more of the write phase, which needs a staging Supabase project first (see docs/PLAN.md Phase 2) and decisions on the server endpoints (Sync now, manual-trade violation recompute).
 - Web privacy rules carry over unchanged: never show raw `pnl` on public/social surfaces (use return_pct / rr_ratio); the service-role key never ships in the app.
 
 ## Hard Rules
