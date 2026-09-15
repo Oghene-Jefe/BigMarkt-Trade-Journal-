@@ -453,7 +453,16 @@ Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-syn
   - Live: kept on the device per user, because the app doesn't write to the shared DB.
   - Verified in preview: switching to a second staging account ("Prop Test", a test1 fixture) and back survives a full reload, and the profile column updates.
 - **Web findings (not changed):** web share card and report cards show dollar P&L on shareable images; following a second trader from the same account replaces the first follow (upsert on broker_account_id+mode); web EA-visibility toggle compares to "community".
-- **Next options:** empty / loading / offline states; then website approvals (Cloud-in-feed migration, repo catch-up migration, server endpoints for violations / streaks / notifications, account deletion) and release prep; then more of the write phase, which needs a staging Supabase project first (see docs/PLAN.md Phase 2) and decisions on the server endpoints (Sync now, manual-trade violation recompute).
+- **Small fixes, 2026-09-15 (owner phone feedback):**
+  - "Cancel" no longer wraps on iPhone with larger text: New / Edit trade and Edit profile top bars use flexible sides.
+  - Delete trade is now a quiet grey text link, with the red kept in the confirm dialog.
+- **Empty, loading, error and offline states, 2026-09-15.** Shared components (components/states.tsx):
+  - Loading.
+  - Error with Try again. It says "You're offline" when the phone has no connection and reloads by itself when the connection returns.
+  - Empty with icon, title, text and an optional action.
+
+  Applied to Home ("No trades yet" + Add trade), Journal list and Stats, Community feed / leaderboard / search, Me, Following, trader profile, trade detail, share, edit trade, edit profile and settings. An OFFLINE label shows next to STAGING (expo-network; also on live). Checked in the web preview by simulating offline: the label shows, Community shows the offline block, and the feed reloads on reconnect.
+- **Next options:** then website approvals (Cloud-in-feed migration, repo catch-up migration, server endpoints for violations / streaks / notifications, account deletion) and release prep; then more of the write phase, which needs a staging Supabase project first (see docs/PLAN.md Phase 2) and decisions on the server endpoints (Sync now, manual-trade violation recompute).
 - Web privacy rules carry over unchanged: never show raw `pnl` on public/social surfaces (use return_pct / rr_ratio); the service-role key never ships in the app.
 
 ## Hard Rules
