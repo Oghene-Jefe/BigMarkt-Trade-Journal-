@@ -437,8 +437,23 @@ Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-syn
   - Only the calculator's SL distance and $/pip change.
   - **Web bug (not changed):** the live web calculator shows 1000 pips for the same trade. The fix is the same one-entry change in web lib/pip-values.ts, to go on a branch with owner approval.
 - **Owner, 2026-09-15:** the two-phone follow / reactions / return % / Stats tests were done earlier; re-run them in the overall test pass before release.
+- **Journal Add trade button, 2026-09-15.** The header "+" was hard to find, so it's now a floating gold "+ Add trade" button in List, Calendar and Stats (bottom of the list pane on tablets).
+  - It shrinks to a round + after scrolling and expands back at the top.
+  - The owner approved the smaller version.
+  - Draggable was considered and not used: it moves by accident while scrolling.
+- **Delete trade built (staging only), 2026-09-15.** Red outline button at the bottom of trade detail, mirroring web deleteTradeAction:
+  - confirm first, with the web message plus "can't be undone"
+  - delete the row with a user_id check on top of RLS, then remove the chart
+  - rule deviations, reactions and events cascade
+  - phones go back to Journal; the tablet pane updates its list
+
+  Verified on staging with a throwaway trade.
+- **Remember the chosen account, 2026-09-15.**
+  - Staging: saved on profiles.active_broker_account_id, like web setActiveAccountAction (own-account check) and getActiveAccount (fallback saved back), so web and app agree.
+  - Live: kept on the device per user, because the app doesn't write to the shared DB.
+  - Verified in preview: switching to a second staging account ("Prop Test", a test1 fixture) and back survives a full reload, and the profile column updates.
 - **Web findings (not changed):** web share card and report cards show dollar P&L on shareable images; following a second trader from the same account replaces the first follow (upsert on broker_account_id+mode); web EA-visibility toggle compares to "community".
-- **Next options:** delete trade + remember the chosen account; empty / loading / offline states; then website approvals (Cloud-in-feed migration, repo catch-up migration, server endpoints for violations / streaks / notifications, account deletion) and release prep; then more of the write phase, which needs a staging Supabase project first (see docs/PLAN.md Phase 2) and decisions on the server endpoints (Sync now, manual-trade violation recompute).
+- **Next options:** empty / loading / offline states; then website approvals (Cloud-in-feed migration, repo catch-up migration, server endpoints for violations / streaks / notifications, account deletion) and release prep; then more of the write phase, which needs a staging Supabase project first (see docs/PLAN.md Phase 2) and decisions on the server endpoints (Sync now, manual-trade violation recompute).
 - Web privacy rules carry over unchanged: never show raw `pnl` on public/social surfaces (use return_pct / rr_ratio); the service-role key never ships in the app.
 
 ## Hard Rules
