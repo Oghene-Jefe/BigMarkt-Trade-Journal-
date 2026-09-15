@@ -468,7 +468,26 @@ Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-syn
   - A failed save puts the old value back with a message.
   - Web defines setTradeVisibilityAction but no web UI uses it yet.
   - Verified on staging: Public → Private → Public on test1's XAUUSD trade.
-- **Next options:** then website approvals (Cloud-in-feed migration, repo catch-up migration, server endpoints for violations / streaks / notifications, account deletion) and release prep; then more of the write phase, which needs a staging Supabase project first (see docs/PLAN.md Phase 2) and decisions on the server endpoints (Sync now, manual-trade violation recompute).
+- **WEB BUG (live, not changed): Settings "Show EA trades on public profile" never worked.**
+  - setEaTradesVisibility writes visibility = 'community', which trades_visibility_check rejects (live and staging allow only private / public / exclude / followers_only; confirmed read-only on live), so turning it on always errors.
+  - The page checks for 'community', so it always shows Off.
+  - Turning it off sets every EA trade private, wiping per-trade Exclude / Followers choices.
+  - **Owner decision 2026-09-15:** fixed behaviour. On makes Private EA trades Public, Off makes Public EA trades Private, and Exclude / Followers are left alone.
+  - **Web fix prepared on branch `fix/ea-trades-visibility` (3802e21, from main 774234d)** in settings/page.tsx, EaVisibilityToggle.tsx and lib/actions/ea-visibility.ts. `npm run build` passes. Pushed to the branch only (Vercel preview); needs owner approval before merging to main.
+- **Settings switch built in the app (staging only), 2026-09-15.** Same fixed behaviour.
+  - Shows On when any EA trade is Public, says how many trades changed, and puts the switch back on failure.
+  - Read-only (but correct) on live.
+  - Verified on staging: Off → test1's EA GBPUSD private (both columns; EA lock allows it), On → public again.
+- **Next options:**
+  - Release prep: app icon / splash, store listing basics, production build config.
+  - Website approvals:
+    - Merge fix/ea-trades-visibility.
+    - Gold pip size fix.
+    - Cloud-in-feed migration.
+    - Repo catch-up migration.
+    - Avatar signing endpoint.
+    - Server endpoints for violations / streaks / notifications.
+    - Account deletion.
 - Web privacy rules carry over unchanged: never show raw `pnl` on public/social surfaces (use return_pct / rr_ratio); the service-role key never ships in the app.
 
 ## Hard Rules
