@@ -462,6 +462,12 @@ Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-syn
   - Empty with icon, title, text and an optional action.
 
   Applied to Home ("No trades yet" + Add trade), Journal list and Stats, Community feed / leaderboard / search, Me, Following, trader profile, trade detail, share, edit trade, edit profile and settings. An OFFLINE label shows next to STAGING (expo-network; also on live). Checked in the web preview by simulating offline: the label shows, Community shows the offline block, and the feed reloads on reconnect.
+- **Quick visibility change on trade detail (staging only), 2026-09-15.**
+  - The visibility tag is a small button that opens a sheet with Private / Public / Exclude (Followers when the trade already has it), in trade-form wording.
+  - It saves immediately, like web setTradeVisibilityAction: visibility + trade_visibility, own trade only. Visibility isn't locked, so EA and Cloud trades can change it.
+  - A failed save puts the old value back with a message.
+  - Web defines setTradeVisibilityAction but no web UI uses it yet.
+  - Verified on staging: Public → Private → Public on test1's XAUUSD trade.
 - **Next options:** then website approvals (Cloud-in-feed migration, repo catch-up migration, server endpoints for violations / streaks / notifications, account deletion) and release prep; then more of the write phase, which needs a staging Supabase project first (see docs/PLAN.md Phase 2) and decisions on the server endpoints (Sync now, manual-trade violation recompute).
 - Web privacy rules carry over unchanged: never show raw `pnl` on public/social surfaces (use return_pct / rr_ratio); the service-role key never ships in the app.
 
