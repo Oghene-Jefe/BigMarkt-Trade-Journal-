@@ -431,7 +431,11 @@ Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-syn
   - comma decimals accepted
   - no writes, so it also works against live
 
-  Checked in preview: XAU/USD 1% / 1000 pips → 0.10 lot; EUR/USD 6% / 50 pips → 1.20 lot + HIGH RISK; 100000-pip SL → below-minimum warning.
+  Checked in preview: EUR/USD 6% / 50 pips → 1.20 lot + HIGH RISK; 100000-pip SL → below-minimum warning. EUR/USD also phone-tested by the owner.
+- **Gold pip size corrected in the app (owner, 2026-09-15).** 1 pip = $0.10 price move and $10 per pip per lot, so 4000 → 3990 is 100 pips and 0.10 lot risks $100. Mobile pip-values XAU/USD now uses pipFactor 10 / pipValue 10; web has 100 / 1.
+  - Money is unchanged everywhere (auto P&L, constitution risk), because factor × value stays 100.
+  - Only the calculator's SL distance and $/pip change.
+  - **Web bug (not changed):** the live web calculator shows 1000 pips for the same trade. The fix is the same one-entry change in web lib/pip-values.ts, to go on a branch with owner approval.
 - **Owner, 2026-09-15:** the two-phone follow / reactions / return % / Stats tests were done earlier; re-run them in the overall test pass before release.
 - **Web findings (not changed):** web share card and report cards show dollar P&L on shareable images; following a second trader from the same account replaces the first follow (upsert on broker_account_id+mode); web EA-visibility toggle compares to "community".
 - **Next options:** delete trade + remember the chosen account; empty / loading / offline states; then website approvals (Cloud-in-feed migration, repo catch-up migration, server endpoints for violations / streaks / notifications, account deletion) and release prep; then more of the write phase, which needs a staging Supabase project first (see docs/PLAN.md Phase 2) and decisions on the server endpoints (Sync now, manual-trade violation recompute).
