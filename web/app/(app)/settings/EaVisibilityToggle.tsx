@@ -17,9 +17,7 @@ export default function EaVisibilityToggle({
     setEnabled(next);
     setError(null);
     startTransition(async () => {
-      const result = await setEaTradesVisibility(
-        next ? "community" : "private",
-      );
+      const result = await setEaTradesVisibility(next ? "public" : "private");
       if (!result.success) {
         setEnabled(!next); // revert
         setError(result.error ?? "Failed to update. Please try again.");
@@ -36,7 +34,7 @@ export default function EaVisibilityToggle({
           </p>
           <p className="text-xs text-muted">
             When enabled, your EA-verified trades will be visible on your public
-            profile
+            profile. Trades you set to Exclude or Followers aren&apos;t changed.
           </p>
         </div>
         <button
