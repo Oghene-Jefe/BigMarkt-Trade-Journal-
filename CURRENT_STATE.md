@@ -419,9 +419,22 @@ Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-syn
   - auto-share verified trades
   - square photo, 512px JPEG, 2 MB cap, magic-byte check, uploaded to the private avatars bucket, old file removed
 
-  Journal mode stays on the website, because web asks for the automation terms first. A save was verified on staging from the PC preview; the photo upload needs a phone test.
+  Journal mode stays on the website, because web asks for the automation terms first. Phone-tested on staging (iPhone + Android):
+  - photo upload and replace; the old file is deleted
+  - duplicate username rejected
+  - usernames saved lower-case
+- **Other traders' photos are not shown in the app yet.** The avatars bucket only lets owners read their own folder; web signs other users' avatars server-side. This needs a small web endpoint (added to the website-approvals list).
+- **Risk calculator built, 2026-09-15.** Me > Tools > Risk calculator, mirroring web calculator/page.tsx on the shared pip table:
+  - same lot / pip value / SL distance / max loss math, 0.01 minimum lot
+  - same warnings (risk above 5%, lot below minimum)
+  - balance starts from the selected account's balance
+  - comma decimals accepted
+  - no writes, so it also works against live
+
+  Checked in preview: XAU/USD 1% / 1000 pips → 0.10 lot; EUR/USD 6% / 50 pips → 1.20 lot + HIGH RISK; 100000-pip SL → below-minimum warning.
+- **Owner, 2026-09-15:** the two-phone follow / reactions / return % / Stats tests were done earlier; re-run them in the overall test pass before release.
 - **Web findings (not changed):** web share card and report cards show dollar P&L on shareable images; following a second trader from the same account replaces the first follow (upsert on broker_account_id+mode); web EA-visibility toggle compares to "community".
-- **Next options:** risk calculator; delete trade + remember the chosen account; empty / loading / offline states; then website approvals (Cloud-in-feed migration, repo catch-up migration, server endpoints for violations / streaks / notifications, account deletion) and release prep; then more of the write phase, which needs a staging Supabase project first (see docs/PLAN.md Phase 2) and decisions on the server endpoints (Sync now, manual-trade violation recompute).
+- **Next options:** delete trade + remember the chosen account; empty / loading / offline states; then website approvals (Cloud-in-feed migration, repo catch-up migration, server endpoints for violations / streaks / notifications, account deletion) and release prep; then more of the write phase, which needs a staging Supabase project first (see docs/PLAN.md Phase 2) and decisions on the server endpoints (Sync now, manual-trade violation recompute).
 - Web privacy rules carry over unchanged: never show raw `pnl` on public/social surfaces (use return_pct / rr_ratio); the service-role key never ships in the app.
 
 ## Hard Rules
