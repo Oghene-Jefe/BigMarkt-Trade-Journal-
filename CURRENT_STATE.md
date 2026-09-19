@@ -1,6 +1,6 @@
 # BigMarkt — Current State
 
-_Last updated: 2026-09-15 (mobile app: Journal Stats, flat design, edit profile + photo; 2026-09-14 mobile app: login + tabs + read-only Home; 2026-09-13 repo audit + mobile kickoff; previous update 2026-07-12). Update this file at the end of every session._
+_Last updated: 2026-09-19 (mobile app: release prep, EAS test builds, account deletion request, add account, opening screen; 2026-09-15 mobile app: Journal Stats, flat design, edit profile + photo; 2026-09-14 mobile app: login + tabs + read-only Home; 2026-09-13 repo audit + mobile kickoff; previous update 2026-07-12). Update this file at the end of every session._
 
 ## What BigMarkt Is
 Verified trade-journaling and social-trading platform for SMC/ICT retail traders. Live app at journal.bigmarkt.co. Broker data captured via a read-only MQL5 EA over an HMAC-signed bridge. Copy-trading and $BMT token are deliberately out of current build scope.
@@ -502,8 +502,27 @@ Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-syn
 - **EAS set up, 2026-09-19 (owner approved).**
   - Environment variables were created on @bigmarkts-team/bigmarkt: preview = staging, production = live. Only publishable keys, plain text.
   - The first Android preview build (staging APK, versionCode 1) was started; its signing keystore was generated and is stored by EAS.
+- **Android test builds (EAS preview, staging), 2026-09-19.**
+  - First APK was universal, 115 MB; a test phone said "App not installed". Preview APKs now build only arm64-v8a + armeabi-v7a, about 65 MB, and install fine.
+  - All preview builds had versionCode 1, so an update refused to install over the old one. Preview builds now auto-increment too (remote counter shared with production). Latest preview build: versionCode 3.
+- **Splash / opening screen.**
+  - Android 12+ clipped the wide wordmark splash image (the "t"), then showed it tiny inside the system splash circle.
+  - Now the system splash is only the #0A0A0A background (blank image), and an in-app BrandSplash shows the full website wordmark at about 72% of screen width while the saved session loads (min 0.8s), then fades out.
+- **Add broker account in the app, 2026-09-19 (owner request).** Me → Accounts → Add account, mirroring web AddAccountModal + createBrokerAccountAction + brokerAccountSchema:
+  - label 1–50
+  - broker from the supported / partial list
+  - live / demo / prop firm
+  - manual / automated (prop firm forced manual, as the DB prop_firm_must_be_manual check requires)
+  - optional account number
+
+  No investor password in the app (Cloud stays on the web). Mobile lib/brokers.ts is now a verbatim copy of web lib/brokers.ts @ 774234d. The insert was verified under RLS as a staging test user; live policy and checks were confirmed read-only to match.
+- **Owner phone test pass so far (preview build, staging):**
+  - Passed: trades add / edit / delete, Stats, charts, share cards, profile photo, Settings → Delete account (email pre-filled with account ID), offline label, sign-in.
+  - Discover search showed nothing as test1: expected, because search excludes yourself and test2 is private.
+  - Still to check: follow / pause / unfollow / reactions across phones, risk calculator, visibility + EA switches, Add account.
 - **Next options:**
-  - Install the preview APK for the full two-phone test pass, then the production build.
+  - Finish the test pass on the latest preview build (versionCode 3).
+  - Then the production build (live AAB) and eas submit to the Play internal track, once the owner has the Play developer account and service-account key.
   - Website approvals:
     - Merge fix/ea-trades-visibility.
     - Gold pip size fix.
