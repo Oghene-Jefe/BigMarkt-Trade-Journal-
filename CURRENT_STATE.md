@@ -496,8 +496,14 @@ Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-syn
   - Play listing, data safety and content rating.
   - A reviewer test account on live.
   - **An account-deletion web page (Play requirement; needs web approval).**
+- **Account deletion for Google Play, 2026-09-19 (owner request).** Settings → Delete account explains what gets deleted (the account is shared with journal.bigmarkt.co) and opens a pre-filled request email to support@bigmarkt.co with the account email and ID.
+  - The Play Data safety web link is https://journal.bigmarkt.co/privacy, which says deletion is on request.
+  - Deletions are a manual admin task until the web adds self-service deletion.
+- **EAS set up, 2026-09-19 (owner approved).**
+  - Environment variables were created on @bigmarkts-team/bigmarkt: preview = staging, production = live. Only publishable keys, plain text.
+  - The first Android preview build (staging APK, versionCode 1) was started; its signing keystore was generated and is stored by EAS.
 - **Next options:**
-  - First preview (staging) build for the full two-phone test pass, then the production build.
+  - Install the preview APK for the full two-phone test pass, then the production build.
   - Website approvals:
     - Merge fix/ea-trades-visibility.
     - Gold pip size fix.
