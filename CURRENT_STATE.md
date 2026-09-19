@@ -478,8 +478,26 @@ Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-syn
   - Shows On when any EA trade is Public, says how many trades changed, and puts the switch back on failure.
   - Read-only (but correct) on live.
   - Verified on staging: Off → test1's EA GBPUSD private (both columns; EA lock allows it), On → public again.
+- **Owner decisions 2026-09-19 (release):**
+  - App ID `co.bigmarkt.journal` (permanent).
+  - The released app saves on live too (same RLS as web). The known gap for app-created trades remains: no rule-check recompute, streaks or notifications until web endpoints exist.
+  - App icon and splash use the full website wordmark.
+- **Release prep done, 2026-09-19** (mobile repo docs/RELEASE.md):
+  - Wordmark icon set and splash; the web favicon stays B + peak.
+  - expo-updates with fingerprint runtime versions.
+  - eas.json: preview = staging APK, production = live AAB; submit to the internal track as draft.
+  - Expo packages aligned (expo-doctor 21/21).
+  - Live columns checked identical to staging for every table the app writes (read-only catalog query).
+  - Store assets in design/store.
+- **Owner to do before the first build / listing:**
+  - Create the EAS environment variables (commands in RELEASE.md).
+  - Play developer account. New personal accounts need a 12-tester, 14-day closed test.
+  - Service-account key for eas submit.
+  - Play listing, data safety and content rating.
+  - A reviewer test account on live.
+  - **An account-deletion web page (Play requirement; needs web approval).**
 - **Next options:**
-  - Release prep: app icon / splash, store listing basics, production build config.
+  - First preview (staging) build for the full two-phone test pass, then the production build.
   - Website approvals:
     - Merge fix/ea-trades-visibility.
     - Gold pip size fix.
