@@ -13,16 +13,18 @@ export default async function SettingsPage() {
 
   if (!user) redirect("/login");
 
-  // Check current EA trades visibility (peek at first EA trade)
-  const { data: sample } = await sb
+  // On when any EA trade is public. ("community" is not a trade visibility
+  // value: trades_visibility_check allows private / public / exclude /
+  // followers_only, so the old check always showed Off.)
+  const { data: publicEa } = await sb
     .from("trades")
-    .select("visibility")
+    .select("id")
     .eq("user_id", user.id)
     .eq("source", "ea")
-    .limit(1)
-    .maybeSingle();
+    .eq("visibility", "public")
+    .limit(1);
 
-  const eaPublic = sample?.visibility === "community";
+  const eaPublic = (publicEa ?? []).length > 0;
 
   return (
     <div className="space-y-6">
