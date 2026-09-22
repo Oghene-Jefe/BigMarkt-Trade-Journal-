@@ -520,17 +520,25 @@ Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-syn
   - Passed: trades add / edit / delete, Stats, charts, share cards, profile photo, Settings → Delete account (email pre-filled with account ID), offline label, sign-in.
   - Discover search showed nothing as test1: expected, because search excludes yourself and test2 is private.
   - Still to check: follow / pause / unfollow / reactions across phones, risk calculator, visibility + EA switches, Add account.
+- **In-app signup and password reset, 2026-09-20.** Owner: bouncing to the browser mid-signup felt redundant. Mirrors web (auth)/actions.ts: name 1–80, valid email, new passwords 12+ chars, the already-has-an-account message, one generic reset answer. `auth-callback` screen reads Supabase email links (code or access_token, query or fragment) and sends recovery links to the new-password screen; it needs `bigmarkt://auth-callback` in Supabase redirect URLs. Web keeps Turnstile and the abuse-log reset limit; app resets rely on Supabase's own limits.
+- **Auth email templates, 2026-09-22.** `docs/email-templates/` in the mobile repo. Gmail on iPhone recolours dark emails to light, and the site logo is white lettering on transparency, so it rendered invisible; the header now uses `/images/bigmarkt-logo-email.png` (dark panel baked in, merged to web main) plus bgcolor attributes and colour-scheme meta.
+- **SUPPORT DESK SHIPPED 2026-09-22 (web main + live DB).**
+  - Migration 0086 applied to staging and live by the owner: `support_agents` + `is_support_agent()`, RLS letting agents read and answer every conversation and set status, `support_people(uuid[])` returning only name / email / join date, `support_reply` added to the notifications type list, and a trigger that notifies the trader on every support reply.
+  - `/support-desk` (PR #11) — inbox and thread view gated by `requireSupportAgent`, no admin nav. Promotion is one row: `insert into support_agents (user_id) values (...)`.
+  - Verified on staging as an agent: sees conversations, replies, looks up the trader, sees 0 trades and only their own profile and account.
+  - Also merged: PR #10 EA visibility fix (the Settings toggle had never worked), PR #12 email logo asset. Web main went 774234d → ae98ea4.
+- **App support chat + notifications, 2026-09-22.** Me → App → Support mirrors web useSupportChat (open conversation or new, live replies, read flags via the RPC). Me → App → Notifications mirrors web notifications/page.tsx (unread gold bar, tap to mark read, mark all read); support replies deep-link to the chat, trade notifications to the trade. No further DB work.
 - **Next options:**
-  - Finish the test pass on the latest preview build (versionCode 3).
+  - Finish the test pass on the latest preview build (versionCode 9), including support chat and notifications.
   - Then the production build (live AAB) and eas submit to the Play internal track, once the owner has the Play developer account and service-account key.
-  - Website approvals:
-    - Merge fix/ea-trades-visibility.
-    - Gold pip size fix.
+  - Telegram alerts for new trader messages: needs `pg_net` enabled and a bot token in Supabase, then an edge function.
+  - Website approvals still open:
+    - Gold pip size fix (app fixed; web still shows 10× pips).
     - Cloud-in-feed migration.
     - Repo catch-up migration.
     - Avatar signing endpoint.
     - Server endpoints for violations / streaks / notifications.
-    - Account deletion.
+    - Account deletion (the app now sends a support request email; web self-service still missing).
 - Web privacy rules carry over unchanged: never show raw `pnl` on public/social surfaces (use return_pct / rr_ratio); the service-role key never ships in the app.
 
 ## Hard Rules
