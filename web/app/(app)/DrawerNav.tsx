@@ -11,6 +11,7 @@ import Logo from "@/components/ui/Logo";
 
 type Props = {
   admin: boolean;
+  supportAgent: boolean;
   unreadCount: number;
   userEmail: string;
 };
@@ -76,7 +77,7 @@ const MOBILE_LINKS: LinkItem[] = [
   ]),
 ];
 
-export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
+export default function DrawerNav({ admin, supportAgent, unreadCount, userEmail }: Props) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -169,6 +170,7 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
           items={[
             { href: "/guide" as Route, label: "Guide" },
             { href: "/profile", label: "Profile" },
+            ...(supportAgent ? [{ href: "/support-desk" as Route, label: "Support desk" }] : []),
             ...(admin
               ? [
                   { href: "/admin" as Route, label: "Admin · Dashboard" },
@@ -185,7 +187,7 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
           isOpen={openMenu === "__profile"}
           onToggle={() => setOpenMenu(openMenu === "__profile" ? null : "__profile")}
           onClose={() => setOpenMenu(null)}
-          active={isActive("/profile") || isActive("/admin")}
+          active={isActive("/profile") || isActive("/admin") || isActive("/support-desk")}
           isActive={isActive}
           footer={
             <>
@@ -268,6 +270,20 @@ export default function DrawerNav({ admin, unreadCount, userEmail }: Props) {
                   </Link>
                 );
               })}
+              {supportAgent ? (
+                <Link
+                  href={"/support-desk" as Route}
+                  onClick={() => setDrawerOpen(false)}
+                  className={`flex min-h-[48px] w-full items-center gap-2 border-l-2 px-4 ${
+                    pathname.startsWith("/support-desk")
+                      ? "border-gold bg-gold/5 font-medium text-gold"
+                      : "border-transparent text-gold/80 hover:text-white"
+                  }`}
+                >
+                  <Shield size={14} aria-hidden />
+                  <span>Support desk</span>
+                </Link>
+              ) : null}
               {admin ? (
                 <>
                   {(

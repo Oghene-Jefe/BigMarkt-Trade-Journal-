@@ -32,18 +32,17 @@ export function useSupportChat(userId: string, isOpen: boolean) {
           .limit(1)
           .maybeSingle();
 
-        let convo = existing as SupportConversation | null;
-        if (!convo) {
-          const { data: created, error } = await supabase
-            .from("support_conversations")
-            .insert({ user_id: userId, status: "open" })
-            .select()
-            .single();
-          if (error) throw error;
-          convo = created as SupportConversation;
-        }
+        // Opening the widget no longer creates a conversation: that filled the
+        // support inbox with empty threads that all showed as waiting on a
+        // reply. The row is created by sendMessage, on the first message.
+        const convo = existing as SupportConversation | null;
         if (cancelled) return;
         setConversation(convo);
+        if (!convo) {
+          setMessages([]);
+          setUnreadCount(0);
+          return;
+        }
 
         const { data: msgs } = await supabase
           .from("support_messages")
@@ -121,12 +120,29 @@ export function useSupportChat(userId: string, isOpen: boolean) {
   const sendMessage = useCallback(
     async (body: string) => {
       const trimmed = body.trim();
-      if (!trimmed || !conversation) return;
+      if (!trimmed) return;
       setSending(true);
+
+      // First message of a new thread: create the conversation now.
+      let convo = conversation;
+      if (!convo) {
+        const { data: created, error: createErr } = await supabase
+          .from("support_conversations")
+          .insert({ user_id: userId, status: "open" })
+          .select()
+          .single();
+        if (createErr || !created) {
+          console.error("sendMessage could not start a conversation", createErr);
+          setSending(false);
+          return;
+        }
+        convo = created as SupportConversation;
+        setConversation(convo);
+      }
       const optimisticId = `optimistic-${Date.now()}`;
       const optimistic: SupportMessage = {
         id: optimisticId,
-        conversation_id: conversation.id,
+        conversation_id: convo.id,
         sender_id: userId,
         sender_role: "user",
         body: trimmed,
@@ -138,7 +154,7 @@ export function useSupportChat(userId: string, isOpen: boolean) {
         const { data, error } = await supabase
           .from("support_messages")
           .insert({
-            conversation_id: conversation.id,
+            conversation_id: convo.id,
             sender_id: userId,
             sender_role: "user",
             body: trimmed,
