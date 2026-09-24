@@ -532,6 +532,10 @@ Branches: 8 unmerged `automation/documentation-sync*` + `codex/documentation-syn
   - Nothing linked to `/support-desk`; agents had to know the URL. The nav now shows "Support desk" (desktop Profile menu + mobile drawer) when `is_support_agent()` is true. The page keeps its own server gate.
   - The web chat widget and the app's Support screen created a conversation on open, so the inbox filled with empty threads all flagged waiting (16 conversations on live, 13 with no messages). Both now create it on the first message, and the desk lists only threads with `last_message_at` set. The empty rows stay in the table, hidden from the desk.
   - Agents on live: ejemsuccex@gmail.com and lilianedheno2@gmail.com. Still no alerting — until Telegram is wired, agents have to open the desk to see new messages.
+- **Staging paused, dev on live, 2026-09-24 (owner request).** `bigmarkt-staging` (qrqkawspdybjkcruvsdn) is INACTIVE so the owner could free the free-tier slot for another organisation. Live (awvrylniqppybwaiwzse) is untouched and healthy.
+  - Local dev points at live: `.env.development.local` renamed to `.env.development.local.staging-paused`, so Expo falls back to `.env.local`. No STAGING badge any more — every write from `npx expo start` lands on the live database, so **test accounts only**.
+  - The preview APK (STAGING badge) can no longer sign in. Testing runs on the live-test build from here.
+  - Consequence to respect: no rehearsal ground for migrations. Restore staging (dashboard, a few minutes, data intact) before running new SQL, rather than trying it on live.
 - **Next options:**
   - Finish the test pass on the latest preview build (versionCode 9), including support chat and notifications.
   - Then the production build (live AAB) and eas submit to the Play internal track, once the owner has the Play developer account and service-account key.
