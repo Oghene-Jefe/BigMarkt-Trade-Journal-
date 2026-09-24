@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
+import { isSupportAgent } from "@/lib/support-agent";
 import { getUnreadNotificationCountAction } from "@/lib/actions/notifications";
 import { getActiveAccount } from "@/lib/accounts";
 import AccountSwitcher from "@/components/layout/AccountSwitcher";
@@ -43,6 +44,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!profile?.display_name) redirect("/onboarding");
 
   const admin = await isAdmin();
+  // Support agents need a way into /support-desk: without a link they had to
+  // know the URL, so replies sat unread. The page keeps its own server gate.
+  const supportAgent = await isSupportAgent();
   const { activeId, accounts } = await getActiveAccount(sb, user.id);
   const unreadRes = await getUnreadNotificationCountAction();
   const unreadCount = ("count" in unreadRes ? unreadRes.count : 0) ?? 0;
@@ -68,7 +72,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
           <div className="flex items-center gap-3">
             <AccountSwitcher activeId={activeId} accounts={accounts} />
-            <DrawerNav admin={admin} unreadCount={unreadCount} userEmail={user.email ?? ""} />
+            <DrawerNav admin={admin} supportAgent={supportAgent} unreadCount={unreadCount} userEmail={user.email ?? ""} />
           </div>
         </div>
       </header>
