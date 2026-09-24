@@ -48,9 +48,13 @@ export default async function SupportDeskPage() {
   await requireSupportAgent();
   const sb = await supabaseServer();
 
+  // Only threads someone actually wrote in. The website's chat widget used to
+  // create a conversation the moment it was opened, so the inbox filled with
+  // empty rows that all counted as "waiting on us".
   const { data: convos } = await sb
     .from("support_conversations")
     .select("*")
+    .not("last_message_at", "is", null)
     .order("last_message_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
 
