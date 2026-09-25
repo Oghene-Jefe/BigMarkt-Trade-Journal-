@@ -1,51 +1,50 @@
-"use client";
-
+// The password form can only save with a recovery session in place, so check
+// for one before showing it. Without this the form rendered for anyone who
+// landed here with a dead link and only failed after they had typed a new
+// password twice — which is exactly how a real reset was lost on 2026-09-25.
 import Link from "next/link";
-import { useActionState } from "react";
-import { setNewPasswordAction, type ActionState } from "../../actions";
+import { supabaseServer } from "@/lib/supabase/server";
 import Logo from "@/components/ui/Logo";
+import NewPasswordForm from "./NewPasswordForm";
 
-export default function ResetConfirmPage() {
-  const [state, formAction, pending] = useActionState<ActionState, FormData>(setNewPasswordAction, {});
+export const dynamic = "force-dynamic";
 
-  return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <form action={formAction} className="w-full max-w-sm space-y-4 rounded-lg bg-panel p-8">
-        <div className="flex justify-center mb-6">
-          <Link href="/" aria-label="Back to home">
-            <Logo size="lg" />
+export default async function ResetConfirmPage() {
+  const sb = await supabaseServer();
+  const { data: { user } } = await sb.auth.getUser();
+
+  if (!user) {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-6">
+        <div className="w-full max-w-sm space-y-4 rounded-lg bg-panel p-8">
+          <div className="mb-6 flex justify-center">
+            <Link href="/" aria-label="Back to home">
+              <Logo size="lg" />
+            </Link>
+          </div>
+          <h1 className="text-center text-2xl font-semibold text-white">Reset link didn&apos;t open</h1>
+          <p className="text-sm text-muted">
+            This link has expired, has already been used, or was opened in a different browser from
+            the one that asked for it. Reset links only work in the browser that requested them.
+          </p>
+          <p className="text-sm text-muted">
+            Ask for a new link and open it on the same device and browser.
+          </p>
+          <Link
+            href="/reset"
+            className="block w-full rounded-md bg-gold py-3 text-center text-sm font-medium text-black"
+          >
+            Send a new link
           </Link>
+          <p className="text-center text-xs">
+            <Link href="/login" className="text-muted hover:text-white">
+              ← Back to sign in
+            </Link>
+          </p>
         </div>
-        <h1 className="text-center text-2xl font-semibold text-white">Set new password</h1>
+      </main>
+    );
+  }
 
-        <label className="block text-sm">
-          <span className="mb-1 block text-muted">New password</span>
-          <input name="password" type="password" required minLength={12}
-            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2" />
-          <span className="mt-1 block text-xs text-muted">
-            At least 12 characters.
-          </span>
-        </label>
-
-        <label className="block text-sm">
-          <span className="mb-1 block text-muted">Confirm password</span>
-          <input name="confirm" type="password" required minLength={12}
-            className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2" />
-        </label>
-
-        {state.error ? <p className="text-sm text-loss">{state.error}</p> : null}
-
-        <button disabled={pending}
-          className="w-full rounded-md bg-gold py-3 text-sm font-medium text-black disabled:opacity-50">
-          {pending ? "Saving…" : "Save password"}
-        </button>
-
-        <p className="text-center text-xs">
-          <Link href="/" className="text-muted hover:text-white">
-            ← Back to home
-          </Link>
-        </p>
-      </form>
-    </main>
-  );
+  return <NewPasswordForm />;
 }

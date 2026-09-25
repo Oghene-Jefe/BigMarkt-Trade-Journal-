@@ -1,10 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useActionState, useState } from "react";
 import { requestResetAction, type ActionState } from "../actions";
 import Logo from "@/components/ui/Logo";
 import Turnstile from "@/components/Turnstile";
+
+// Shown when /auth/callback couldn't redeem a reset link, so the person isn't
+// left guessing why the password form turned them away.
+function LinkErrorNotice() {
+  const failed = useSearchParams().get("error") === "link";
+  if (!failed) return null;
+  return (
+    <p className="rounded-md border border-loss/40 px-3 py-2 text-sm text-loss">
+      That reset link couldn&apos;t be used. Links expire, work only once, and only in the browser
+      that asked for them. Send a new one below and open it on this device.
+    </p>
+  );
+}
 
 export default function ResetPage() {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(requestResetAction, {});
@@ -25,6 +39,10 @@ export default function ResetPage() {
         </div>
         <h1 className="text-center text-2xl font-semibold text-white">Reset password</h1>
         <p className="text-sm text-muted">Enter your account email and we'll send a reset link.</p>
+
+        <Suspense fallback={null}>
+          <LinkErrorNotice />
+        </Suspense>
 
         <label className="block text-sm">
           <span className="mb-1 block text-muted">Email</span>
