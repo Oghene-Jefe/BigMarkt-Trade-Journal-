@@ -2,40 +2,18 @@
 // and forward to whatever page sent the user (next= search param), defaulting
 // to the dashboard.
 //
-// Audit M-17: the original guard only blocked open-redirect / protocol-relative
-// shapes (`//evil.com`) — it allowed any internal path including /admin/*,
-// /api/*, or any future internal route. That made the callback a phishing
-// vector: an attacker can craft a magic-link with `?next=/journal/imports`
-// (or worse) and the user lands somewhere unexpected after auth.
-//
-// Hard allow-list now. Any `next` value that isn't in the set falls back to
-// /dashboard — same default the search-param fallback uses. The list is
-// intentionally short and explicit; adding routes here should be a conscious
-// decision.
-const ALLOWED_NEXT = new Set([
-  "/dashboard",
-  "/journal",
-  "/profile",
-  "/onboarding",
-  "/reset/confirm",
-]);
-
+// This is the PKCE half of the pair: ?code can only be redeemed by the browser
+// that requested the link. Links that carry a token hash go to /auth/confirm
+// instead, which works on any device. The allow-list for `next` and the
+// failure targets are shared between the two (lib/auth-redirects.ts).
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
-
-// Where to send someone whose link didn't work. A recovery link that fails
-// has to land back on /reset with an explanation, not on the password form:
-// the form can't save anything without a session, and it used to say so only
-// after the user had typed a new password twice.
-function failureTarget(next: string): string {
-  return next === "/reset/confirm" ? "/reset?error=link" : "/login?error=link";
-}
+import { failureTarget, safeNext } from "@/lib/auth-redirects";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const requested = url.searchParams.get("next");
-  const next = requested && ALLOWED_NEXT.has(requested) ? requested : "/dashboard";
+  const next = safeNext(url.searchParams.get("next"));
 
   // Supabase itself can reject the link before we ever see a code (expired,
   // already used, or consumed by a mail-client link preview).
