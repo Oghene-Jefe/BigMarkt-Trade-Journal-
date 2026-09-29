@@ -7,20 +7,23 @@ existed in prod that were never in the repo (`subscriptions`, `notifications`,
 Supabase SQL editor instead of through committed migrations, so the repo was not
 a faithful picture of prod and bugs hid in the gap.
 
-## The rule (going forward)
+## Current production rule
 
-**Every schema change is a migration file, applied with the CLI. Never hand-edit
-prod in the dashboard SQL editor.**
+**Every schema change must have a numbered migration file. Production changes
+are reviewed and applied manually in the Supabase SQL Editor. Do not run
+`supabase db push` against production.**
 
 ```bash
 # 1. write supabase/migrations/00NN_description.sql
-# 2. apply it to prod
-supabase db push
-# 3. commit the migration file
+# 2. review and commit the exact SQL
+# 3. apply that file manually in the production SQL Editor
+# 4. record and verify the applied migration in CURRENT_STATE.md
 ```
 
-`supabase db push` applies only un-applied migrations and records them in the
-remote `schema_migrations` table, so the repo and prod stay in lockstep.
+This manual process is an operational constraint, not proof that a migration
+ran. Verify affected tables, functions, grants, policies, or constraints after
+application. Migration filenames contain historical gaps and duplicate numeric
+prefixes, so always identify a change by its full filename.
 
 ## One-time: recover a true baseline (needs DB credentials)
 
@@ -39,12 +42,11 @@ git add supabase/migrations && git commit -m "chore(db): baseline from prod"
 After this, `supabase/migrations/` reproduces prod from scratch and the drift
 check below becomes meaningful.
 
-## CI drift check
+## Proposed CI drift check (not implemented)
 
-`.github/workflows/schema-drift.yml` runs `supabase db diff --linked` on every
-PR + daily and **fails if prod has drifted** from the committed migrations. It
-no-ops until these repo secrets are set
-(Settings → Secrets and variables → Actions):
+A future `.github/workflows/schema-drift.yml` could run `supabase db diff
+--linked` on pull requests and on a schedule. No such workflow exists in this
+repository today. It would require these GitHub Actions secrets:
 
 | Secret | Value |
 |---|---|
