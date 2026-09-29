@@ -65,8 +65,19 @@ above will subsume them:
 | `0064_fix_handle_new_user_referred_by.sql` | restore referral capture on signup + backfill |
 | `0065_fix_get_referral_stats_ambiguous_refcode.sql` | fix ambiguous `ref_code` |
 | `0066_follow_graph_rpcs.sql` | `get_follow_counts` / `get_follow_list` |
+| `0067_idempotent_ingest.sql` | idempotent EA event logging and ingest backfill guards |
+| `0070_following_feed.sql` | `get_following_feed` RPC for verified trades from followed leaders |
+| `0071_auto_share_verified.sql` | `profiles.auto_share_verified` flag for new verified EA trade sharing |
 
 > Note: `0032_referral_at_signup.sql` was in the repo but never applied to prod —
 > `0064` re-asserts its effect. The baseline pull will reconcile any remaining
 > objects that exist in prod but not in `supabase/migrations/`
-> (`subscriptions`, `notifications` + policies, etc.).
+> (`subscriptions`, `notifications` + policies, Pro plan columns, etc.).
+
+## Current repo caveat
+
+The app currently reads Pro plan fields from `profiles`
+(`plan`, `plan_status`, `plan_renews_at`, `plan_source`, `pro_interest_at`), but
+there is no numbered migration file for those columns in this checkout. Treat
+that as schema-drift debt until a baseline pull or explicit migration captures
+the production definition.

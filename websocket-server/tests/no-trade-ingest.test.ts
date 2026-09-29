@@ -1,7 +1,6 @@
 // Regression test for the WS trade-ingest decommission.
 //
-// Closes audit findings C-2 + C-3 in docs/security-audit-2026-05-17.md.
-// Codex approval: docs/codex-ws-decision-approval.md.
+// Contract: docs/ea-ingest-and-ws-status.md.
 //
 // `handleClientMessage` is a pure function that has no Supabase client
 // available to it — so by construction the WS `trade` message path cannot

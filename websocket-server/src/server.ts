@@ -15,11 +15,9 @@ import { parseTokenIds } from "./statusQuery.js";
 // nonce replay protection, zod bounds, broker-account scoping, or score
 // recalculation.
 //
-// Decision: docs/claude-websocket-protocol-decision.md (Option A, codex-
-// approved in docs/codex-ws-decision-approval.md). Closes audit findings
-// C-2 + C-3 from docs/security-audit-2026-05-17.md. The official EA
-// already POSTs trades to `/api/ea/ingest` over HTTP (verified in
-// `mql5/BigMarkt_EA.mq5` — `ApiEndpoint` input + `WebRequest` call). No
+// Decision: trade ingest is HTTP-only; WebSocket is presence/status only.
+// The current contract is documented in docs/ea-ingest-and-ws-status.md.
+// The official EA already POSTs trades to `/api/ea/ingest` over HTTP. No
 // production user of the WS ingest path exists.
 //
 // Removed: handleTrade(), deriveDirection(), deriveResult(), TradePayload

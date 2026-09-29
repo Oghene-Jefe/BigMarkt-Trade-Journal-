@@ -1,5 +1,5 @@
 // Canonical message + HMAC-SHA256 signing for EA ingest v2.
-// See docs/ea-replay-protocol.md §3.
+// See docs/ea-ingest-and-ws-status.md.
 //
 // Why a fixed field list instead of JSON.stringify:
 // JSON.stringify's key order depends on insertion order, and adding a
