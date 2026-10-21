@@ -14,8 +14,8 @@ function LinkErrorNotice() {
   if (!failed) return null;
   return (
     <p className="rounded-md border border-loss/40 px-3 py-2 text-sm text-loss">
-      That reset link couldn&apos;t be used. Links expire, work only once, and only in the browser
-      that asked for them. Send a new one below and open it on this device.
+      That reset link couldn&apos;t be used. Reset links last an hour and work only once. Send a new
+      one below &mdash; you can open it on any device.
     </p>
   );
 }

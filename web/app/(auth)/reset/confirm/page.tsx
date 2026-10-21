@@ -24,11 +24,10 @@ export default async function ResetConfirmPage() {
           </div>
           <h1 className="text-center text-2xl font-semibold text-white">Reset link didn&apos;t open</h1>
           <p className="text-sm text-muted">
-            This link has expired, has already been used, or was opened in a different browser from
-            the one that asked for it. Reset links only work in the browser that requested them.
+            This link has expired or has already been used. Reset links last an hour and work once.
           </p>
           <p className="text-sm text-muted">
-            Ask for a new link and open it on the same device and browser.
+            Ask for a new one &mdash; you can open it on any device.
           </p>
           <Link
             href="/reset"

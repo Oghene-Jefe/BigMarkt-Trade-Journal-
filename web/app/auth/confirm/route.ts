@@ -28,12 +28,28 @@ function isVerifiable(type: string | null): type is EmailOtpType {
  * itself — burning it here would sign in a browser the trader isn't using.
  * A server redirect to a custom scheme is unreliable (Safari in particular),
  * so hand over with a page that tries the deep link and offers a button.
+ *
+ * It also offers a web fallback, because a reset asked for in the app is often
+ * opened on a laptop, or on a phone that doesn't have the app: that device has
+ * no bigmarkt:// handler, and without the fallback the only button on the page
+ * does nothing. The token is still unspent here, so either route can use it.
  */
-function handOverToApp(redirectTo: string, tokenHash: string, type: EmailOtpType): NextResponse {
+function handOverToApp(
+  origin: string,
+  redirectTo: string,
+  tokenHash: string,
+  type: EmailOtpType,
+  next: string,
+): NextResponse {
   const target = `${redirectTo}${redirectTo.includes("?") ? "&" : "?"}token_hash=${encodeURIComponent(
     tokenHash,
   )}&type=${encodeURIComponent(type)}`;
-  const attr = target.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  const webParams = new URLSearchParams({ token_hash: tokenHash, type, next });
+  const webTarget = `${origin}/auth/confirm?${webParams.toString()}`;
+  const escape = (value: string) =>
+    value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  const attr = escape(target);
+  const webAttr = escape(webTarget);
   const html = `<!doctype html>
 <html lang="en">
 <head>
@@ -50,6 +66,7 @@ function handOverToApp(redirectTo: string, tokenHash: string, type: EmailOtpType
   p { color:#a1a1aa; font-size:.9375rem; line-height:1.5; margin:0 0 1.25rem; }
   a.btn { display:block; background:#d4af37; color:#000; text-decoration:none; font-weight:600;
           padding:.875rem 1rem; border-radius:.5rem; }
+  a.alt { display:inline-block; margin-top:1.25rem; color:#d4af37; font-size:.875rem; }
 </style>
 </head>
 <body>
@@ -57,6 +74,7 @@ function handOverToApp(redirectTo: string, tokenHash: string, type: EmailOtpType
     <h1>Opening the BigMarkt app</h1>
     <p>If nothing happens, tap the button below on the phone where BigMarkt is installed.</p>
     <a class="btn" href="${attr}">Open the BigMarkt app</a>
+    <a class="alt" href="${webAttr}">Not on this device? Continue on the website</a>
   </div>
   <!-- After the fallback has painted: a browser that can't handle the scheme
        otherwise leaves a blank page instead of the button. -->
@@ -94,7 +112,7 @@ export async function GET(request: Request) {
       console.error("[auth_confirm] unusable link type:", { type, next });
       return NextResponse.redirect(new URL(failureTarget(next), url.origin));
     }
-    if (isAppCallback(redirectTo)) return handOverToApp(redirectTo!, tokenHash, type);
+    if (isAppCallback(redirectTo)) return handOverToApp(url.origin, redirectTo!, tokenHash, type, next);
 
     const { error } = await sb.auth.verifyOtp({ type, token_hash: tokenHash });
     if (error) {
