@@ -1,9 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useActionState } from "react";
 import { loginAction, type ActionState } from "../actions";
 import Logo from "@/components/ui/Logo";
+
+// Shown when an email link couldn't be used, so the person isn't left guessing.
+function LinkErrorNotice() {
+  const failed = useSearchParams().get("error") === "link";
+  if (!failed) return null;
+  return (
+    <p className="rounded-md border border-loss/40 px-3 py-2 text-sm text-loss">
+      That link couldn&apos;t be used. Email links expire and work only once — ask for a new one.
+    </p>
+  );
+}
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(loginAction, {});
@@ -17,6 +29,10 @@ export default function LoginPage() {
           </Link>
         </div>
         <h1 className="text-center text-2xl font-semibold text-white">Log in</h1>
+
+        <Suspense fallback={null}>
+          <LinkErrorNotice />
+        </Suspense>
 
         <label className="block text-sm">
           <span className="mb-1 block text-muted">Email</span>
